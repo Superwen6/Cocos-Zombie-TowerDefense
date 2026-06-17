@@ -1,0 +1,13 @@
+{
+  "ver": "2.0.4",
+  "importer": "animation-clip",
+  "imported": true,
+  "uuid": "0584c5ec-faec-4851-87cf-21c22b0e56bf",
+  "files": [
+    ".bin"
+  ],
+  "subMetas": {},
+  "userData": {
+    "name": "walk_up"
+  }
+}

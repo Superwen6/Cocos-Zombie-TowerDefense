@@ -1,0 +1,14 @@
+{
+  "ver": "1.1.50",
+  "importer": "prefab",
+  "imported": true,
+  "uuid": "1b8858e9-60b2-491f-930b-5b3c935bf2d8",
+  "files": [
+    ".json"
+  ],
+  "subMetas": {},
+  "userData": {
+    "syncNodeName": "Zombie",
+    "persistent": false
+  }
+}

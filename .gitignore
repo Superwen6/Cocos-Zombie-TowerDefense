@@ -1,0 +1,22 @@
+# Cocos Creator
+library/
+local/
+temp/
+build/
+native/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+
+# Logs
+*.log

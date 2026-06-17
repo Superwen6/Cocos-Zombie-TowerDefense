@@ -1,0 +1,91 @@
+{
+  "__version__": "1.3.9",
+  "log": {
+    "level": 2
+  },
+  "common": {
+    "binGroupConfig": {
+      "threshold": 16,
+      "enable": false
+    },
+    "polyfills": {
+      "asyncFunctions": true
+    },
+    "name": "僵尸塔防"
+  },
+  "BuildTaskManager": {
+    "taskMap": {
+      "1781603513588": {
+        "type": "build",
+        "id": "1781603513588",
+        "progress": 1,
+        "state": "success",
+        "stage": "build",
+        "message": "2026-6-16 17:53:53 build success in 1 min 59 s!",
+        "detailMessage": "// ---- build task web-desktop：onAfterBuild ----\r",
+        "options": {
+          "name": "僵尸塔防",
+          "server": "",
+          "engineModulesConfigKey": "defaultConfig",
+          "platform": "web-desktop",
+          "buildPath": "project://build",
+          "debug": false,
+          "buildMode": "normal",
+          "mangleProperties": false,
+          "md5Cache": false,
+          "skipCompressTexture": false,
+          "sourceMaps": false,
+          "overwriteProjectSettings": {
+            "includeModules": {
+              "gfx-webgl2": "on",
+              "physics": "inherit-project-setting",
+              "physics-2d": "inherit-project-setting"
+            },
+            "macroConfig": {
+              "cleanupImageCache": "inherit-project-setting"
+            }
+          },
+          "nativeCodeBundleMode": "both",
+          "polyfills": {
+            "asyncFunctions": true
+          },
+          "experimentalEraseModules": false,
+          "startSceneAssetBundle": false,
+          "bundleConfigs": [],
+          "inlineEnum": true,
+          "useBuiltinServer": false,
+          "md5CacheOptions": {
+            "excludes": [],
+            "includes": [],
+            "replaceOnly": [],
+            "handleTemplateMd5Link": true
+          },
+          "mainBundleIsRemote": false,
+          "mainBundleCompressionType": "merge_dep",
+          "useSplashScreen": true,
+          "bundleCommonChunk": false,
+          "packAutoAtlas": true,
+          "startScene": "8faf2079-a7f9-48b1-98cc-40d3e1ee36b7",
+          "outputName": "web-desktop",
+          "taskName": "web-desktop",
+          "scenes": [
+            {
+              "url": "db://assets/1.scene",
+              "uuid": "8faf2079-a7f9-48b1-98cc-40d3e1ee36b7"
+            }
+          ],
+          "wasmCompressionMode": false,
+          "binGroupConfig": {
+            "threshold": 16,
+            "enable": false
+          },
+          "packages": {},
+          "__version__": "1.3.9",
+          "logDest": "project://temp/builder/log/web-desktop2026-6-16 17-51.log"
+        },
+        "time": "2026-6-16 17:51:53",
+        "dirty": false
+      }
+    }
+  }
+}

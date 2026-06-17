@@ -1,0 +1,6 @@
+{
+  "port": 10809,
+  "autoStart": false,
+  "enableDebugLog": false,
+  "maxConnections": 10
+}

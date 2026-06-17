@@ -1,0 +1,14 @@
+{
+  "ver": "1.1.50",
+  "importer": "prefab",
+  "imported": true,
+  "uuid": "665612ee-0036-4254-a662-79d47241e081",
+  "files": [
+    ".json"
+  ],
+  "subMetas": {},
+  "userData": {
+    "syncNodeName": "streetlight-001",
+    "hasIcon": false
+  }
+}

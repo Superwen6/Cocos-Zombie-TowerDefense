@@ -1,0 +1,13 @@
+{
+  "ver": "2.0.4",
+  "importer": "animation-clip",
+  "imported": true,
+  "uuid": "8d3ed47a-f15d-45dc-aeb6-dc6e431b6f8e",
+  "files": [
+    ".bin"
+  ],
+  "subMetas": {},
+  "userData": {
+    "name": "walk_down"
+  }
+}
