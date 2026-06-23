@@ -1,5 +1,7 @@
 import { _decorator, CCFloat, CCInteger, Color, Component, log, Node, Sprite, warn } from 'cc';
 import { PlayerData } from './PlayerData';
+import { PlantGenerator } from './PlantGenerator';
+import { Turret } from './Turret';
 
 const { ccclass, property } = _decorator;
 
@@ -15,6 +17,14 @@ const TOWERS_UNLOCKED_AT_LEVEL: Record<number, string[]> = {
     3: ['SlowTower'],
     4: ['CannonTower'],
     5: ['LaserTower'],
+};
+
+/** 升级到对应等级前需要先放置的发电机 ID（Lv2→plantId 1, Lv3→2, Lv4→3, Lv5→4） */
+const PLANT_REQUIRED_FOR_LEVEL: Record<number, number> = {
+    2: 1,
+    3: 2,
+    4: 3,
+    5: 4,
 };
 
 const FALLBACK_SAFE_RADIUS = 300;
@@ -83,6 +93,14 @@ export class BaseSystem extends Component {
 
     /** 升级成功后的回调列表，供面板等外部组件注册刷新逻辑 */
     public onUpgradeCallbacks: (() => void)[] = [];
+
+    // ── 电力系统 ──
+    /** 当前总发电量 */
+    public totalPowerGen = 0;
+    /** 当前总耗电量 */
+    public totalPowerCost = 0;
+    /** 是否处于断电状态（发电量 < 耗电量） */
+    public isPowerOutage = false;
 
     onLoad() {
         if (BaseSystem.instance && BaseSystem.instance !== this) {
@@ -184,10 +202,31 @@ export class BaseSystem extends Component {
         return PlayerData.instance?.canAfford(tier.wood, tier.copper, tier.iron, tier.money) ?? false;
     }
 
+    /** 检查升级到下一级所需的发电机是否已放置 */
+    checkUpgradePlantRequirement(): boolean {
+        const nextLevel = this.currentLevel + 1;
+        const requiredPlantId = PLANT_REQUIRED_FOR_LEVEL[nextLevel];
+        if (requiredPlantId == null) return true; // 没有发电机要求
+        return PlantGenerator.isPlantPlaced(requiredPlantId);
+    }
+
+    /** 获取升级到下一级所需发电机的 ID（0 表示无要求） */
+    getRequiredPlantIdForNextLevel(): number {
+        const nextLevel = this.currentLevel + 1;
+        return PLANT_REQUIRED_FOR_LEVEL[nextLevel] ?? 0;
+    }
+
     upgradeBase(): boolean {
         const tier = this.getNextUpgradeTier();
         if (!tier) {
             warn('[BaseSystem] 基地已满级，无法继续升级');
+            return false;
+        }
+
+        // 检查发电机部署条件
+        if (!this.checkUpgradePlantRequirement()) {
+            const requiredId = this.getRequiredPlantIdForNextLevel();
+            warn(`[BaseSystem] 需要先建造发电机 ID=${requiredId} 才能升级到 Lv.${this.currentLevel + 1}`);
             return false;
         }
 
@@ -215,6 +254,37 @@ export class BaseSystem extends Component {
         }
         this.baseHp = Math.max(0, this.baseHp - amount);
         log(`[BaseSystem] 基地受损 -${amount}，剩余 ${this.baseHp}/${this.maxBaseHp}`);
+    }
+
+    // ── 电力系统 ──
+
+    /** 更新电力状态：计算总发电量 vs 总耗电量，判断是否断电 */
+    updatePowerStatus() {
+        this.totalPowerGen = PlantGenerator.getTotalPowerGen();
+
+        // 统计所有炮塔的电力消耗
+        let totalCost = 0;
+        const scene = this.node.scene;
+        if (scene) {
+            const turrets = scene.getComponentsInChildren(Turret);
+            for (const t of turrets) {
+                if (t && t.node.isValid && t.enabled) {
+                    totalCost += t.powerCost;
+                }
+            }
+        }
+        this.totalPowerCost = totalCost;
+
+        const wasOutage = this.isPowerOutage;
+        this.isPowerOutage = this.totalPowerGen < this.totalPowerCost;
+
+        if (wasOutage !== this.isPowerOutage) {
+            if (this.isPowerOutage) {
+                log(`[BaseSystem] 电力不足！发电 ${this.totalPowerGen} < 耗电 ${this.totalPowerCost}，所有炮塔停机`);
+            } else {
+                log(`[BaseSystem] 电力恢复！发电 ${this.totalPowerGen} >= 耗电 ${this.totalPowerCost}，炮塔恢复运行`);
+            }
+        }
     }
 
     /** 触发所有升级回调 */

@@ -1,4 +1,4 @@
-import { _decorator, CCInteger, Component, warn } from 'cc';
+import { _decorator, CCInteger, CCFloat, Component, warn } from 'cc';
 
 const { ccclass, property } = _decorator;
 
@@ -31,6 +31,9 @@ export class PlayerData extends Component {
 
     @property({ type: CCInteger, tooltip: '金钱上限' })
     maxMoney = 999999;
+
+    @property({ type: CCFloat, tooltip: '玩家周围建造半径（像素），炮塔等建筑必须在此范围内' })
+    buildRadius = 200;
 
     onLoad() {
         if (PlayerData.instance && PlayerData.instance !== this) {

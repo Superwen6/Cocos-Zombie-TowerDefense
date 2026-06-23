@@ -13,6 +13,7 @@ import {
 import { Bullet } from './Bullet';
 import { ZombieMove } from './ZombieMove';
 import { CollisionWorld, Collider2D, ColliderGroup } from './CollisionWorld';
+import { BaseSystem } from './BaseSystem';
 
 const { ccclass, property } = _decorator;
 
@@ -34,6 +35,9 @@ export class Turret extends Component {
 
     @property({ type: CCInteger, tooltip: '建造消耗美元' })
     costMoney = 0;
+
+    @property({ type: CCInteger, tooltip: '炮塔电力消耗（单位：瓦）' })
+    powerCost = 1;
 
     @property({ type: CCInteger, tooltip: '炮塔最大血量' })
     maxHp = 150;
@@ -173,6 +177,11 @@ export class Turret extends Component {
         }
 
         this.fireTimer += dt;
+
+        // 断电检查：电力不足时阻止开火
+        if (BaseSystem.instance?.isPowerOutage) {
+            return;
+        }
 
         // 只有在对准目标后才允许射击
         if (this.fireTimer < this.attackInterval || !this.lockedTarget || !this._angleAligned) {
