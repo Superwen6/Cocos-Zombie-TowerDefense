@@ -1,12 +1,13 @@
 import {
     _decorator, Component, Camera, Collider2D, EventKeyboard, EventMouse,
     instantiate, input, Input, KeyCode, Layers, Node, Prefab,
-    RenderRoot2D, UIOpacity, Vec3, director
+    RenderRoot2D, UIOpacity, Vec3, director, warn,
 } from 'cc';
 import { GameHUDUI } from './GameHUDUI';
 import { PlayerData } from './PlayerData';
 import { Turret } from './Turret';
 import { TurretBuildPanelUI } from './TurretBuildPanelUI';
+import { NewTurretPanelUI } from './NewTurretPanelUI';
 import { CollisionWorld, ColliderGroup } from './CollisionWorld';
 import { YSortManager } from './YSortManager';
 
@@ -26,27 +27,17 @@ const PLACED_OPACITY = 255;
 export class TurretPlacementManager extends Component {
     public static instance: TurretPlacementManager = null as any;
 
-    @property({ type: Prefab }) turretPrefab: Prefab | null = null;
+    @property({ type: [Prefab], tooltip: '炮塔预制体数组（索引0=初级，索引1=中级，...）' })
+    turretPrefabs: Prefab[] = [];
     @property({ type: Camera }) worldCamera: Camera | null = null;
     @property({ type: Node, tooltip: '炮塔挂载父节点，默认 GameWorld' })
     placementRoot: Node | null = null;
-
-    @property({ tooltip: '建造消耗-木头' })
-    costWood: number = 0;
-
-    @property({ tooltip: '建造消耗-铁矿' })
-    costIron: number = 2;
-
-    @property({ tooltip: '建造消耗-铜矿' })
-    costCopper: number = 0;
-
-    @property({ tooltip: '建造消耗-金币' })
-    costMoney: number = 5;
 
     private ghostNode: Node | null = null;
     private _isPlacing = false;
     private activePanel: TurretBuildPanelUI | null = null;
     private _justActivatedFrame = false;
+    private currentTurretIndex = 0;
     private currentCost: TurretPlacementCost = { money: 0, wood: 0, copper: 0, iron: 0 };
 
     private readonly _screenVec = new Vec3();
@@ -68,26 +59,102 @@ export class TurretPlacementManager extends Component {
         }
     }
 
+    /** 获取当前选中炮塔的预制体 */
+    public getCurrentPrefab(): Prefab | null {
+        return this.turretPrefabs[this.currentTurretIndex] || null;
+    }
+
+    /** 获取指定索引炮塔的预制体 */
+    public getTurretPrefab(index: number): Prefab | null {
+        return this.turretPrefabs[index] || null;
+    }
+
+    /** 获取当前选中炮塔的建造消耗 */
     public getTurretCosts(): TurretPlacementCost {
-        return {
-            money: this.costMoney,
-            wood: this.costWood,
-            copper: this.costCopper,
-            iron: this.costIron,
-        };
+        return this.getCostsFromPrefab(this.turretPrefabs[this.currentTurretIndex]);
+    }
+
+    /** 获取指定索引炮塔的建造消耗 */
+    public getTurretCostsByIndex(index: number): TurretPlacementCost {
+        return this.getCostsFromPrefab(this.turretPrefabs[index]);
+    }
+
+    /** 从任意预制体的 Turret 组件读取建造消耗 */
+    public getCostsFromPrefab(prefab: Prefab | null): TurretPlacementCost {
+        if (!prefab) return { money: 0, wood: 0, copper: 0, iron: 0 };
+        // Prefab 需要先实例化为 Node 才能获取组件
+        const tempNode = instantiate(prefab);
+        const turret = tempNode.getComponent(Turret);
+        const cost = turret
+            ? { wood: turret.costWood, copper: turret.costCopper, iron: turret.costIron, money: turret.costMoney }
+            : { money: 0, wood: 0, copper: 0, iron: 0 };
+        tempNode.destroy(); // 销毁临时节点
+        return cost;
     }
 
     public isCurrentlyPlacing(): boolean {
         return this._isPlacing;
     }
 
+    /** 切换当前选择的炮塔类型 */
+    public selectTurret(index: number) {
+        if (index < 0 || index >= this.turretPrefabs.length) {
+            warn(`[TurretPlacementManager] 无效的炮塔索引: ${index}`);
+            return;
+        }
+        this.currentTurretIndex = index;
+        // 如果正在放置中，重置虚影为新的炮塔预制体
+        if (this._isPlacing && this.ghostNode) {
+            this.ghostNode.destroy();
+            this.ghostNode = null;
+            this.createGhostNode();
+        }
+    }
+
+    /** 进入放置模式（使用当前选中的炮塔） */
     public startPlacement(cost: TurretPlacementCost, panel: TurretBuildPanelUI | null = null) {
-        if (!this.turretPrefab) return;
+        const prefab = this.turretPrefabs[this.currentTurretIndex];
+        if (!prefab) {
+            warn('[TurretPlacementManager] 当前选中炮塔的预制体未配置');
+            return;
+        }
         this.currentCost = { ...cost };
         this.activePanel = panel;
+        this.createGhostNode();
+        this._isPlacing = true;
+        this._justActivatedFrame = true;
+        this.scheduleOnce(() => this._justActivatedFrame = false, 0.1);
+
+        input.on(Input.EventType.MOUSE_MOVE, this.onMouseMove, this);
+        input.on(Input.EventType.MOUSE_DOWN, this.onMouseDown, this);
+        input.on(Input.EventType.KEY_DOWN, this.onKeyDown, this);
+    }
+
+    /** 进入放置模式（使用指定预制体，供 NewTurretPanelUI 调用） */
+    public startPlacementWithPrefab(prefab: Prefab, cost: TurretPlacementCost, panel: NewTurretPanelUI) {
+        if (!prefab) {
+            warn('[TurretPlacementManager] 预制体未配置');
+            return;
+        }
+        this.currentCost = { ...cost };
+        this.activePanel = panel as unknown as TurretBuildPanelUI;
+        this.createGhostNodeWithPrefab(prefab);
+        this._isPlacing = true;
+        this._justActivatedFrame = true;
+        this.scheduleOnce(() => this._justActivatedFrame = false, 0.1);
+
+        input.on(Input.EventType.MOUSE_MOVE, this.onMouseMove, this);
+        input.on(Input.EventType.MOUSE_DOWN, this.onMouseDown, this);
+        input.on(Input.EventType.KEY_DOWN, this.onKeyDown, this);
+    }
+
+    /** 创建当前选中炮塔的虚影节点 */
+    private createGhostNode() {
+        const prefab = this.turretPrefabs[this.currentTurretIndex];
+        if (!prefab) return;
 
         const root = this.getPlacementRoot();
-        this.ghostNode = instantiate(this.turretPrefab);
+        this.ghostNode = instantiate(prefab);
         this.ghostNode.setParent(root);
 
         this.ghostNode.active = true;
@@ -96,13 +163,20 @@ export class TurretPlacementManager extends Component {
         this.setLayerRecursive(this.ghostNode, Layers.Enum.DEFAULT);
 
         this.applyGhostVisual(this.ghostNode);
-        this._isPlacing = true;
-        this._justActivatedFrame = true;
-        this.scheduleOnce(() => this._justActivatedFrame = false, 0.1);
+    }
 
-        input.on(Input.EventType.MOUSE_MOVE, this.onMouseMove, this);
-        input.on(Input.EventType.MOUSE_DOWN, this.onMouseDown, this);
-        input.on(Input.EventType.KEY_DOWN, this.onKeyDown, this);
+    /** 使用指定预制体创建虚影节点 */
+    private createGhostNodeWithPrefab(prefab: Prefab) {
+        const root = this.getPlacementRoot();
+        this.ghostNode = instantiate(prefab);
+        this.ghostNode.setParent(root);
+
+        this.ghostNode.active = true;
+        this.ghostNode.setScale(1, 1, 1);
+        this.ghostNode.layer = Layers.Enum.DEFAULT;
+        this.setLayerRecursive(this.ghostNode, Layers.Enum.DEFAULT);
+
+        this.applyGhostVisual(this.ghostNode);
     }
 
     private onMouseMove(event: EventMouse) {

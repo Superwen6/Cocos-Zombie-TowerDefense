@@ -4,6 +4,7 @@ local/
 temp/
 build/
 native/
+.creator/
 
 # IDE
 .vscode/

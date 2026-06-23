@@ -101,7 +101,9 @@ export class PlayerController extends Component {
 
         // 自动查找 WorldCamera
         if (!this.worldCamera) {
-            const cameraNode = this.node.getChildByName('WorldCamera');
+            const cameraNode = this.node.getChildByName('WorldCamera')
+                ?? this.node.parent?.getChildByName('WorldCamera')
+                ?? this.node.scene?.getChildByName('GameWorld')?.getChildByName('WorldCamera');
             if (cameraNode) {
                 this.worldCamera = cameraNode.getComponent(Camera);
             }

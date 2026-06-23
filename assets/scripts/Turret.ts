@@ -59,6 +59,9 @@ export class Turret extends Component {
     @property({ tooltip: '枪口末端偏移距离（像素），子弹从此处发射' })
     muzzleOffset = 50;
 
+    @property({ tooltip: '炮管贴图默认朝向（度）。0=朝右，90=朝上，180=朝左，-90=朝下' })
+    barrelDefaultAngle = -90;
+
     @property({ tooltip: '炮口旋转速度（度/秒）' })
     rotationSpeed = 360;
 
@@ -67,6 +70,12 @@ export class Turret extends Component {
 
     @property({ tooltip: '碰撞框半高（碰撞体总高度 = 此值 × 2）' })
     colliderHalfH = 20;
+
+    @property({ type: Boolean, tooltip: '是否开启双发平行模式（仅双管炮塔使用）' })
+    enableDualShot = false;
+
+    @property({ type: CCFloat, tooltip: '双发子弹的平行间距（像素）' })
+    dualShotSpread = 15;
 
     private hp = 150;
     private fireTimer = 0;
@@ -79,6 +88,9 @@ export class Turret extends Component {
     private _hasTarget = false;
     private _angleAligned = false; // 当前是否已对准目标
 
+    // 炮管初始角度偏移（从预制体 muzzleNode.angle 自动读取）
+    private barrelAngleOffset = 0;
+
     private readonly _turretPos = new Vec3();
     private readonly _spawnPos = new Vec3();
 
@@ -86,8 +98,11 @@ export class Turret extends Component {
         this.hp = this.maxHp;
         this.refreshHpLabel();
         if (this.muzzleNode) {
-            this._currentAngle = this.muzzleNode.angle;
-            this._targetAngle = this._currentAngle;
+            // 记录炮管初始角度作为偏移量（2turret炮管初始90°，baseTurret初始0°）
+            this.barrelAngleOffset = this.muzzleNode.angle;
+            // 内部角度从0开始，旋转时加上偏移量应用到节点
+            this._currentAngle = 0;
+            this._targetAngle = 0;
         }
         if (!this.bulletPrefab) {
             warn('[Turret] bulletPrefab 未绑定，炮塔无法发射子弹！请在 BaseTurret 预制体上绑定 TurretBullet.prefab');
@@ -126,8 +141,11 @@ export class Turret extends Component {
                 const targetPos = this.lockedTarget.node.worldPosition;
                 const dirX = targetPos.x - turretPos.x;
                 const dirY = targetPos.y - turretPos.y;
-                // angle=0 朝右，但贴图默认朝下，所以需要 +90 对齐
-                this._targetAngle = Math.atan2(dirY, dirX) * 180 / Math.PI + 90;
+                // 炮管视觉方向 = muzzleNode.angle + barrelDefaultAngle
+                // 要让炮管指向目标：muzzleNode.angle + barrelDefaultAngle = atan2
+                // muzzleNode.angle = _currentAngle + barrelAngleOffset
+                // 所以：_targetAngle = atan2 - barrelDefaultAngle - barrelAngleOffset
+                this._targetAngle = Math.atan2(dirY, dirX) * 180 / Math.PI - this.barrelDefaultAngle - this.barrelAngleOffset;
                 this._hasTarget = true;
             }
 
@@ -145,7 +163,9 @@ export class Turret extends Component {
                     this._currentAngle += Math.sign(angleDiff) * maxStep;
                 }
 
-                this.muzzleNode.angle = this._currentAngle;
+                // 应用角度：muzzleNode.angle = _currentAngle + barrelAngleOffset
+                // 炮管视觉方向 = muzzleNode.angle + barrelDefaultAngle
+                this.muzzleNode.angle = this._currentAngle + this.barrelAngleOffset;
 
                 // 判断是否已对准（角度差小于阈值）
                 this._angleAligned = Math.abs(angleDiff) <= ANGLE_EPSILON;
@@ -232,9 +252,12 @@ export class Turret extends Component {
             return;
         }
 
-        // 计算子弹发射位置：沿当前炮口方向偏移 muzzleOffset 距离
+        // 计算子弹发射位置：沿炮管视觉方向偏移 muzzleOffset 距离
+        // 如果没有muzzleNode，从节点中心发射
         const turretPos = this.muzzleNode ? this.muzzleNode.worldPosition : this.node.worldPosition;
-        const rad = (this._currentAngle - 90) * Math.PI / 180;
+        // 炮管实际视觉方向 = muzzleNode.angle + barrelDefaultAngle
+        const barrelVisualAngle = this._currentAngle + this.barrelAngleOffset + this.barrelDefaultAngle;
+        const rad = barrelVisualAngle * Math.PI / 180;
         const dirX = Math.cos(rad);
         const dirY = Math.sin(rad);
         this._spawnPos.set(
@@ -243,13 +266,35 @@ export class Turret extends Component {
             0,
         );
 
-        // 关键：先实例化，立即设置角度和位置，再挂载到场景树
-        // 这样可以确保子弹在渲染第一帧时属性已经正确
-        const bulletNode = instantiate(this.bulletPrefab);
-        bulletNode.active = false;
-        bulletNode.angle = this._currentAngle;
-        Bullet.attachToWorld(bulletNode, this._spawnPos.clone());
-        bulletNode.active = true;
+        if (this.enableDualShot) {
+            // 双发模式：沿垂直于炮管方向偏移，生成两发平行子弹
+            const perpX = -dirY;
+            const perpY = dirX;
+            const halfSpread = this.dualShotSpread / 2;
+
+            // 第一发子弹
+            this.spawnBullet(
+                this._spawnPos.x + perpX * halfSpread,
+                this._spawnPos.y + perpY * halfSpread,
+                target,
+            );
+            // 第二发子弹
+            this.spawnBullet(
+                this._spawnPos.x - perpX * halfSpread,
+                this._spawnPos.y - perpY * halfSpread,
+                target,
+            );
+        } else {
+            this.spawnBullet(this._spawnPos.x, this._spawnPos.y, target);
+        }
+    }
+
+    private spawnBullet(x: number, y: number, target: ZombieMove) {
+        // 实例化子弹，初始缩放为 0，避免显示预制体默认角度
+        const bulletNode = instantiate(this.bulletPrefab!);
+        bulletNode.setScale(0, 0, 1);
+        const pos = new Vec3(x, y, 0);
+        Bullet.attachToWorld(bulletNode, pos);
 
         const bullet = bulletNode.getComponent(Bullet);
         if (bullet) {

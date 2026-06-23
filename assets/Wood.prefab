@@ -52,8 +52,8 @@
     },
     "_lscale": {
       "__type__": "cc.Vec3",
-      "x": 1,
-      "y": 1,
+      "x": 0.7,
+      "y": 0.7,
       "z": 1
     },
     "_mobility": 0,
@@ -287,6 +287,8 @@
     "resourceType": "wood",
     "baseAmount": 1,
     "hp": 1,
+    "colliderHalfW": 16,
+    "colliderHalfH": 16,
     "_id": ""
   },
   {

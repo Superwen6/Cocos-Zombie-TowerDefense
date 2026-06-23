@@ -58,8 +58,8 @@
     },
     "_lscale": {
       "__type__": "cc.Vec3",
-      "x": 1,
-      "y": 1,
+      "x": 0.8,
+      "y": 0.8,
       "z": 1
     },
     "_mobility": 0,
@@ -585,16 +585,16 @@
     "__prefab": {
       "__id__": 25
     },
-    "costWood": 1,
-    "costCopper": 1,
-    "costIron": 1,
+    "costWood": 0,
+    "costCopper": 0,
+    "costIron": 0,
     "costMoney": 0,
     "maxHp": 150,
     "damage": 20,
     "attackInterval": 0.1,
     "attackRange": 500,
     "bulletPrefab": {
-      "__uuid__": "1d6466a5-ddf5-4dc3-a7d8-dec9a81c92ba",
+      "__uuid__": "7fee7fe9-1e7d-4bb7-ace5-cb38a14d1f4d",
       "__expectedType__": "cc.Prefab"
     },
     "hpLabel": {
@@ -603,10 +603,13 @@
     "muzzleNode": {
       "__id__": 14
     },
-    "muzzleOffset": 50,
+    "muzzleOffset": 40,
+    "barrelDefaultAngle": -90,
     "rotationSpeed": 50,
     "colliderHalfW": 35,
     "colliderHalfH": 35,
+    "enableDualShot": false,
+    "dualShotSpread": 15,
     "_id": ""
   },
   {

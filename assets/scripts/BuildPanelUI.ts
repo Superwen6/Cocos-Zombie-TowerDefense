@@ -1,4 +1,4 @@
-import { _decorator, Button, Component, Label, Node, Sprite, warn } from 'cc';
+import { _decorator, Button, Color, Component, Label, Node, Sprite, warn } from 'cc';
 import { BaseSystem } from './BaseSystem';
 import { PlayerData } from './PlayerData';
 
@@ -9,6 +9,7 @@ const UI_REFRESH_INTERVAL = 0.2;
 /**
  * 基地建造/升级面板 UI（支持打开/关闭弹窗）。
  * 挂载在负责控制 UpgradePanel 的节点上。
+ * 颜色反馈：资源不足时文本变红，充足时白色（与炮塔建造面板同款逻辑）。
  */
 @ccclass('BuildPanelUI')
 export class BuildPanelUI extends Component {
@@ -54,7 +55,7 @@ export class BuildPanelUI extends Component {
         this._refreshTimer += dt;
         if (this._refreshTimer >= UI_REFRESH_INTERVAL) {
             this._refreshTimer = 0;
-            this.updateResourceLabels();
+            this.refreshUpgradeUI();
         }
     }
 
@@ -72,11 +73,7 @@ export class BuildPanelUI extends Component {
         }
 
         this._refreshTimer = 0;
-
-        // 先清零，防止残留固化数据闪现
-        this.resetResourceLabels();
-        // 立即从数据层拉取最新值刷新
-        this.updateResourceLabels();
+        this.refreshUpgradeUI();
     }
 
     /** 隐藏升级面板 */
@@ -108,31 +105,31 @@ export class BuildPanelUI extends Component {
     }
 
     private onUpgradeClick() {
-        if (!BaseSystem.instance) {
+        const base = BaseSystem.instance;
+        if (!base) {
             warn('[BuildPanelUI] BaseSystem 未初始化');
             return;
         }
 
-        BaseSystem.instance.upgradeBase();
-        this.updateResourceLabels();
+        if (base.isMaxLevel) {
+            return;
+        }
+
+        const success = base.upgradeBase();
+        if (success) {
+            // 升级成功：自动关闭面板
+            this.hidePanel();
+        }
+        // 失败不弹窗，颜色反馈已由 refreshUpgradeUI 处理
+        this.refreshUpgradeUI();
     }
 
-    /** 清零文本，防止短暂显示残留数据 */
-    private resetResourceLabels() {
-        if (this.resourceCostText) {
-            this.resourceCostText.string =
-                '升级需要:\n木: 0 / 0\n铜: 0 / 0\n铁: 0 / 0\n美金: 0 / 0';
-        }
-        if (this.levelText) {
-            this.levelText.string = '基地 Lv.?';
-        }
-    }
-
-    /** 从 PlayerData / BaseSystem 动态拉取最新数据刷新 UI */
-    updateResourceLabels() {
+    /** 公共刷新方法：更新等级文本 + 资源颜色反馈 */
+    refreshUpgradeUI() {
         const base = BaseSystem.instance;
         const data = PlayerData.instance;
 
+        // 等级文本
         if (this.levelText) {
             if (!base) {
                 this.levelText.string = '基地 Lv.?';
@@ -143,10 +140,13 @@ export class BuildPanelUI extends Component {
             }
         }
 
+        // 资源文本 + 颜色反馈
         if (this.resourceCostText) {
             this.resourceCostText.string = this.buildCostText(base, data);
+            this.resourceCostText.color = this.getCostColor(base, data);
         }
 
+        // 按钮交互状态
         if (this.upgradeButton) {
             const canUpgrade =
                 base != null && !base.isMaxLevel && base.checkUpgradeAvailable();
@@ -154,7 +154,7 @@ export class BuildPanelUI extends Component {
         }
     }
 
-    /** 拼装升级消耗与玩家拥有量对比字符串（完全动态，无硬编码） */
+    /** 拼装升级消耗与玩家拥有量对比字符串 */
     private buildCostText(base: BaseSystem | null, data: PlayerData | null): string {
         if (!base) {
             return '升级需要:\n(基地系统未就绪)';
@@ -180,6 +180,28 @@ export class BuildPanelUI extends Component {
             `铁: ${data.ironCount}/${tier.iron}\n` +
             `美金: ${data.money}/${tier.money}`
         );
+    }
+
+    /** 根据资源是否充足返回颜色：全部充足 → 白色，任一不足 → 红色 */
+    private getCostColor(base: BaseSystem | null, data: PlayerData | null): Color {
+        if (!base || !data || base.isMaxLevel) {
+            return new Color(255, 255, 255, 255);
+        }
+
+        const tier = base.getNextUpgradeTier();
+        if (!tier) {
+            return new Color(255, 255, 255, 255);
+        }
+
+        const canAfford =
+            data.woodCount >= tier.wood &&
+            data.copperCount >= tier.copper &&
+            data.ironCount >= tier.iron &&
+            data.money >= tier.money;
+
+        return canAfford
+            ? new Color(255, 255, 255, 255)
+            : new Color(255, 0, 0, 255);
     }
 
     private bindButton(

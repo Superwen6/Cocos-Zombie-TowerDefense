@@ -105,7 +105,7 @@ export class YSortManager extends Component {
             return;
         }
 
-        const sourceNames = ['Player', 'EnemyRoot', 'ResourceRoot', 'MapElements'];
+        const sourceNames = ['Player', 'EnemyRoot', 'ResourceRoot', 'MapElements', 'Base'];
         for (const name of sourceNames) {
             const root = this._gameWorld.getChildByName(name);
             if (!root) {

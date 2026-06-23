@@ -81,6 +81,17 @@ export class CollisionWorld extends Component {
         if (idx >= 0) this._colliders.splice(idx, 1);
     }
 
+    /** 获取指定碰撞组的所有碰撞体 */
+    getCollidersByGroup(group: ColliderGroup): Collider2D[] {
+        const result: Collider2D[] = [];
+        for (const c of this._colliders) {
+            if (c.group === group && c.node.active) {
+                result.push(c);
+            }
+        }
+        return result;
+    }
+
     /**
      * 尝试将实体从 (fromX, fromY) 移动到 (toX, toY)。
      * 如果移动路径上有阻挡物，返回被阻挡后的位置（贴着阻挡物）。
@@ -207,13 +218,16 @@ export class CollisionWorld extends Component {
 
     /**
      * 检测指定位置是否与目标碰撞组的物体重叠。
-     * 返回第一个命中的碰撞体，未命中返回 null。
+     * @param excludeSelf 排除自身碰撞体（避免检测到自己），可选
+     * @returns 第一个命中的碰撞体，未命中返回 null
      */
     checkHit(
         x: number, y: number, halfW: number, halfH: number,
         targetGroups: ColliderGroup[],
+        excludeSelf?: Collider2D,
     ): Collider2D | null {
         for (const other of this._colliders) {
+            if (other === excludeSelf) continue;
             if (!other.node.active || !other.node.worldPosition) continue;
             if (!targetGroups.includes(other.group)) continue;
 

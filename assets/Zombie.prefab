@@ -55,8 +55,8 @@
     },
     "_lscale": {
       "__type__": "cc.Vec3",
-      "x": 1,
-      "y": 1,
+      "x": 0.8,
+      "y": 0.8,
       "z": 1
     },
     "_mobility": 0,
@@ -290,8 +290,9 @@
     "maxHp": 100,
     "damage": 1,
     "moveSpeed": 120,
-    "colliderHalfW": 15,
-    "colliderHalfH": 25,
+    "alertRadius": 300,
+    "colliderHalfW": 8,
+    "colliderHalfH": 8,
     "baseNode": null,
     "baseNodeName": "Base",
     "wanderOrigin": null,

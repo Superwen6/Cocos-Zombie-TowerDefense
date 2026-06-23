@@ -47,6 +47,12 @@ export class Bullet extends Component {
         this._damage = damage;
         this._lifetime = 0;
         this._hitZombies.clear();
+        // 延迟一帧恢复缩放，避免显示预制体默认角度
+        setTimeout(() => {
+            if (this.node?.isValid) {
+                this.node.setScale(1, 1, 1);
+            }
+        }, 16);
     }
 
     update(dt: number) {
