@@ -81,6 +81,9 @@ export class BaseSystem extends Component {
 
     private _wallOriginalColors: Map<Node, Color> = new Map();
 
+    /** 升级成功后的回调列表，供面板等外部组件注册刷新逻辑 */
+    public onUpgradeCallbacks: (() => void)[] = [];
+
     onLoad() {
         if (BaseSystem.instance && BaseSystem.instance !== this) {
             warn('[BaseSystem] 场景中存在多个 BaseSystem，已销毁重复实例');
@@ -202,6 +205,7 @@ export class BaseSystem extends Component {
             `[BaseSystem] 基地升级成功 Lv.${prevLevel} -> Lv.${this.currentLevel} | 耐久 ${this.baseHp}/${this.maxBaseHp} | 安全区 ${this.getCurrentSafeRadius()} | 回血 ${this.getCurrentHpRegen()}/秒 | 防御塔: ${this.getUnlockedTowers().join(', ') || '无'}`,
         );
         this.refreshBaseAppearance();
+        this.invokeUpgradeCallbacks();
         return true;
     }
 
@@ -211,6 +215,13 @@ export class BaseSystem extends Component {
         }
         this.baseHp = Math.max(0, this.baseHp - amount);
         log(`[BaseSystem] 基地受损 -${amount}，剩余 ${this.baseHp}/${this.maxBaseHp}`);
+    }
+
+    /** 触发所有升级回调 */
+    private invokeUpgradeCallbacks() {
+        for (const cb of this.onUpgradeCallbacks) {
+            try { cb(); } catch (e) { warn('[BaseSystem] 升级回调执行异常', e); }
+        }
     }
 
     repairBase(amount: number) {

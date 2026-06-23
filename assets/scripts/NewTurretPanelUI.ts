@@ -23,8 +23,16 @@ export class NewTurretPanelUI extends Component {
     @property({ type: Label, tooltip: '物资消耗文本 costlabel2' })
     costLabel: Label | null = null;
 
+    @property({ type: Node, tooltip: 'LV1 节点，基地等级>=1时显示' })
+    lv1Node: Node | null = null;
     @property({ type: Node, tooltip: 'LV2 节点，基地等级>=2时显示' })
     lv2Node: Node | null = null;
+    @property({ type: Node, tooltip: 'LV3 节点，基地等级>=3时显示' })
+    lv3Node: Node | null = null;
+    @property({ type: Node, tooltip: 'LV4 节点，基地等级>=4时显示' })
+    lv4Node: Node | null = null;
+    @property({ type: Node, tooltip: 'LV5 节点，基地等级>=5时显示' })
+    lv5Node: Node | null = null;
 
     @property({ type: Prefab, tooltip: '2turret 预制体' })
     turret2Prefab: Prefab | null = null;
@@ -57,25 +65,37 @@ export class NewTurretPanelUI extends Component {
         this.bindBuildTurret3Button();
         this.bindBuildTurret4Button();
         this.bindBuildTurret5Button();
+        this.registerBaseUpgradeCallback();
     }
 
     onEnable() {
-        this.refreshLv2Visibility();
+        this.refreshAllLevelVisibility();
     }
 
     start() {
-        this.refreshLv2Visibility();
+        this.refreshAllLevelVisibility();
         this.updateCostDisplay();
         this.updateCostDisplay3();
         this.updateCostDisplay4();
         this.updateCostDisplay5();
     }
 
-    /** 根据基地等级刷新 LV2 节点可见性 */
-    private refreshLv2Visibility() {
-        if (!this.lv2Node) return;
+    /** 将当前组件的刷新方法注册到 BaseSystem，升级时自动调用 */
+    private registerBaseUpgradeCallback() {
+        const base = BaseSystem.instance;
+        if (!base) return;
+        base.onUpgradeCallbacks.push(() => this.refreshAllLevelVisibility());
+    }
+
+    /** 根据基地等级刷新 LV1~LV5 节点可见性 */
+    refreshAllLevelVisibility() {
         const level = BaseSystem.instance?.currentLevel ?? 1;
-        this.lv2Node.active = level >= 2;
+        const levelNodes: (Node | null)[] = [this.lv1Node, this.lv2Node, this.lv3Node, this.lv4Node, this.lv5Node];
+        for (let i = 0; i < levelNodes.length; i++) {
+            const node = levelNodes[i];
+            if (!node) continue;
+            node.active = (i + 1) <= level;
+        }
     }
 
     /** 从 turret2Prefab 读取建造消耗 */
@@ -300,7 +320,7 @@ export class NewTurretPanelUI extends Component {
         if (this.turretPanel) {
             this.turretPanel.active = true;
         }
-        this.refreshLv2Visibility();
+        this.refreshAllLevelVisibility();
         this.updateCostDisplay();
         this.updateCostDisplay3();
         this.updateCostDisplay4();
