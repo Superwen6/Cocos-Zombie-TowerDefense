@@ -604,11 +604,11 @@
       "__id__": 14
     },
     "muzzleOffset": 40,
-    "barrelDefaultAngle": 180,
+    "barrelDefaultAngle": 90,
     "rotationSpeed": 50,
     "colliderHalfW": 35,
     "colliderHalfH": 35,
-    "enableDualShot": true,
+    "enableDualShot": false,
     "dualShotSpread": 20,
     "_id": ""
   },

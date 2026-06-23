@@ -148,30 +148,25 @@ export class TurretPlacementManager extends Component {
         input.on(Input.EventType.KEY_DOWN, this.onKeyDown, this);
     }
 
-    /** 创建当前选中炮塔的虚影节点 */
+    /** 创建当前选中炮塔的虚影节点（初始不可见，鼠标移动后才激活） */
     private createGhostNode() {
         const prefab = this.turretPrefabs[this.currentTurretIndex];
         if (!prefab) return;
-
-        const root = this.getPlacementRoot();
-        this.ghostNode = instantiate(prefab);
-        this.ghostNode.setParent(root);
-
-        this.ghostNode.active = true;
-        this.ghostNode.setScale(1, 1, 1);
-        this.ghostNode.layer = Layers.Enum.DEFAULT;
-        this.setLayerRecursive(this.ghostNode, Layers.Enum.DEFAULT);
-
-        this.applyGhostVisual(this.ghostNode);
+        this.setupGhostNode(prefab);
     }
 
-    /** 使用指定预制体创建虚影节点 */
+    /** 使用指定预制体创建虚影节点（初始不可见，鼠标移动后才激活） */
     private createGhostNodeWithPrefab(prefab: Prefab) {
+        this.setupGhostNode(prefab);
+    }
+
+    /** 统一创建虚影节点：初始设为不可见，鼠标移动时在 onMouseMove 中激活 */
+    private setupGhostNode(prefab: Prefab) {
         const root = this.getPlacementRoot();
         this.ghostNode = instantiate(prefab);
         this.ghostNode.setParent(root);
 
-        this.ghostNode.active = true;
+        this.ghostNode.active = false;
         this.ghostNode.setScale(1, 1, 1);
         this.ghostNode.layer = Layers.Enum.DEFAULT;
         this.setLayerRecursive(this.ghostNode, Layers.Enum.DEFAULT);
@@ -182,7 +177,11 @@ export class TurretPlacementManager extends Component {
     private onMouseMove(event: EventMouse) {
         if (!this._isPlacing || !this.ghostNode) return;
         const worldPos = this.screenToWorld(event.getLocationX(), event.getLocationY());
-        if (worldPos) this.ghostNode.setWorldPosition(worldPos);
+        if (!worldPos) return;
+        if (!this.ghostNode.active) {
+            this.ghostNode.active = true;
+        }
+        this.ghostNode.setWorldPosition(worldPos);
     }
 
     private onMouseDown(event: EventMouse) {
