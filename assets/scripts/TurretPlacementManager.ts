@@ -27,7 +27,7 @@ const PLACED_OPACITY = 255;
 export class TurretPlacementManager extends Component {
     public static instance: TurretPlacementManager = null as any;
 
-    @property({ type: [Prefab], tooltip: '炮塔预制体数组（索引0=初级，索引1=中级，...）' })
+    @property({ type: [Prefab], tooltip: '炮塔预制体数组 [0]初级 [1]双管 [2]重型 [3]机枪 [4]迷彩双枪 [5]迷彩火焰 [6]伪装镭射 [7]镭射 [8]机械机枪 [9]机械重炮 [10]未来机甲 [11]未来重炮' })
     turretPrefabs: Prefab[] = [];
     @property({ type: Camera }) worldCamera: Camera | null = null;
     @property({ type: Node, tooltip: '炮塔挂载父节点，默认 GameWorld' })

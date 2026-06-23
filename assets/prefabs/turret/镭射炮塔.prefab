@@ -585,9 +585,9 @@
     "__prefab": {
       "__id__": 25
     },
-    "costWood": 1,
-    "costCopper": 1,
-    "costIron": 1,
+    "costWood": 0,
+    "costCopper": 0,
+    "costIron": 0,
     "costMoney": 0,
     "maxHp": 150,
     "damage": 20,
