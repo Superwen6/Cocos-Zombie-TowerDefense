@@ -1,6 +1,7 @@
 import { _decorator, Component, Label } from 'cc';
 import { PlayerData } from './PlayerData';
 import { PlayerState } from './PlayerState';
+import { BaseSystem } from './BaseSystem';
 
 const { ccclass, property } = _decorator;
 
@@ -29,6 +30,9 @@ export class GameHUDUI extends Component {
 
     @property({ type: Label, tooltip: '木头文本' })
     woodText: Label | null = null;
+
+    @property({ type: Label, tooltip: '电力文本（发电/消耗）' })
+    powerLabel: Label | null = null;
 
     private _refreshTimer = 0;
 
@@ -93,6 +97,15 @@ export class GameHUDUI extends Component {
                 this.woodText.string = `木头: ${data.woodCount}`;
             } else {
                 this.woodText.string = '木头: --';
+            }
+        }
+
+        if (this.powerLabel) {
+            const base = BaseSystem.instance;
+            if (base) {
+                this.powerLabel.string = `电力: ${base.totalPowerGen}/${base.totalPowerCost}`;
+            } else {
+                this.powerLabel.string = '电力: 0/0';
             }
         }
     }

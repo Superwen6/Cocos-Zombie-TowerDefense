@@ -4,6 +4,7 @@ import { PlayerController } from './PlayerController';
 import { ResourceItem } from './ResourceItem';
 import { Turret } from './Turret';
 import { ZombieMove } from './ZombieMove';
+import { PlantGenerator } from './PlantGenerator';
 
 const { ccclass, property } = _decorator;
 
@@ -78,6 +79,7 @@ export class YSortManager extends Component {
             || node.getComponent(ResourceItem)
             || node.getComponent(MapObstacle)
             || node.getComponent(Turret)
+            || node.getComponent(PlantGenerator)
         );
     }
 
@@ -105,7 +107,7 @@ export class YSortManager extends Component {
             return;
         }
 
-        const sourceNames = ['Player', 'EnemyRoot', 'ResourceRoot', 'MapElements', 'Base'];
+        const sourceNames = ['Player', 'EnemyRoot', 'ResourceRoot', 'MapElements', 'Base', 'Background'];
         for (const name of sourceNames) {
             const root = this._gameWorld.getChildByName(name);
             if (!root) {

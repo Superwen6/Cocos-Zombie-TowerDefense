@@ -351,6 +351,7 @@
     "costCopper": 0,
     "costIron": 0,
     "costMoney": 0,
+    "powerCost": 10,
     "maxHp": 150,
     "damage": 20,
     "attackInterval": 0.05,
