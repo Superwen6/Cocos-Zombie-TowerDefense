@@ -100,13 +100,21 @@ export class GameHUDUI extends Component {
             }
         }
 
-        if (this.powerLabel) {
-            const base = BaseSystem.instance;
-            if (base) {
-                this.powerLabel.string = `电力: ${base.totalPowerGen}/${base.totalPowerCost}`;
-            } else {
-                this.powerLabel.string = '电力: 0/0';
-            }
+        this.updatePowerUI();
+    }
+
+    /** 更新电力文本（可由外部调用，如建造/拆除后立即刷新） */
+    public updatePowerUI() {
+        if (!this.powerLabel) {
+            return;
         }
+        const base = BaseSystem.instance;
+        if (!base) {
+            this.powerLabel.string = '电力: 0/0';
+            return;
+        }
+        const gen = base.totalPowerGen;
+        const cost = base.totalPowerCost;
+        this.powerLabel.string = `电力: ${gen}/${cost}`;
     }
 }

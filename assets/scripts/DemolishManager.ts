@@ -174,6 +174,10 @@ export class DemolishManager extends Component {
             .to(DEMOLISH_ANIM_DURATION, { scale: new Vec3(0, 0, 1) })
             .call(() => {
                 if (turret) {
+                    // 先禁用 Turret 组件，再销毁节点。
+                    // 因为 node.destroy() 是异步的，同一帧内 getComponentsInChildren
+                    // 仍能找到该节点，导致 updatePowerStatus 计数不更新。
+                    turret.enabled = false;
                     node.destroy();
                 } else if (plant) {
                     // 发电机是场景预置节点，不能销毁，只能停用并恢复缩放
@@ -184,7 +188,7 @@ export class DemolishManager extends Component {
                 BaseSystem.instance?.updatePowerStatus();
                 // 刷新 HUD
                 const hud = director.getScene()?.getComponentInChildren(GameHUDUI);
-                hud?.refreshHUD();
+                hud?.updatePowerUI();
             })
             .start();
     }
