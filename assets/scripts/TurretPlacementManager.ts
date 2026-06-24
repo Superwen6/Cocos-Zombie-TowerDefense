@@ -6,11 +6,11 @@ import {
 import { GameHUDUI } from './GameHUDUI';
 import { PlayerData } from './PlayerData';
 import { Turret } from './Turret';
+import { BaseSystem } from './BaseSystem';
 import { TurretBuildPanelUI } from './TurretBuildPanelUI';
 import { NewTurretPanelUI } from './NewTurretPanelUI';
 import { PlantGenerator } from './PlantGenerator';
 import { MapObstacle } from './MapObstacle';
-import { BaseSystem } from './BaseSystem';
 import { CollisionWorld, ColliderGroup } from './CollisionWorld';
 import { YSortManager } from './YSortManager';
 
@@ -141,6 +141,10 @@ export class TurretPlacementManager extends Component {
     // ── 进入放置模式（炮塔） ──
 
     public startPlacement(cost: TurretPlacementCost, panel: TurretBuildPanelUI | null = null) {
+        if (BaseSystem.instance?.isPowerOutage) {
+            warn('[TurretPlacementManager] 电力不足，无法建造炮塔');
+            return;
+        }
         const prefab = this.turretPrefabs[this.currentTurretIndex];
         if (!prefab) {
             warn('[TurretPlacementManager] 当前选中炮塔的预制体未配置');
@@ -155,6 +159,10 @@ export class TurretPlacementManager extends Component {
 
     /** 进入放置模式（使用指定预制体，供 NewTurretPanelUI 调用） */
     public startPlacementWithPrefab(prefab: Prefab, cost: TurretPlacementCost, panel: NewTurretPanelUI) {
+        if (BaseSystem.instance?.isPowerOutage) {
+            warn('[TurretPlacementManager] 电力不足，无法建造炮塔');
+            return;
+        }
         if (!prefab) {
             warn('[TurretPlacementManager] 预制体未配置');
             return;

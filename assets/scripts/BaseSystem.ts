@@ -118,6 +118,7 @@ export class BaseSystem extends Component {
         this.clampBaseHp();
         this.captureWallOriginalColors();
         this.refreshBaseAppearance();
+        this.updatePowerStatus();
     }
 
     onDestroy() {

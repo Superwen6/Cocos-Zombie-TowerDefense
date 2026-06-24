@@ -144,6 +144,11 @@ export class Turret extends Component {
             return;
         }
 
+        // 断电检查：电力不足时完全停机（不搜索目标、不旋转、不发射）
+        if (BaseSystem.instance?.isPowerOutage) {
+            return;
+        }
+
         this.lockedTarget = this.findClosestZombieInRange();
 
         // 平滑旋转炮口
@@ -185,11 +190,6 @@ export class Turret extends Component {
         }
 
         this.fireTimer += dt;
-
-        // 断电检查：电力不足时阻止开火
-        if (BaseSystem.instance?.isPowerOutage) {
-            return;
-        }
 
         // 只有在对准目标后才允许射击
         if (this.fireTimer < this.attackInterval || !this.lockedTarget || !this._angleAligned) {
