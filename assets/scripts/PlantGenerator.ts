@@ -20,7 +20,7 @@ export class PlantGenerator extends Component {
     @property({ type: CCInteger, tooltip: '该发电机产生的电力（瓦）' })
     powerGenerate = 10;
 
-    @property({ type: Vec3, tooltip: '发电机固定建造中心点。在 GameWorld 场景中定位到目标位置，将坐标填入此处即可' })
+    @property({ type: Vec3, tooltip: '发电机固定建造中心点（GameWorld 绝对世界坐标）。在场景中选中目标位置节点，复制其 Position 的 X/Y 填入此处' })
     placeCenter: Vec3 = new Vec3(0, 0, 0);
 
     @property({ type: CCFloat, tooltip: '在 placeCenter 周围的建造半径范围' })

@@ -116,7 +116,7 @@
       "a": 255
     },
     "_spriteFrame": {
-      "__uuid__": "6449b0f2-6740-4fc2-a7d3-4a7f059c83de@f9941",
+      "__uuid__": "3727bcc5-2f36-4187-9f86-170d9d85844e@f9941",
       "__expectedType__": "cc.SpriteFrame"
     },
     "_type": 0,
@@ -174,7 +174,6 @@
     },
     "plantId": 2,
     "powerGenerate": 10,
-    "placeCenterNode": null,
     "placeCenter": {
       "__type__": "cc.Vec3",
       "x": 980,
@@ -183,7 +182,7 @@
     },
     "placeRadius": 200,
     "costWood": 0,
-    "costCopper": 25,
+    "costCopper": 0,
     "costIron": 0,
     "costMoney": 0,
     "_id": ""

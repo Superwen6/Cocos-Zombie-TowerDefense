@@ -326,7 +326,8 @@ export class TurretPlacementManager extends Component {
         if (!this._placementValid) return; // 无效位置不允许放置
 
         const data = PlayerData.instance;
-        if (data?.canAfford(this.currentCost.wood, this.currentCost.copper, this.currentCost.iron, this.currentCost.money)) {
+        if (!data) return;
+        if (data.canAfford(this.currentCost.wood, this.currentCost.copper, this.currentCost.iron, this.currentCost.money)) {
             data.spendUpgradeCost(this.currentCost.wood, this.currentCost.copper, this.currentCost.iron, this.currentCost.money);
             this.finalizePlacement();
         }
