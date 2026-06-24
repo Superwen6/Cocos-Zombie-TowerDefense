@@ -9,6 +9,7 @@ import { Turret } from './Turret';
 import { TurretBuildPanelUI } from './TurretBuildPanelUI';
 import { NewTurretPanelUI } from './NewTurretPanelUI';
 import { PlantGenerator } from './PlantGenerator';
+import { MapObstacle } from './MapObstacle';
 import { BaseSystem } from './BaseSystem';
 import { CollisionWorld, ColliderGroup } from './CollisionWorld';
 import { YSortManager } from './YSortManager';
@@ -36,7 +37,7 @@ export class TurretPlacementManager extends Component {
     @property({ type: [Prefab], tooltip: '炮塔预制体数组 [0]初级 [1]双管 [2]重型 [3]机枪 [4]迷彩双枪 [5]迷彩火焰 [6]伪装镭射 [7]镭射 [8]机械机枪 [9]机械重炮 [10]未来机甲 [11]未来重炮' })
     turretPrefabs: Prefab[] = [];
 
-    @property({ type: [Prefab], tooltip: '发电机预制体数组 [0]光伏板 [1]光伏矩阵 [2]燃料电机 [3]能源核心' })
+    @property({ type: [Prefab], tooltip: '发电机预制体数组 [0]光伏板 [1]光伏矩阵 [2]燃料电机 [3]能源核心。每个预制体的 PlantGenerator.placeCenter 需填写 GameWorld 世界坐标' })
     plantPrefabs: Prefab[] = [];
 
     @property({ type: Camera }) worldCamera: Camera | null = null;
@@ -52,8 +53,12 @@ export class TurretPlacementManager extends Component {
 
     /** 当前放置模式 */
     private buildType: BuildType = 'turret';
-    /** plant 模式下使用的预制体 */
-    private currentPlantPrefab: Prefab | null = null;
+    /** plant 模式缓存的 placeCenter（避免每帧实例化预制体） */
+    private _plantCenter: Vec3 = new Vec3(0, 0, 0);
+    /** plant 模式缓存的 placeRadius */
+    private _plantRadius = 100;
+    /** plant 模式缓存的 plantId */
+    private _plantId = 0;
     /** 是否当前虚影位置有效（可放置） */
     private _placementValid = false;
 
@@ -175,10 +180,15 @@ export class TurretPlacementManager extends Component {
             warn('[TurretPlacementManager] 发电机预制体未配置');
             return;
         }
-        // 检查该发电机是否已放置
+        // 读取该发电机预制体上的 PlantGenerator 属性，并缓存
         const tempNode = instantiate(prefab);
         const plantComp = tempNode.getComponent(PlantGenerator);
         const plantId = plantComp?.plantId ?? 0;
+        if (plantComp) {
+            this._plantCenter.set(plantComp.placeCenter);
+            this._plantRadius = plantComp.placeRadius;
+        }
+        this._plantId = plantId;
         tempNode.destroy();
 
         if (PlantGenerator.isPlantPlaced(plantId)) {
@@ -187,7 +197,6 @@ export class TurretPlacementManager extends Component {
         }
 
         this.buildType = 'plant';
-        this.currentPlantPrefab = prefab;
         this.currentCost = { ...cost };
         this.activePanel = null;
         this.createGhostNodeWithPrefab(prefab);
@@ -200,7 +209,6 @@ export class TurretPlacementManager extends Component {
         this._placementValid = false;
         this._isPlacing = true;
         this._justActivatedFrame = true;
-        this.scheduleOnce(() => this._justActivatedFrame = false, 0.1);
 
         input.on(Input.EventType.MOUSE_MOVE, this.onMouseMove, this);
         input.on(Input.EventType.MOUSE_DOWN, this.onMouseDown, this);
@@ -229,7 +237,28 @@ export class TurretPlacementManager extends Component {
         this.ghostNode.layer = Layers.Enum.DEFAULT;
         this.setLayerRecursive(this.ghostNode, Layers.Enum.DEFAULT);
 
+        // 移除虚影上的所有碰撞相关组件，防止推动僵尸
+        this.removeCollisionComponents(this.ghostNode);
+
         this.applyGhostVisual(this.ghostNode);
+    }
+
+    /** 递归移除节点及其子节点上的 MapObstacle 和 Collider2D 组件（禁用而非销毁，放置时恢复） */
+    private removeCollisionComponents(node: Node) {
+        const mapObs = node.getComponent(MapObstacle);
+        if (mapObs) mapObs.enabled = false;
+        const collider = node.getComponent(Collider2D);
+        if (collider) collider.enabled = false;
+        node.children.forEach(c => this.removeCollisionComponents(c));
+    }
+
+    /** 递归恢复节点及其子节点上的 MapObstacle 和 Collider2D 组件 */
+    private restoreCollisionComponents(node: Node) {
+        const mapObs = node.getComponent(MapObstacle);
+        if (mapObs) mapObs.enabled = true;
+        const collider = node.getComponent(Collider2D);
+        if (collider) collider.enabled = true;
+        node.children.forEach(c => this.restoreCollisionComponents(c));
     }
 
     // ── 鼠标移动 ──
@@ -238,6 +267,11 @@ export class TurretPlacementManager extends Component {
         if (!this._isPlacing || !this.ghostNode) return;
         const worldPos = this.screenToWorld(event.getLocationX(), event.getLocationY());
         if (!worldPos) return;
+
+        // 首次鼠标移动时解除放置保护，不再依赖 scheduleOnce
+        if (this._justActivatedFrame) {
+            this._justActivatedFrame = false;
+        }
 
         if (!this.ghostNode.active) {
             this.ghostNode.active = true;
@@ -268,27 +302,14 @@ export class TurretPlacementManager extends Component {
         return dist <= data.buildRadius;
     }
 
-    /** 发电机：检查与 placeCenter 的距离，以及是否已放置 */
+    /** 发电机：检查与 placeCenter 的距离，以及是否已放置（使用缓存值，避免每帧实例化） */
     private checkPlantPlacementValidity(worldPos: Vec3): boolean {
-        if (!this.currentPlantPrefab) return false;
-        // 读取发电机预制体上的 PlantGenerator 组件
-        const temp = instantiate(this.currentPlantPrefab);
-        const plant = temp.getComponent(PlantGenerator);
-        if (!plant) {
-            temp.destroy();
-            return false;
-        }
-        const center = plant.placeCenter;
-        const radius = plant.placeRadius;
-        const plantId = plant.plantId;
-        temp.destroy();
-
         // 已放置则无效
-        if (PlantGenerator.isPlantPlaced(plantId)) return false;
+        if (PlantGenerator.isPlantPlaced(this._plantId)) return false;
 
-        // 距离检测
-        const dist = Vec3.distance(worldPos, center);
-        return dist <= radius;
+        // 距离检测（使用缓存的 placeCenter 和 placeRadius）
+        const dist = Vec3.distance(worldPos, this._plantCenter);
+        return dist <= this._plantRadius;
     }
 
     /** 更新虚影颜色：有效→白色，无效→红色 */
@@ -331,7 +352,8 @@ export class TurretPlacementManager extends Component {
         this.ghostNode.active = true;
         this.setNodeOpacity(this.ghostNode, PLACED_OPACITY);
         this.setNodeTint(this.ghostNode, GHOST_VALID_COLOR);
-        this.setCollidersEnabled(this.ghostNode, true);
+        // 恢复碰撞组件，让实体可以阻挡僵尸
+        this.restoreCollisionComponents(this.ghostNode);
 
         this.ghostNode.setWorldPosition(new Vec3(finalX, finalY, 0));
 
@@ -363,12 +385,7 @@ export class TurretPlacementManager extends Component {
     private applyGhostVisual(node: Node) {
         const turret = node.getComponent(Turret);
         if (turret) turret.enabled = false;
-        const plant = node.getComponent(PlantGenerator);
-        if (plant) {
-            // 发电机初始不标记为已放置
-        }
         this.setNodeOpacity(node, GHOST_OPACITY);
-        this.setCollidersEnabled(node, false);
     }
 
     private setNodeOpacity(node: Node, opacity: number) {
