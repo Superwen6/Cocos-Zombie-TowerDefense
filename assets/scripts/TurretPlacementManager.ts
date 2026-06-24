@@ -1,7 +1,7 @@
 import {
     _decorator, Color, Component, Camera, Collider2D, EventKeyboard, EventMouse,
     instantiate, input, Input, KeyCode, Layers, Node, Prefab, Sprite,
-    RenderRoot2D, UIOpacity, Vec3, director, log, warn,
+    RenderRoot2D, UIOpacity, Vec3, director, warn,
 } from 'cc';
 import { GameHUDUI } from './GameHUDUI';
 import { PlayerData } from './PlayerData';
@@ -53,16 +53,12 @@ export class TurretPlacementManager extends Component {
 
     /** 当前放置模式 */
     private buildType: BuildType = 'turret';
-    /** plant 模式缓存的 placeCenter（避免每帧实例化预制体） */
-    private _plantCenter: Vec3 = new Vec3(0, 0, 0);
-    /** plant 模式缓存的 placeRadius */
-    private _plantRadius = 100;
+    /** plant 模式：场景中预置的目标节点（初始 active=false），放置成功时激活 */
+    private _plantTargetNode: Node | null = null;
     /** plant 模式缓存的 plantId */
     private _plantId = 0;
     /** 是否当前虚影位置有效（可放置） */
     private _placementValid = false;
-    /** 诊断日志帧计数器（每30帧打印一次距离） */
-    private _diagnoseFrameCounter = 0;
 
     private readonly _screenVec = new Vec3();
     private readonly _worldVec = new Vec3();
@@ -170,40 +166,44 @@ export class TurretPlacementManager extends Component {
         this.enterPlacementMode();
     }
 
-    // ── 进入放置模式（发电机） ──
+    // ── 进入放置模式（发电机：固定节点激活） ──
 
     /**
-     * 开始放置发电机。
-     * @param prefab 发电机预制体
-     * @param cost 建造消耗（从 PlantGenerator 读取）
+     * 固定节点放置发电机（新方案）。
+     * 在场景预置节点位置生成虚影，左键确认激活实体，右键/ESC 取消并退款。
+     * @param targetNode 场景中预置的发电机节点（初始 active=false）
+     * @param ghostPrefab 用于生成虚影的预制体
+     * @param cost 建造消耗（已在 UI 层扣除）
+     * @param plantId 发电机 ID
      */
-    public startPlantPlacement(prefab: Prefab, cost: TurretPlacementCost) {
-        if (!prefab) {
-            warn('[TurretPlacementManager] 发电机预制体未配置');
+    public startPlantPlacementByNode(targetNode: Node, ghostPrefab: Prefab, cost: TurretPlacementCost, plantId: number) {
+        if (!targetNode) {
+            warn('[TurretPlacementManager] startPlantPlacementByNode: targetNode 为空');
             return;
         }
-        // 读取该发电机预制体上的 PlantGenerator 属性，并缓存
-        const tempNode = instantiate(prefab);
-        const plantComp = tempNode.getComponent(PlantGenerator);
-        const plantId = plantComp?.plantId ?? 0;
-        if (plantComp) {
-            this._plantCenter.set(plantComp.placeCenter);
-            this._plantRadius = plantComp.placeRadius;
-        }
-        this._plantId = plantId;
-        tempNode.destroy();
-
-        log(`[PlantDiagnose] startPlantPlacement | plantId=${plantId} | 预制体placeCenter=(${this._plantCenter.x.toFixed(1)}, ${this._plantCenter.y.toFixed(1)}) | radius=${this._plantRadius}`);
-
         if (PlantGenerator.isPlantPlaced(plantId)) {
             warn(`[TurretPlacementManager] 发电机 ID=${plantId} 已放置，不能重复建造`);
             return;
         }
 
+        this._plantTargetNode = targetNode;
+        this._plantId = plantId;
         this.buildType = 'plant';
         this.currentCost = { ...cost };
         this.activePanel = null;
-        this.createGhostNodeWithPrefab(prefab);
+
+        // 在目标节点位置创建虚影
+        this.createGhostNodeWithPrefab(ghostPrefab);
+        if (this.ghostNode) {
+            this.ghostNode.setWorldPosition(targetNode.worldPosition);
+            // 应用发电机预制体上配置的虚影透明度
+            const plantComp = this.ghostNode.getComponent(PlantGenerator);
+            if (plantComp) {
+                const opacity = Math.round(plantComp.ghostOpacity * 255);
+                this.setNodeOpacity(this.ghostNode, opacity);
+            }
+        }
+
         this.enterPlacementMode();
     }
 
@@ -214,7 +214,19 @@ export class TurretPlacementManager extends Component {
         this._isPlacing = true;
         this._justActivatedFrame = true;
 
-        input.on(Input.EventType.MOUSE_MOVE, this.onMouseMove, this);
+        if (this.buildType === 'plant') {
+            // 固定点放置模式：虚影直接出现在目标节点位置，不跟随鼠标
+            this._placementValid = true;
+            if (this.ghostNode) {
+                this.ghostNode.active = true;
+                this.updateGhostTint(true);
+            }
+            // 延迟清除保护标志，防止按钮双击意外触发放置
+            this.scheduleOnce(() => this._justActivatedFrame = false, 0.15);
+        } else {
+            input.on(Input.EventType.MOUSE_MOVE, this.onMouseMove, this);
+        }
+
         input.on(Input.EventType.MOUSE_DOWN, this.onMouseDown, this);
         input.on(Input.EventType.KEY_DOWN, this.onKeyDown, this);
     }
@@ -290,7 +302,8 @@ export class TurretPlacementManager extends Component {
     /** 根据当前 buildType 检查虚影位置是否有效 */
     private checkPlacementValidity(worldPos: Vec3): boolean {
         if (this.buildType === 'plant') {
-            return this.checkPlantPlacementValidity(worldPos);
+            // 固定点放置：虚影已在目标位置，始终有效
+            return !PlantGenerator.isPlantPlaced(this._plantId);
         }
         return this.checkTurretPlacementValidity(worldPos);
     }
@@ -306,23 +319,6 @@ export class TurretPlacementManager extends Component {
         return dist <= data.buildRadius;
     }
 
-    /** 发电机：检查与 placeCenter 的距离，以及是否已放置（使用缓存值，避免每帧实例化） */
-    private checkPlantPlacementValidity(worldPos: Vec3): boolean {
-        // 已放置则无效
-        if (PlantGenerator.isPlantPlaced(this._plantId)) return false;
-
-        // 距离检测（使用缓存的 placeCenter 和 placeRadius）
-        const dist = Vec3.distance(worldPos, this._plantCenter);
-        const valid = dist <= this._plantRadius;
-
-        // 每30帧打印一次诊断日志（避免刷屏）
-        this._diagnoseFrameCounter++;
-        if (this._diagnoseFrameCounter % 30 === 0) {
-            log(`[PlantDiagnose] checkPlant | ghostPos=(${worldPos.x.toFixed(1)}, ${worldPos.y.toFixed(1)}) | placeCenter=(${this._plantCenter.x.toFixed(1)}, ${this._plantCenter.y.toFixed(1)}) | dist=${dist.toFixed(1)} | radius=${this._plantRadius} | valid=${valid}`);
-        }
-        return valid;
-    }
-
     /** 更新虚影颜色：有效→白色，无效→红色 */
     private updateGhostTint(valid: boolean) {
         if (!this.ghostNode) return;
@@ -333,7 +329,15 @@ export class TurretPlacementManager extends Component {
     // ── 鼠标点击 ──
 
     private onMouseDown(event: EventMouse) {
-        if (!this._isPlacing || this._justActivatedFrame || event.getButton() !== 0) return;
+        if (!this._isPlacing) return;
+
+        // 右键 / ESC 取消放置
+        if (event.getButton() === 2) {
+            this.cancelPlacement();
+            return;
+        }
+
+        if (this._justActivatedFrame || event.getButton() !== 0) return;
         if (!this._placementValid) return; // 无效位置不允许放置
 
         const data = PlayerData.instance;
@@ -345,48 +349,49 @@ export class TurretPlacementManager extends Component {
     }
 
     private finalizePlacement() {
-        if (!this.ghostNode) return;
-
-        const placedPos = this.ghostNode.worldPosition.clone();
-        placedPos.z = 0;
-
-        let finalX = placedPos.x;
-        let finalY = placedPos.y;
-        if (CollisionWorld.instance) {
-            const group = this.buildType === 'plant' ? ColliderGroup.Turret : ColliderGroup.Turret;
-            const resolved = CollisionWorld.instance.resolvePlacement(
-                20, 20, group, finalX, finalY, 200, 8,
-            );
-            finalX = resolved.x;
-            finalY = resolved.y;
-        }
-
-        this.ghostNode.active = true;
-        this.setNodeOpacity(this.ghostNode, PLACED_OPACITY);
-        this.setNodeTint(this.ghostNode, GHOST_VALID_COLOR);
-        // 恢复碰撞组件，让实体可以阻挡僵尸
-        this.restoreCollisionComponents(this.ghostNode);
-
-        this.ghostNode.setWorldPosition(new Vec3(finalX, finalY, 0));
-
-        // 根据类型处理组件
         if (this.buildType === 'plant') {
-            const plant = this.ghostNode.getComponent(PlantGenerator);
-            if (plant) {
-                plant.markPlaced();
-                // 建造完成后通知 BaseSystem 更新电力
-                BaseSystem.instance?.updatePowerStatus();
+            // 固定节点放置：激活场景中预置的发电机节点，销毁虚影
+            if (this._plantTargetNode) {
+                this._plantTargetNode.active = true;
+                const plant = this._plantTargetNode.getComponent(PlantGenerator);
+                if (plant) {
+                    plant.markPlaced();
+                    BaseSystem.instance?.updatePowerStatus();
+                }
             }
+            this.ghostNode?.destroy();
+            this.ghostNode = null;
+            this._plantTargetNode = null;
         } else {
+            // 炮塔拖拽放置
+            if (!this.ghostNode) return;
+
+            const placedPos = this.ghostNode.worldPosition.clone();
+            placedPos.z = 0;
+            let finalX = placedPos.x;
+            let finalY = placedPos.y;
+            if (CollisionWorld.instance) {
+                const resolved = CollisionWorld.instance.resolvePlacement(
+                    20, 20, ColliderGroup.Turret, finalX, finalY, 200, 8,
+                );
+                finalX = resolved.x;
+                finalY = resolved.y;
+            }
+
+            this.ghostNode.active = true;
+            this.setNodeOpacity(this.ghostNode, PLACED_OPACITY);
+            this.setNodeTint(this.ghostNode, GHOST_VALID_COLOR);
+            this.restoreCollisionComponents(this.ghostNode);
+            this.ghostNode.setWorldPosition(new Vec3(finalX, finalY, 0));
+
             const turret = this.ghostNode.getComponent(Turret);
             if (turret) {
                 turret.enabled = true;
-                // 建造完成后通知 BaseSystem 更新电力
                 BaseSystem.instance?.updatePowerStatus();
             }
+            this.ghostNode = null;
         }
 
-        this.ghostNode = null;
         this._isPlacing = false;
         this.unregisterInput();
         this.refreshHud();
@@ -459,9 +464,17 @@ export class TurretPlacementManager extends Component {
     }
 
     private cancelPlacement() {
+        // plant 模式：退还已扣除的资源
+        if (this.buildType === 'plant') {
+            const data = PlayerData.instance;
+            if (data) {
+                data.refundUpgradeCost(this.currentCost.wood, this.currentCost.copper, this.currentCost.iron, this.currentCost.money);
+            }
+        }
         this.ghostNode?.destroy();
         this.ghostNode = null;
         this._isPlacing = false;
+        this._plantTargetNode = null;
         this.unregisterInput();
     }
 }

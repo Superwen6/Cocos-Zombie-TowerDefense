@@ -1,4 +1,4 @@
-import { _decorator, CCInteger, CCFloat, Component, Vec3, log } from 'cc';
+import { _decorator, CCInteger, CCFloat, Component, Vec3 } from 'cc';
 
 const { ccclass, property } = _decorator;
 
@@ -38,10 +38,12 @@ export class PlantGenerator extends Component {
     @property({ type: CCInteger, tooltip: '建造消耗金币' })
     costMoney = 500;
 
+    @property({ type: Number, tooltip: '虚影透明度（0~1）', range: [0, 1, 0.05] })
+    ghostOpacity = 0.5;
+
     private _isPlaced = false;
 
     onLoad() {
-        log(`[PlantDiagnose] PlantGenerator onLoad | plantId=${this.plantId} | placeCenter=(${this.placeCenter.x.toFixed(0)}, ${this.placeCenter.y.toFixed(0)})`);
     }
 
     get isPlaced(): boolean {
@@ -56,10 +58,10 @@ export class PlantGenerator extends Component {
         PlantGenerator.invokePlacedCallbacks();
     }
 
-    /** 检查该 ID 的发电机是否已被放置 */
+    /** 检查该 ID 的发电机是否已被放置且处于激活状态 */
     static isPlantPlaced(plantId: number): boolean {
         const plant = PlantGenerator.placedMap.get(plantId);
-        return plant != null && plant.isValid && plant._isPlaced;
+        return plant != null && plant.isValid && plant._isPlaced && plant.node.active;
     }
 
     /** 获取所有已放置发电机的总发电量 */

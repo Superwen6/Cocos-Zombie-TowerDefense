@@ -70,6 +70,14 @@ export class PlayerData extends Component {
         return true;
     }
 
+    /** 退还建造消耗（取消放置时使用） */
+    refundUpgradeCost(wood: number, copper: number, iron: number, money: number) {
+        this.woodCount = Math.min(this.maxWood, this.woodCount + wood);
+        this.copperCount = Math.min(this.maxCopper, this.copperCount + copper);
+        this.ironCount = Math.min(this.maxIron, this.ironCount + iron);
+        this.money = Math.min(this.maxMoney, this.money + money);
+    }
+
     addWood(amount: number) {
         this.woodCount = Math.min(this.maxWood, this.woodCount + amount);
     }

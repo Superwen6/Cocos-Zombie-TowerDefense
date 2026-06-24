@@ -185,6 +185,7 @@
     "costCopper": 0,
     "costIron": 0,
     "costMoney": 0,
+    "ghostOpacity": 0.2,
     "_id": ""
   },
   {
