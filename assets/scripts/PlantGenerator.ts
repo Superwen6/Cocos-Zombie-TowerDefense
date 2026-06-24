@@ -87,4 +87,13 @@ export class PlantGenerator extends Component {
             PlantGenerator.placedMap.delete(this.plantId);
         }
     }
+
+    /** 拆除回调（DemolishManager 调用）。从映射表移除并触发刷新。 */
+    onDemolish() {
+        if (this._isPlaced) {
+            this._isPlaced = false;
+            PlantGenerator.placedMap.delete(this.plantId);
+            PlantGenerator.invokePlacedCallbacks();
+        }
+    }
 }

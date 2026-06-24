@@ -308,15 +308,24 @@ export class TurretPlacementManager extends Component {
         return this.checkTurretPlacementValidity(worldPos);
     }
 
-    /** 炮塔：检查与玩家的距离 */
+    /** 炮塔：检查与玩家的距离，以及墙体视线阻挡 */
     private checkTurretPlacementValidity(worldPos: Vec3): boolean {
         const data = PlayerData.instance;
-        if (!data) return true; // 无 PlayerData 时默认允许
+        if (!data) return true;
         const playerNode = data.node;
         if (!playerNode) return true;
         const playerPos = playerNode.worldPosition;
         const dist = Vec3.distance(worldPos, playerPos);
-        return dist <= data.buildRadius;
+        if (dist > data.buildRadius) return false;
+
+        // 墙体阻挡判定：检查玩家到虚影之间的视线是否被墙体遮挡
+        if (CollisionWorld.instance) {
+            if (!CollisionWorld.instance.isLineOfSightClear(playerPos, worldPos, [ColliderGroup.Wall])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /** 更新虚影颜色：有效→白色，无效→红色 */
@@ -476,5 +485,12 @@ export class TurretPlacementManager extends Component {
         this._isPlacing = false;
         this._plantTargetNode = null;
         this.unregisterInput();
+    }
+
+    /** 公开取消放置方法（供 DemolishManager 等外部调用） */
+    public cancelPlacementPublic() {
+        if (this._isPlacing) {
+            this.cancelPlacement();
+        }
     }
 }

@@ -35,6 +35,9 @@ export class PlayerData extends Component {
     @property({ type: CCFloat, tooltip: '玩家周围建造半径（像素），炮塔等建筑必须在此范围内' })
     buildRadius = 200;
 
+    @property({ type: CCFloat, tooltip: '拆除建筑时的资源返还比例（0~1）', range: [0, 1, 0.05] })
+    demolishRefundRate = 0.5;
+
     onLoad() {
         if (PlayerData.instance && PlayerData.instance !== this) {
             warn('[PlayerData] 场景中存在多个 PlayerData，已销毁重复实例');

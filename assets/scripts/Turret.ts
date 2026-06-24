@@ -131,6 +131,14 @@ export class Turret extends Component {
         }
     }
 
+    /** 拆除前从 CollisionWorld 注销碰撞体（DemolishManager 调用） */
+    public unregisterCollider() {
+        if (this._collider) {
+            CollisionWorld.instance?.unregister(this._collider);
+            this._collider = null;
+        }
+    }
+
     update(dt: number) {
         if (this.hp <= 0) {
             return;
