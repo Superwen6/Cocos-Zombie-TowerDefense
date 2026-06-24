@@ -1,7 +1,7 @@
 import {
     _decorator, Color, Component, Camera, Collider2D, EventKeyboard, EventMouse,
     instantiate, input, Input, KeyCode, Layers, Node, Prefab, Sprite,
-    RenderRoot2D, UIOpacity, Vec3, director, warn,
+    RenderRoot2D, UIOpacity, Vec3, director, log, warn,
 } from 'cc';
 import { GameHUDUI } from './GameHUDUI';
 import { PlayerData } from './PlayerData';
@@ -61,6 +61,8 @@ export class TurretPlacementManager extends Component {
     private _plantId = 0;
     /** 是否当前虚影位置有效（可放置） */
     private _placementValid = false;
+    /** 诊断日志帧计数器（每30帧打印一次距离） */
+    private _diagnoseFrameCounter = 0;
 
     private readonly _screenVec = new Vec3();
     private readonly _worldVec = new Vec3();
@@ -191,6 +193,8 @@ export class TurretPlacementManager extends Component {
         this._plantId = plantId;
         tempNode.destroy();
 
+        log(`[PlantDiagnose] startPlantPlacement | plantId=${plantId} | 预制体placeCenter=(${this._plantCenter.x.toFixed(1)}, ${this._plantCenter.y.toFixed(1)}) | radius=${this._plantRadius}`);
+
         if (PlantGenerator.isPlantPlaced(plantId)) {
             warn(`[TurretPlacementManager] 发电机 ID=${plantId} 已放置，不能重复建造`);
             return;
@@ -309,7 +313,14 @@ export class TurretPlacementManager extends Component {
 
         // 距离检测（使用缓存的 placeCenter 和 placeRadius）
         const dist = Vec3.distance(worldPos, this._plantCenter);
-        return dist <= this._plantRadius;
+        const valid = dist <= this._plantRadius;
+
+        // 每30帧打印一次诊断日志（避免刷屏）
+        this._diagnoseFrameCounter++;
+        if (this._diagnoseFrameCounter % 30 === 0) {
+            log(`[PlantDiagnose] checkPlant | ghostPos=(${worldPos.x.toFixed(1)}, ${worldPos.y.toFixed(1)}) | placeCenter=(${this._plantCenter.x.toFixed(1)}, ${this._plantCenter.y.toFixed(1)}) | dist=${dist.toFixed(1)} | radius=${this._plantRadius} | valid=${valid}`);
+        }
+        return valid;
     }
 
     /** 更新虚影颜色：有效→白色，无效→红色 */

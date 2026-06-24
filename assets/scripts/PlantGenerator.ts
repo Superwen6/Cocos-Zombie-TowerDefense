@@ -1,4 +1,4 @@
-import { _decorator, CCInteger, CCFloat, Component, Vec3 } from 'cc';
+import { _decorator, CCInteger, CCFloat, Component, Vec3, log } from 'cc';
 
 const { ccclass, property } = _decorator;
 
@@ -39,6 +39,10 @@ export class PlantGenerator extends Component {
     costMoney = 500;
 
     private _isPlaced = false;
+
+    onLoad() {
+        log(`[PlantDiagnose] PlantGenerator onLoad | plantId=${this.plantId} | placeCenter=(${this.placeCenter.x.toFixed(0)}, ${this.placeCenter.y.toFixed(0)})`);
+    }
 
     get isPlaced(): boolean {
         return this._isPlaced;
