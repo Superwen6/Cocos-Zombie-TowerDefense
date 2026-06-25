@@ -548,12 +548,24 @@ export class TurretPlacementManager extends Component {
 
         // 从虚影/目标节点上查找 HealthBar 组件
         const targetNode = this._buildGhostNode || this._plantTargetNode;
+        console.log('[DEBUG startBuildProgress] targetNode:', targetNode?.name, 'active:', targetNode?.active);
         const bar = targetNode ? this.findHealthBar(targetNode) : null;
+        console.log('[DEBUG startBuildProgress] findHealthBar result:', bar ? 'FOUND' : 'NOT FOUND');
         if (bar) {
+            console.log('[DEBUG startBuildProgress] HealthBar node:', bar.node.name, 'active:', bar.node.active);
+            console.log('[DEBUG startBuildProgress] backgroundSprite:', bar.backgroundSprite ? 'SET' : 'NULL');
+            console.log('[DEBUG startBuildProgress] fillSprite:', bar.fillSprite ? 'SET' : 'NULL');
+            if (bar.fillSprite) {
+                console.log('[DEBUG startBuildProgress] fillSprite.type:', bar.fillSprite.type);
+                console.log('[DEBUG startBuildProgress] fillSprite.spriteFrame:', bar.fillSprite.spriteFrame ? 'SET' : 'NULL');
+                console.log('[DEBUG startBuildProgress] fillSprite.node.active:', bar.fillSprite.node.active);
+            }
             // 确保血条完全可见，不受虚影透明度影响（虚影 opacity=100 会递归影响子节点）
             this.setNodeOpacity(bar.node, 255);
+            console.log('[DEBUG startBuildProgress] calling bar.startBuild with duration:', this._buildDuration);
             bar.startBuild(this._buildDuration);
         } else {
+            console.log('[DEBUG startBuildProgress] HealthBar not found on targetNode, falling back to finishBuild');
             // 没有 HealthBar，跳过进度直接完成建造
             this.finishBuild();
             return;

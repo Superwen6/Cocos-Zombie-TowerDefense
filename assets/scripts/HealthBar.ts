@@ -55,6 +55,11 @@ export class HealthBar extends Component {
         if (buildTime != null && buildTime > 0) {
             this.buildTime = buildTime;
         }
+        console.log('[DEBUG HealthBar.startBuild] node:', this.node.name, 'active:', this.node.active, 'buildTime:', this.buildTime);
+        console.log('[DEBUG HealthBar.startBuild] parent:', this.node.parent?.name);
+        console.log('[DEBUG HealthBar.startBuild] worldPos:', this.node.worldPosition);
+        console.log('[DEBUG HealthBar.startBuild] backgroundSprite:', this.backgroundSprite ? 'SET' : 'NULL');
+        console.log('[DEBUG HealthBar.startBuild] fillSprite:', this.fillSprite ? 'SET' : 'NULL');
         this._started = true;
         this._mode = HealthBarMode.BUILD;
         this._buildTimer = 0;
@@ -62,6 +67,7 @@ export class HealthBar extends Component {
         this._isVisible = true;
         this.showVisuals();
         this.updateProgress(0);
+        console.log('[DEBUG HealthBar.startBuild] after showVisuals - bg active:', this.backgroundSprite?.node.active, 'fill active:', this.fillSprite?.node.active);
     }
 
     /** 更新建造进度（0~1） */
@@ -97,6 +103,12 @@ export class HealthBar extends Component {
             this._buildTimer += dt;
             const progress = Math.min(1, this._buildTimer / this.buildTime);
             this.updateProgress(progress);
+            // 每秒输出一次进度
+            if (Math.floor(this._buildTimer) !== Math.floor(this._buildTimer - dt)) {
+                console.log('[DEBUG HealthBar.update] build progress:', (progress * 100).toFixed(0) + '%',
+                    'fillRange:', this.fillSprite?.fillRange,
+                    'fillColor:', this.fillSprite?.color);
+            }
             return;
         }
 
@@ -179,8 +191,10 @@ export class HealthBar extends Component {
     }
 
     private showVisuals() {
+        console.log('[DEBUG HealthBar.showVisuals] before - bg active:', this.backgroundSprite?.node.active, 'fill active:', this.fillSprite?.node.active);
         if (this.backgroundSprite) this.backgroundSprite.node.active = true;
         if (this.fillSprite) this.fillSprite.node.active = true;
+        console.log('[DEBUG HealthBar.showVisuals] after - bg active:', this.backgroundSprite?.node.active, 'fill active:', this.fillSprite?.node.active);
     }
 
     private hideVisuals() {
