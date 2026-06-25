@@ -65,9 +65,8 @@ export class TurretPlacementManager extends Component {
     private _isBuilding = false;
     private _buildTimer = 0;
     private _buildDuration = 0;
-    private readonly _buildWorldPos = new Vec3();
-    /** 鼠标左键按下瞬间的世界坐标，用于锁定建造位置 */
-    private readonly _mouseDownWorldPos = new Vec3();
+    /** 建造位置（GameWorld 本地坐标，不随 Canvas 移动而漂移） */
+    private readonly _buildLocalPos = new Vec3();
     /** 建造过程中的半透明虚影（炮塔模式） */
     private _buildGhostNode: Node | null = null;
 
@@ -403,10 +402,6 @@ export class TurretPlacementManager extends Component {
         const data = PlayerData.instance;
         if (!data) return;
         if (data.canAfford(this.currentCost.wood, this.currentCost.copper, this.currentCost.iron, this.currentCost.money)) {
-            // 立即捕获鼠标按下瞬间的屏幕坐标，转为世界坐标锁定建造位置
-            const wp = this.screenToWorld(event.getLocationX(), event.getLocationY());
-            if (wp) this._mouseDownWorldPos.set(wp);
-
             data.spendUpgradeCost(this.currentCost.wood, this.currentCost.copper, this.currentCost.iron, this.currentCost.money);
             this.finalizePlacement();
         }
@@ -414,15 +409,17 @@ export class TurretPlacementManager extends Component {
 
     private finalizePlacement() {
         if (this.buildType === 'plant') {
-            // 固定节点放置：使用目标节点位置
+            // 固定节点放置：保存目标节点在父节点下的本地坐标
             if (this._plantTargetNode) {
-                this._buildWorldPos.set(this._plantTargetNode.worldPosition);
+                this._buildLocalPos.set(this._plantTargetNode.position);
                 const plant = this._plantTargetNode.getComponent(PlantGenerator);
                 this._buildDuration = plant ? (plant as any).buildTime || 4.0 : 4.0;
             }
         } else {
-            // 炮塔放置：使用鼠标按下瞬间锁定的世界坐标
-            this._buildWorldPos.set(this._mouseDownWorldPos);
+            // 炮塔放置：保存虚影在父节点下的本地坐标（不随 Canvas 移动而漂移）
+            if (this.ghostNode) {
+                this._buildLocalPos.set(this.ghostNode.position);
+            }
             // 读取建造时间
             this._buildDuration = 3.0;
             if (this.ghostNode) {
@@ -542,7 +539,8 @@ export class TurretPlacementManager extends Component {
         // 炮塔模式：保留虚影作为建造预览
         if (this.buildType === 'turret' && this.ghostNode) {
             this.ghostNode.active = true;
-            this.ghostNode.setWorldPosition(this._buildWorldPos);
+            // 使用本地坐标定位（以 GameWorld/YSortLayer 为基准，不随 Canvas 移动漂移）
+            this.ghostNode.setPosition(this._buildLocalPos);
             this.setNodeOpacity(this.ghostNode, 100);
             this._buildGhostNode = this.ghostNode;
             this.ghostNode = null;
@@ -552,6 +550,8 @@ export class TurretPlacementManager extends Component {
         const targetNode = this._buildGhostNode || this._plantTargetNode;
         const bar = targetNode ? this.findHealthBar(targetNode) : null;
         if (bar) {
+            // 确保血条完全可见，不受虚影透明度影响（虚影 opacity=100 会递归影响子节点）
+            this.setNodeOpacity(bar.node, 255);
             bar.startBuild(this._buildDuration);
         } else {
             // 没有 HealthBar，跳过进度直接完成建造
@@ -576,7 +576,8 @@ export class TurretPlacementManager extends Component {
         if (this.buildType === 'plant') {
             if (this._plantTargetNode) {
                 this._plantTargetNode.active = true;
-                this._plantTargetNode.setWorldPosition(this._buildWorldPos);
+                // 使用本地坐标定位（以 GameWorld 为基准）
+                this._plantTargetNode.setPosition(this._buildLocalPos);
                 const plant = this._plantTargetNode.getComponent(PlantGenerator);
                 if (plant) {
                     plant.markPlaced();
@@ -589,8 +590,10 @@ export class TurretPlacementManager extends Component {
             // 炮塔：将虚影转为实体
             if (this._buildGhostNode) {
                 const ghost = this._buildGhostNode;
-                let finalX = this._buildWorldPos.x;
-                let finalY = this._buildWorldPos.y;
+                // 使用虚影当前世界坐标（虚影已随 Canvas/GameWorld 正确移动，此处坐标是准确的）
+                const ghostWorldPos = ghost.worldPosition;
+                let finalX = ghostWorldPos.x;
+                let finalY = ghostWorldPos.y;
                 if (CollisionWorld.instance) {
                     const resolved = CollisionWorld.instance.resolvePlacement(
                         20, 20, ColliderGroup.Turret, finalX, finalY, 200, 8,
