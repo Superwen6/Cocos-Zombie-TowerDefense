@@ -763,7 +763,7 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 30,
+      "width": 50,
       "height": 15
     },
     "_anchorPoint": {
@@ -805,7 +805,7 @@
     },
     "_type": 3,
     "_fillType": 0,
-    "_sizeMode": 1,
+    "_sizeMode": 0,
     "_fillCenter": {
       "__type__": "cc.Vec2",
       "x": 0,
@@ -1028,8 +1028,12 @@
       "__id__": 45
     },
     "buildTime": 3,
-    "backgroundSprite": null,
-    "fillSprite": null,
+    "backgroundSprite": {
+      "__id__": 24
+    },
+    "fillSprite": {
+      "__id__": 30
+    },
     "_id": ""
   },
   {
@@ -1044,7 +1048,7 @@
     "asset": {
       "__id__": 0
     },
-    "fileId": "",
+    "fileId": "1fEW25qhdATaVYOK8+yzCf",
     "instance": null,
     "targetOverrides": null
   }
