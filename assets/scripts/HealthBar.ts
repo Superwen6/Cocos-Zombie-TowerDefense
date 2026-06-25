@@ -40,6 +40,8 @@ export class HealthBar extends Component {
     private _lastHp = -1;
     private _isVisible = true;
     private _maxHp = 100;
+    /** 是否已启动（startBuild 调用后为 true，防止放置阶段自动运行） */
+    private _started = false;
     /** 绑定的建筑节点（通过 bindParent 设置） */
     private _boundNode: Node | null = null;
 
@@ -53,6 +55,7 @@ export class HealthBar extends Component {
         if (buildTime != null && buildTime > 0) {
             this.buildTime = buildTime;
         }
+        this._started = true;
         this._mode = HealthBarMode.BUILD;
         this._buildTimer = 0;
         this._hideTimer = 0;
@@ -88,6 +91,8 @@ export class HealthBar extends Component {
     }
 
     update(dt: number) {
+        if (!this._started) return;
+
         if (this._mode === HealthBarMode.BUILD) {
             this._buildTimer += dt;
             const progress = Math.min(1, this._buildTimer / this.buildTime);

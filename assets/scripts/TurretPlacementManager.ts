@@ -403,9 +403,8 @@ export class TurretPlacementManager extends Component {
         const data = PlayerData.instance;
         if (!data) return;
         if (data.canAfford(this.currentCost.wood, this.currentCost.copper, this.currentCost.iron, this.currentCost.money)) {
-            // 立即捕获鼠标按下瞬间的世界坐标，锁定建造位置
-            const screenPos = event.getUILocation();
-            const wp = this.screenToWorld(screenPos.x, screenPos.y);
+            // 立即捕获鼠标按下瞬间的屏幕坐标，转为世界坐标锁定建造位置
+            const wp = this.screenToWorld(event.getLocationX(), event.getLocationY());
             if (wp) this._mouseDownWorldPos.set(wp);
 
             data.spendUpgradeCost(this.currentCost.wood, this.currentCost.copper, this.currentCost.iron, this.currentCost.money);
