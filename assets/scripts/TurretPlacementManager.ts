@@ -13,6 +13,7 @@ import { PlantGenerator } from './PlantGenerator';
 import { MapObstacle } from './MapObstacle';
 import { CollisionWorld, ColliderGroup } from './CollisionWorld';
 import { YSortManager } from './YSortManager';
+import { HealthBar } from './HealthBar';
 
 const { ccclass, property } = _decorator;
 
@@ -60,6 +61,16 @@ export class TurretPlacementManager extends Component {
     /** 是否当前虚影位置有效（可放置） */
     private _placementValid = false;
 
+    /** 建造进度状态 */
+    private _isBuilding = false;
+    private _buildTimer = 0;
+    private _buildDuration = 0;
+    private readonly _buildWorldPos = new Vec3();
+    /** 鼠标左键按下瞬间的世界坐标，用于锁定建造位置 */
+    private readonly _mouseDownWorldPos = new Vec3();
+    /** 建造过程中的半透明虚影（炮塔模式） */
+    private _buildGhostNode: Node | null = null;
+
     private readonly _screenVec = new Vec3();
     private readonly _worldVec = new Vec3();
 
@@ -69,6 +80,14 @@ export class TurretPlacementManager extends Component {
 
     start() {
         this.ensureRenderRoot();
+    }
+
+    update(dt: number) {
+        if (!this._isBuilding) return;
+        this._buildTimer += dt;
+        if (this._buildTimer >= this._buildDuration) {
+            this.finishBuild();
+        }
     }
 
     /** 确保 GameWorld 节点上有 RenderRoot2D，否则 2D Sprite 无法渲染 */
@@ -119,6 +138,10 @@ export class TurretPlacementManager extends Component {
         return this._isPlacing;
     }
 
+    public get isBuilding(): boolean {
+        return this._isBuilding;
+    }
+
     public getBuildType(): BuildType {
         return this.buildType;
     }
@@ -141,6 +164,10 @@ export class TurretPlacementManager extends Component {
     // ── 进入放置模式（炮塔） ──
 
     public startPlacement(cost: TurretPlacementCost, panel: TurretBuildPanelUI | null = null) {
+        if (this._isBuilding) {
+            warn('[TurretPlacementManager] 正在建造中，无法开始新放置');
+            return;
+        }
         if (BaseSystem.instance?.isPowerOutage) {
             warn('[TurretPlacementManager] 电力不足，无法建造炮塔');
             return;
@@ -159,6 +186,10 @@ export class TurretPlacementManager extends Component {
 
     /** 进入放置模式（使用指定预制体，供 NewTurretPanelUI 调用） */
     public startPlacementWithPrefab(prefab: Prefab, cost: TurretPlacementCost, panel: NewTurretPanelUI) {
+        if (this._isBuilding) {
+            warn('[TurretPlacementManager] 正在建造中，无法开始新放置');
+            return;
+        }
         if (BaseSystem.instance?.isPowerOutage) {
             warn('[TurretPlacementManager] 电力不足，无法建造炮塔');
             return;
@@ -185,6 +216,10 @@ export class TurretPlacementManager extends Component {
      * @param plantId 发电机 ID
      */
     public startPlantPlacementByNode(targetNode: Node, ghostPrefab: Prefab, cost: TurretPlacementCost, plantId: number) {
+        if (this._isBuilding) {
+            warn('[TurretPlacementManager] 正在建造中，无法开始新放置');
+            return;
+        }
         if (!targetNode) {
             warn('[TurretPlacementManager] startPlantPlacementByNode: targetNode 为空');
             return;
@@ -346,20 +381,33 @@ export class TurretPlacementManager extends Component {
     // ── 鼠标点击 ──
 
     private onMouseDown(event: EventMouse) {
+        // 建造进度中：右键取消建造
+        if (this._isBuilding) {
+            if (event.getButton() === 2) {
+                this.cancelBuildProgress();
+            }
+            return;
+        }
+
         if (!this._isPlacing) return;
 
-        // 右键 / ESC 取消放置
+        // 右键取消放置
         if (event.getButton() === 2) {
             this.cancelPlacement();
             return;
         }
 
         if (this._justActivatedFrame || event.getButton() !== 0) return;
-        if (!this._placementValid) return; // 无效位置不允许放置
+        if (!this._placementValid) return;
 
         const data = PlayerData.instance;
         if (!data) return;
         if (data.canAfford(this.currentCost.wood, this.currentCost.copper, this.currentCost.iron, this.currentCost.money)) {
+            // 立即捕获鼠标按下瞬间的世界坐标，锁定建造位置
+            const screenPos = event.getUILocation();
+            const wp = this.screenToWorld(screenPos.x, screenPos.y);
+            if (wp) this._mouseDownWorldPos.set(wp);
+
             data.spendUpgradeCost(this.currentCost.wood, this.currentCost.copper, this.currentCost.iron, this.currentCost.money);
             this.finalizePlacement();
         }
@@ -367,51 +415,27 @@ export class TurretPlacementManager extends Component {
 
     private finalizePlacement() {
         if (this.buildType === 'plant') {
-            // 固定节点放置：激活场景中预置的发电机节点，销毁虚影
+            // 固定节点放置：使用目标节点位置
             if (this._plantTargetNode) {
-                this._plantTargetNode.active = true;
+                this._buildWorldPos.set(this._plantTargetNode.worldPosition);
                 const plant = this._plantTargetNode.getComponent(PlantGenerator);
-                if (plant) {
-                    plant.markPlaced();
-                    BaseSystem.instance?.updatePowerStatus();
+                this._buildDuration = plant ? (plant as any).buildTime || 4.0 : 4.0;
+            }
+        } else {
+            // 炮塔放置：使用鼠标按下瞬间锁定的世界坐标
+            this._buildWorldPos.set(this._mouseDownWorldPos);
+            // 读取建造时间
+            this._buildDuration = 3.0;
+            if (this.ghostNode) {
+                const turret = this.ghostNode.getComponent(Turret);
+                if (turret && (turret as any).buildTime) {
+                    this._buildDuration = (turret as any).buildTime;
                 }
             }
-            this.ghostNode?.destroy();
-            this.ghostNode = null;
-            this._plantTargetNode = null;
-        } else {
-            // 炮塔拖拽放置
-            if (!this.ghostNode) return;
-
-            const placedPos = this.ghostNode.worldPosition.clone();
-            placedPos.z = 0;
-            let finalX = placedPos.x;
-            let finalY = placedPos.y;
-            if (CollisionWorld.instance) {
-                const resolved = CollisionWorld.instance.resolvePlacement(
-                    20, 20, ColliderGroup.Turret, finalX, finalY, 200, 8,
-                );
-                finalX = resolved.x;
-                finalY = resolved.y;
-            }
-
-            this.ghostNode.active = true;
-            this.setNodeOpacity(this.ghostNode, PLACED_OPACITY);
-            this.setNodeTint(this.ghostNode, GHOST_VALID_COLOR);
-            this.restoreCollisionComponents(this.ghostNode);
-            this.ghostNode.setWorldPosition(new Vec3(finalX, finalY, 0));
-
-            const turret = this.ghostNode.getComponent(Turret);
-            if (turret) {
-                turret.enabled = true;
-                BaseSystem.instance?.updatePowerStatus();
-            }
-            this.ghostNode = null;
         }
-
         this._isPlacing = false;
         this.unregisterInput();
-        this.refreshHud();
+        this.startBuildProgress();
     }
 
     // ── 虚影可视化 ──
@@ -477,7 +501,13 @@ export class TurretPlacementManager extends Component {
     }
 
     private onKeyDown(e: EventKeyboard) {
-        if (e.keyCode === KeyCode.ESCAPE) this.cancelPlacement();
+        if (e.keyCode === KeyCode.ESCAPE) {
+            if (this._isBuilding) {
+                this.cancelBuildProgress();
+            } else {
+                this.cancelPlacement();
+            }
+        }
     }
 
     private cancelPlacement() {
@@ -495,9 +525,131 @@ export class TurretPlacementManager extends Component {
         this.unregisterInput();
     }
 
+    // ── 建造进度 ──
+
+    /** 在节点及其子节点中递归查找 HealthBar 组件 */
+    private findHealthBar(node: Node): HealthBar | null {
+        const bar = node.getComponent(HealthBar);
+        if (bar) return bar;
+        for (const child of node.children) {
+            const found = this.findHealthBar(child);
+            if (found) return found;
+        }
+        return null;
+    }
+
+    /** 启动建造进度条 */
+    private startBuildProgress() {
+        // 炮塔模式：保留虚影作为建造预览
+        if (this.buildType === 'turret' && this.ghostNode) {
+            this.ghostNode.active = true;
+            this.ghostNode.setWorldPosition(this._buildWorldPos);
+            this.setNodeOpacity(this.ghostNode, 100);
+            this._buildGhostNode = this.ghostNode;
+            this.ghostNode = null;
+        }
+
+        // 从虚影/目标节点上查找 HealthBar 组件
+        const targetNode = this._buildGhostNode || this._plantTargetNode;
+        const bar = targetNode ? this.findHealthBar(targetNode) : null;
+        if (bar) {
+            bar.startBuild(this._buildDuration);
+        } else {
+            // 没有 HealthBar，跳过进度直接完成建造
+            this.finishBuild();
+            return;
+        }
+
+        this._buildTimer = 0;
+        this._isBuilding = true;
+
+        // 建造期间监听取消输入
+        input.on(Input.EventType.KEY_DOWN, this.onKeyDown, this);
+        input.on(Input.EventType.MOUSE_DOWN, this.onMouseDown, this);
+    }
+
+    /** 建造完成：将虚影转为真实建筑 */
+    private finishBuild() {
+        this._isBuilding = false;
+
+        let buildingNode: Node | null = null;
+
+        if (this.buildType === 'plant') {
+            if (this._plantTargetNode) {
+                this._plantTargetNode.active = true;
+                this._plantTargetNode.setWorldPosition(this._buildWorldPos);
+                const plant = this._plantTargetNode.getComponent(PlantGenerator);
+                if (plant) {
+                    plant.markPlaced();
+                    BaseSystem.instance?.updatePowerStatus();
+                }
+                buildingNode = this._plantTargetNode;
+            }
+            this._plantTargetNode = null;
+        } else {
+            // 炮塔：将虚影转为实体
+            if (this._buildGhostNode) {
+                const ghost = this._buildGhostNode;
+                let finalX = this._buildWorldPos.x;
+                let finalY = this._buildWorldPos.y;
+                if (CollisionWorld.instance) {
+                    const resolved = CollisionWorld.instance.resolvePlacement(
+                        20, 20, ColliderGroup.Turret, finalX, finalY, 200, 8,
+                    );
+                    finalX = resolved.x;
+                    finalY = resolved.y;
+                }
+
+                ghost.setWorldPosition(new Vec3(finalX, finalY, 0));
+                this.setNodeOpacity(ghost, PLACED_OPACITY);
+                this.setNodeTint(ghost, GHOST_VALID_COLOR);
+                this.restoreCollisionComponents(ghost);
+
+                const turret = ghost.getComponent(Turret);
+                if (turret) {
+                    turret.enabled = true;
+                    BaseSystem.instance?.updatePowerStatus();
+                }
+                buildingNode = ghost;
+            }
+            this._buildGhostNode = null;
+        }
+
+        // 从建筑节点上查找 HealthBar，绑定并切换战斗模式
+        if (buildingNode) {
+            const bar = this.findHealthBar(buildingNode);
+            if (bar) {
+                bar.bindParent(buildingNode);
+                bar.finishBuild();
+            }
+        }
+
+        this.unregisterInput();
+        this.refreshHud();
+    }
+
+    /** 取消建造进度：退还资源，销毁虚影 */
+    private cancelBuildProgress() {
+        this._isBuilding = false;
+
+        this._buildGhostNode?.destroy();
+        this._buildGhostNode = null;
+        this._plantTargetNode = null;
+        this.unregisterInput();
+
+        const data = PlayerData.instance;
+        if (data) {
+            data.refundUpgradeCost(this.currentCost.wood, this.currentCost.copper, this.currentCost.iron, this.currentCost.money);
+        }
+
+        this.refreshHud();
+    }
+
     /** 公开取消放置方法（供 DemolishManager 等外部调用） */
     public cancelPlacementPublic() {
-        if (this._isPlacing) {
+        if (this._isBuilding) {
+            this.cancelBuildProgress();
+        } else if (this._isPlacing) {
             this.cancelPlacement();
         }
     }
