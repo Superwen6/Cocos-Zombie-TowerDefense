@@ -163,12 +163,7 @@ export class BaseSystem extends Component {
             this._upgradeHealthBar.updateProgress(progress);
         }
 
-        if (Math.floor(this._upgradeTimer) !== Math.floor(this._upgradeTimer - dt)) {
-            console.log('[DEBUG BaseSystem.update] upgrade progress:', (this._upgradeTimer / this.upgradeBuildTime * 100).toFixed(0) + '%');
-        }
-
         if (this._upgradeTimer >= this.upgradeBuildTime) {
-            console.log('[DEBUG BaseSystem.update] upgrade complete, calling finishUpgrade');
             this.finishUpgrade();
         }
     }
@@ -298,24 +293,17 @@ export class BaseSystem extends Component {
 
         // BaseSystem 挂在 GameManagers 上，HealthBar 在 GameWorld/Base 节点下
         const baseNode = find('GameWorld/Base') ?? this.node;
-        console.log('[DEBUG BaseSystem.startUpgrade] Base node:', baseNode.name, 'children count:', baseNode.children.length);
-        for (const child of baseNode.children) {
-            console.log('[DEBUG BaseSystem.startUpgrade] child:', child.name, 'active:', child.active);
-        }
         this._upgradeHealthBar = baseNode.getComponentInChildren(HealthBar);
-        console.log('[DEBUG BaseSystem.startUpgrade] getComponentInChildren(HealthBar):', this._upgradeHealthBar ? 'FOUND' : 'NOT FOUND');
         if (!this._upgradeHealthBar) {
             log('[BaseSystem] Base 节点下未挂载 HealthBar 子节点，跳过建造进度，直接升级');
             this.finishUpgrade();
             return true;
         }
 
-        console.log('[DEBUG BaseSystem.startUpgrade] HealthBar node:', this._upgradeHealthBar.node.name, 'active:', this._upgradeHealthBar.node.active);
         this._upgradeHealthBar.startBuild(this.upgradeBuildTime);
         this._upgradeTimer = 0;
         this._isUpgrading = true;
 
-        console.log('[DEBUG BaseSystem.startUpgrade] _isUpgrading:', this._isUpgrading, '_upgradeTimer:', this._upgradeTimer);
         log(`[BaseSystem] 基地升级建造开始，预计 ${this.upgradeBuildTime} 秒完成`);
         return true;
     }
