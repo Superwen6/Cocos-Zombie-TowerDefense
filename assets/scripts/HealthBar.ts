@@ -7,6 +7,7 @@ import {
     Sprite,
 } from 'cc';
 import { BaseSystem } from './BaseSystem';
+import { Container } from './Container';
 
 const { ccclass, property } = _decorator;
 
@@ -143,6 +144,14 @@ export class HealthBar extends Component {
             if (baseSys && typeof baseSys.baseHp === 'number') {
                 hp = baseSys.baseHp;
                 max = baseSys.maxBaseHp || this._maxHp;
+            }
+        }
+
+        if (hp < 0) {
+            const container = parent.getComponent(Container);
+            if (container && typeof container.hp === 'number') {
+                hp = container.hp;
+                max = container.maxHp || this._maxHp;
             }
         }
 

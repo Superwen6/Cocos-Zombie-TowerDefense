@@ -21,6 +21,9 @@ import { ResourceItem } from './ResourceItem';
 import { PlayerState } from './PlayerState';
 import { TurretPlacementManager } from './TurretPlacementManager';
 import { ZombieMove } from './ZombieMove';
+import { BaseSystem } from './BaseSystem';
+import { Container } from './Container';
+import { HealthBar } from './HealthBar';
 import { CollisionWorld, Collider2D, ColliderGroup } from './CollisionWorld';
 
 const { ccclass, property } = _decorator;
@@ -360,6 +363,14 @@ export class PlayerController extends Component {
             return;
         }
 
+        const building = this.findClosestBuildingInRange(playerPos);
+        if (building) {
+            this.repairBuilding(building);
+            const targetIsRight = building.worldPosition.x > playerPos.x;
+            this.playAttackAnimation(targetIsRight);
+            return;
+        }
+
         // 没有目标也播放攻击动画（空挥）：使用鼠标点击方向
         this.playAttackAnimation(isRight);
     }
@@ -474,6 +485,74 @@ export class PlayerController extends Component {
         return closest;
     }
 
+    /** 查找玩家攻击范围内最近的建筑（炮塔、发电机、集装箱、基地） */
+    private findClosestBuildingInRange(playerPos: Vec3): Node | null {
+        const buildings = this.collectBuildings();
+        let closest: Node | null = null;
+        let minDist = Number.MAX_VALUE;
+
+        for (const node of buildings) {
+            if (!node.isValid || !node.active) continue;
+            const dist = Vec3.distance(playerPos, node.worldPosition);
+            if (dist <= this.hitRange && dist < minDist) {
+                minDist = dist;
+                closest = node;
+            }
+        }
+
+        return closest;
+    }
+
+    /** 维修建筑：回复血量，不消耗资源，显示血条 */
+    private repairBuilding(buildingNode: Node) {
+        const state = this.playerState ?? PlayerState.instance;
+        if (!state) return;
+
+        const repairAmount = state.repairPerHit;
+
+        // 尝试维修炮塔
+        const turret = buildingNode.getComponent('Turret') as any;
+        if (turret && typeof turret.hp === 'number' && typeof turret.maxHp === 'number') {
+            if (turret.hp >= turret.maxHp) return;
+            turret.hp = Math.min(turret.maxHp, turret.hp + repairAmount);
+            this.showBuildingHealthBar(buildingNode);
+            return;
+        }
+
+        // 尝试维修发电机
+        const plant = buildingNode.getComponent('PlantGenerator') as any;
+        if (plant && typeof plant.hp === 'number' && typeof plant.maxHp === 'number') {
+            if (plant.hp >= plant.maxHp) return;
+            plant.hp = Math.min(plant.maxHp, plant.hp + repairAmount);
+            this.showBuildingHealthBar(buildingNode);
+            return;
+        }
+
+        // 尝试维修集装箱
+        const container = buildingNode.getComponent(Container);
+        if (container && container.hp < container.maxHp) {
+            container.repair(repairAmount);
+            this.showBuildingHealthBar(buildingNode);
+            return;
+        }
+
+        // 尝试维修基地
+        const base = BaseSystem.instance;
+        if (base && buildingNode.name === 'Base' && base.baseHp < base.maxBaseHp) {
+            base.repairBase(repairAmount);
+            this.showBuildingHealthBar(buildingNode);
+            return;
+        }
+    }
+
+    /** 显示建筑的血条 */
+    private showBuildingHealthBar(buildingNode: Node) {
+        const bar = buildingNode.getComponentInChildren(HealthBar);
+        if (bar) {
+            bar.show();
+        }
+    }
+
     private collectZombies(): ZombieMove[] {
         const result: ZombieMove[] = [];
         const root = this.resourceSearchRoot ?? this.node.scene;
@@ -494,6 +573,14 @@ export class PlayerController extends Component {
         return result;
     }
 
+    private collectBuildings(): Node[] {
+        const result: Node[] = [];
+        const root = this.resourceSearchRoot ?? this.node.scene;
+        if (!root) return result;
+        this.walkNodesForBuilding(root, result);
+        return result;
+    }
+
     private walkNodesForZombie(node: Node, out: ZombieMove[]) {
         const zombie = node.getComponent(ZombieMove);
         if (zombie) {
@@ -511,6 +598,19 @@ export class PlayerController extends Component {
         }
         for (const child of node.children) {
             this.walkNodesForResource(child, out);
+        }
+    }
+
+    private walkNodesForBuilding(node: Node, out: Node[]) {
+        const turret = node.getComponent('Turret');
+        const plant = node.getComponent('PlantGenerator');
+        const container = node.getComponent(Container);
+        const isBase = node.name === 'Base';
+        if (turret || plant || container || isBase) {
+            out.push(node);
+        }
+        for (const child of node.children) {
+            this.walkNodesForBuilding(child, out);
         }
     }
 }

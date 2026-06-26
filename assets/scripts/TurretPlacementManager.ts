@@ -10,6 +10,7 @@ import { BaseSystem } from './BaseSystem';
 import { TurretBuildPanelUI } from './TurretBuildPanelUI';
 import { NewTurretPanelUI } from './NewTurretPanelUI';
 import { PlantGenerator } from './PlantGenerator';
+import { Container } from './Container';
 import { MapObstacle } from './MapObstacle';
 import { CollisionWorld, ColliderGroup } from './CollisionWorld';
 import { YSortManager } from './YSortManager';
@@ -24,7 +25,7 @@ export interface TurretPlacementCost {
     iron: number;
 }
 
-export type BuildType = 'turret' | 'plant';
+export type BuildType = 'turret' | 'plant' | 'container';
 
 const GHOST_OPACITY = 128;
 const PLACED_OPACITY = 255;
@@ -40,6 +41,9 @@ export class TurretPlacementManager extends Component {
 
     @property({ type: [Prefab], tooltip: '发电机预制体数组 [0]光伏板 [1]光伏矩阵 [2]燃料电机 [3]能源核心。每个预制体的 PlantGenerator.placeCenter 需填写 GameWorld 世界坐标' })
     plantPrefabs: Prefab[] = [];
+
+    @property({ type: Prefab, tooltip: '集装箱预制体' })
+    containerPrefab: Prefab | null = null;
 
     @property({ type: Camera }) worldCamera: Camera | null = null;
     @property({ type: Node, tooltip: '炮塔/发电机挂载父节点，默认 GameWorld' })
@@ -119,14 +123,17 @@ export class TurretPlacementManager extends Component {
     public getCostsFromPrefab(prefab: Prefab | null): TurretPlacementCost {
         if (!prefab) return { money: 0, wood: 0, copper: 0, iron: 0 };
         const tempNode = instantiate(prefab);
-        // 先尝试 Turret 组件，再尝试 PlantGenerator 组件
+        // 先尝试 Turret 组件，再尝试 PlantGenerator 组件，最后 Container
         const turret = tempNode.getComponent(Turret);
         const plant = tempNode.getComponent(PlantGenerator);
+        const container = tempNode.getComponent(Container);
         let cost: TurretPlacementCost;
         if (turret) {
             cost = { wood: turret.costWood, copper: turret.costCopper, iron: turret.costIron, money: turret.costMoney };
         } else if (plant) {
             cost = { wood: plant.costWood, copper: plant.costCopper, iron: plant.costIron, money: plant.costMoney };
+        } else if (container) {
+            cost = { wood: container.costWood, copper: container.costCopper, iron: container.costIron, money: container.costMoney };
         } else {
             cost = { money: 0, wood: 0, copper: 0, iron: 0 };
         }
@@ -247,6 +254,33 @@ export class TurretPlacementManager extends Component {
             }
         }
 
+        this.enterPlacementMode();
+    }
+
+    // ── 进入放置模式（集装箱：自由放置，类似炮塔） ──
+
+    /**
+     * 进入集装箱放置模式。
+     * @param prefab 集装箱预制体
+     * @param cost 建造消耗
+     */
+    public startContainerPlacement(prefab: Prefab, cost: TurretPlacementCost) {
+        if (this._isBuilding) {
+            warn('[TurretPlacementManager] 正在建造中，无法开始新放置');
+            return;
+        }
+        if (BaseSystem.instance?.isPowerOutage) {
+            warn('[TurretPlacementManager] 电力不足，无法建造集装箱');
+            return;
+        }
+        if (!prefab) {
+            warn('[TurretPlacementManager] 集装箱预制体未配置');
+            return;
+        }
+        this.buildType = 'container';
+        this.currentCost = { ...cost };
+        this.activePanel = null;
+        this.createGhostNodeWithPrefab(prefab);
         this.enterPlacementMode();
     }
 
@@ -415,7 +449,7 @@ export class TurretPlacementManager extends Component {
                 this._buildLocalPos.set(this._plantTargetNode.position);
             }
         } else {
-            // 炮塔放置：保存虚影在父节点下的本地坐标（不随 Canvas 移动而漂移）
+            // 炮塔/集装箱放置：保存虚影在父节点下的本地坐标（不随 Canvas 移动而漂移）
             if (this.ghostNode) {
                 this._buildLocalPos.set(this.ghostNode.position);
             }
@@ -430,6 +464,8 @@ export class TurretPlacementManager extends Component {
     private applyGhostVisual(node: Node) {
         const turret = node.getComponent(Turret);
         if (turret) turret.enabled = false;
+        const container = node.getComponent(Container);
+        if (container) container.enabled = false;
         this.setNodeOpacity(node, GHOST_OPACITY);
     }
 
@@ -527,8 +563,8 @@ export class TurretPlacementManager extends Component {
 
     /** 启动建造进度条 */
     private startBuildProgress() {
-        // 炮塔模式：保留虚影作为建造预览
-        if (this.buildType === 'turret' && this.ghostNode) {
+        // 炮塔/集装箱模式：保留虚影作为建造预览
+        if ((this.buildType === 'turret' || this.buildType === 'container') && this.ghostNode) {
             this.ghostNode.active = true;
             // 使用本地坐标定位（以 GameWorld/YSortLayer 为基准，不随 Canvas 移动漂移）
             this.ghostNode.setPosition(this._buildLocalPos);
@@ -599,7 +635,7 @@ export class TurretPlacementManager extends Component {
                 this._buildGhostNode = null;
             }
         } else {
-            // 炮塔：将虚影转为实体
+            // 炮塔/集装箱：将虚影转为实体
             if (this._buildGhostNode) {
                 const ghost = this._buildGhostNode;
                 // 使用虚影当前世界坐标（虚影已随 Canvas/GameWorld 正确移动，此处坐标是准确的）
@@ -619,10 +655,18 @@ export class TurretPlacementManager extends Component {
                 this.setNodeTint(ghost, GHOST_VALID_COLOR);
                 this.restoreCollisionComponents(ghost);
 
-                const turret = ghost.getComponent(Turret);
-                if (turret) {
-                    turret.enabled = true;
-                    BaseSystem.instance?.updatePowerStatus();
+                if (this.buildType === 'container') {
+                    const container = ghost.getComponent(Container);
+                    if (container) {
+                        // Container 组件在 start() 中自动注册到 GlobalContainerStorage
+                        BaseSystem.instance?.updatePowerStatus();
+                    }
+                } else {
+                    const turret = ghost.getComponent(Turret);
+                    if (turret) {
+                        turret.enabled = true;
+                        BaseSystem.instance?.updatePowerStatus();
+                    }
                 }
                 buildingNode = ghost;
             }
