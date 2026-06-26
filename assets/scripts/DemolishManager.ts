@@ -205,7 +205,8 @@ export class DemolishManager extends Component {
                     node.active = false;
                     node.setScale(originalScale);
                 } else if (container) {
-                    // 集装箱是动态实例化的预制体，直接销毁
+                    // 先禁用 Container 组件，再销毁节点，确保 updatePowerStatus 正确统计
+                    container.enabled = false;
                     node.destroy();
                 }
                 // 更新电力状态

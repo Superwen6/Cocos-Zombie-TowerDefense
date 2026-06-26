@@ -101,4 +101,15 @@ export class GlobalContainerStorage extends Component {
     get containerCount(): number {
         return this._containers.filter(c => c && c.isValid).length;
     }
+
+    /** 获取所有存活集装箱的总耗电量 */
+    getTotalPowerCost(): number {
+        let total = 0;
+        for (const c of this._containers) {
+            if (c && c.isValid && c.enabled && c.isPlaced) {
+                total += c.powerCost;
+            }
+        }
+        return total;
+    }
 }

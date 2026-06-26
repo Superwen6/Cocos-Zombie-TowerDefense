@@ -2,6 +2,7 @@ import { _decorator, CCFloat, CCInteger, Color, Component, log, Node, Sprite, fi
 import { PlayerData } from './PlayerData';
 import { PlantGenerator } from './PlantGenerator';
 import { Turret } from './Turret';
+import { GlobalContainerStorage } from './GlobalContainerStorage';
 import { HealthBar } from './HealthBar';
 
 const { ccclass, property } = _decorator;
@@ -353,13 +354,17 @@ export class BaseSystem extends Component {
             }
         }
 
+        // 统计所有集装箱的电力消耗（通过 GlobalContainerStorage）
+        const containerCost = GlobalContainerStorage.instance?.getTotalPowerCost() ?? 0;
+        totalCost += containerCost;
+
         // 加上基地自身耗电量
         totalCost += this.getCurrentBasePowerCost();
 
         this.totalPowerCost = totalCost;
 
         const wasOutage = this.isPowerOutage;
-        this.isPowerOutage = this.totalPowerGen < this.totalPowerCost;
+        this.isPowerOutage = this.totalPowerGen === 0 || this.totalPowerGen < this.totalPowerCost;
 
         if (wasOutage !== this.isPowerOutage) {
             if (this.isPowerOutage) {

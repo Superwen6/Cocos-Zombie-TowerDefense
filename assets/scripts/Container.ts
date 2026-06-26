@@ -45,8 +45,16 @@ export class Container extends Component {
     private _isPlaced = false;
 
     start() {
-        this.hp = this.maxHp;
+        if (!this._isPlaced) {
+            this.onPlaced();
+        }
+    }
+
+    /** 由 TurretPlacementManager 在建造完成时调用，确保立即注册（避免 start() 延迟一帧导致电力统计滞后） */
+    onPlaced() {
+        if (this._isPlaced) return;
         this._isPlaced = true;
+        this.hp = this.maxHp;
         GlobalContainerStorage.instance?.registerContainer(this);
     }
 

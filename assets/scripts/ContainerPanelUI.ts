@@ -1,5 +1,5 @@
 import {
-    _decorator, Button, Component, input, Input, EventKeyboard, KeyCode, Label, Node, Vec3,
+    _decorator, Button, Component, input, Input, EventKeyboard, KeyCode, Label, Node, Vec3, warn,
 } from 'cc';
 import { Container } from './Container';
 import { GlobalContainerStorage } from './GlobalContainerStorage';
@@ -61,8 +61,11 @@ export class ContainerPanelUI extends Component {
     private _currentContainer: Container | null = null;
     /** 面板是否打开 */
     private _isOpen = false;
+    /** 诊断日志计数器 */
+    private _diagCounter = 0;
 
     start() {
+        warn('[ContainerPanelUI] 组件已初始化');
         this.hideAll();
         this.bindButtons();
         input.on(Input.EventType.KEY_DOWN, this.onKeyDown, this);
@@ -76,6 +79,13 @@ export class ContainerPanelUI extends Component {
         if (this._isOpen) return;
 
         const container = this.findNearbyContainer();
+
+        // 每 60 帧输出一次诊断日志
+        this._diagCounter++;
+        if (this._diagCounter % 60 === 0) {
+            warn(`[ContainerPanelUI] update 运行中 | 附近集装箱: ${container ? '有' : '无'}`);
+        }
+
         if (container) {
             this._currentContainer = container;
             this.showHint();
@@ -102,6 +112,7 @@ export class ContainerPanelUI extends Component {
 
     private onKeyDown(event: EventKeyboard) {
         if (event.keyCode === KeyCode.KEY_E) {
+            warn(`[ContainerPanelUI] E键按下 | 面板已打开: ${this._isOpen} | 当前集装箱: ${this._currentContainer ? '有' : '无'}`);
             if (this._isOpen) {
                 this.closePanel();
             } else if (this._currentContainer) {
@@ -116,7 +127,9 @@ export class ContainerPanelUI extends Component {
     /** 查找玩家附近的集装箱 */
     private findNearbyContainer(): Container | null {
         const player = this.findPlayer();
-        if (!player) return null;
+        if (!player) {
+            return null;
+        }
 
         const playerPos = player.worldPosition;
         const scene = this.node.scene;
@@ -135,6 +148,14 @@ export class ContainerPanelUI extends Component {
             }
         }
 
+        // 诊断：首次找到集装箱时输出距离
+        if (closest && this._diagCounter === 60) {
+            warn(`[ContainerPanelUI] 找到集装箱 | 距离: ${minDist.toFixed(1)} | 玩家: (${playerPos.x.toFixed(0)}, ${playerPos.y.toFixed(0)}) | 集装箱: (${closest.node.worldPosition.x.toFixed(0)}, ${closest.node.worldPosition.y.toFixed(0)})`);
+        }
+        if (!closest && this._diagCounter === 60) {
+            warn(`[ContainerPanelUI] 未找到集装箱 | 场景中Container数量: ${containers.length} | 玩家: (${playerPos.x.toFixed(0)}, ${playerPos.y.toFixed(0)})`);
+        }
+
         return closest;
     }
 
@@ -142,11 +163,23 @@ export class ContainerPanelUI extends Component {
     private findPlayer(): Node | null {
         if (this.playerNode && this.playerNode.isValid) return this.playerNode;
         const scene = this.node.scene;
-        if (!scene) return null;
+        if (!scene) {
+            warn('[ContainerPanelUI] findPlayer: scene 为空');
+            return null;
+        }
         // 尝试多种可能的 Player 路径
-        return scene.getChildByName('Player')
-            ?? scene.getChildByName('GameWorld')?.getChildByName('Player')
-            ?? this.findNodeByName(scene, 'Player');
+        const p1 = scene.getChildByName('Player');
+        const p2 = scene.getChildByName('GameWorld')?.getChildByName('Player');
+        const p3 = this.findNodeByName(scene, 'Player');
+        const result = p1 ?? p2 ?? p3;
+        if (this._diagCounter === 60) {
+            if (result) {
+                warn(`[ContainerPanelUI] findPlayer: 找到 Player | 路径: ${p1 ? 'scene/Player' : p2 ? 'scene/GameWorld/Player' : '递归搜索'}`);
+            } else {
+                warn('[ContainerPanelUI] findPlayer: 未找到 Player 节点！');
+            }
+        }
+        return result;
     }
 
     /** 递归按名称查找节点 */
@@ -182,6 +215,15 @@ export class ContainerPanelUI extends Component {
     private closePanel() {
         this._isOpen = false;
         if (this.panelRoot) this.panelRoot.active = false;
+    }
+
+    /** 供外部调用的公共打开面板方法 */
+    public openPanelPublic() {
+        if (this._isOpen) return;
+        this._isOpen = true;
+        if (this.panelRoot) this.panelRoot.active = true;
+        this.hideHint();
+        this.refreshPanel();
     }
 
     private hideAll() {

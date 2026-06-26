@@ -658,6 +658,8 @@ export class TurretPlacementManager extends Component {
                 if (this.buildType === 'container') {
                     const container = ghost.getComponent(Container);
                     if (container) {
+                        container.enabled = true;
+                        container.onPlaced(); // 立即注册，避免 start() 延迟一帧导致电力统计滞后
                         BaseSystem.instance?.updatePowerStatus();
                     }
                 } else {

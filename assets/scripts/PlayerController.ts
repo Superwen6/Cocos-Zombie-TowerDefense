@@ -24,6 +24,7 @@ import { TurretPlacementManager } from './TurretPlacementManager';
 import { ZombieMove } from './ZombieMove';
 import { BaseSystem } from './BaseSystem';
 import { Container } from './Container';
+import { ContainerPanelUI } from './ContainerPanelUI';
 import { HealthBar } from './HealthBar';
 import { CollisionWorld, Collider2D, ColliderGroup } from './CollisionWorld';
 
@@ -206,6 +207,10 @@ export class PlayerController extends Component {
 
     private onKeyDown(event: EventKeyboard) {
         this.keyPressedMap[event.keyCode] = true;
+
+        if (event.keyCode === KeyCode.KEY_E) {
+            this.onInteractKey();
+        }
     }
 
     private onKeyUp(event: EventKeyboard) {
@@ -639,5 +644,55 @@ export class PlayerController extends Component {
         for (const child of node.children) {
             this.walkNodesForBuilding(child, out);
         }
+    }
+
+    // ── E 键集装箱交互（集成到 PlayerController，不依赖 ContainerPanelUI 挂载） ──
+
+    private readonly INTERACT_DISTANCE = 80;
+
+    /** E 键按下：查找附近集装箱并打开面板 */
+    private onInteractKey() {
+        const container = this.findNearbyContainer();
+        if (!container) {
+            warn('[PlayerController] E键按下，但附近没有集装箱');
+            return;
+        }
+
+        const panelUI = this.findContainerPanelUI();
+        if (panelUI) {
+            warn('[PlayerController] 找到 ContainerPanelUI，打开面板');
+            panelUI.openPanelPublic();
+        } else {
+            warn('[PlayerController] 附近有集装箱，但 ContainerPanelUI 组件未挂载到场景中！请在 Canvas 下挂载 ContainerPanelUI 组件');
+        }
+    }
+
+    /** 查找玩家附近的集装箱 */
+    private findNearbyContainer(): Container | null {
+        const playerPos = this.node.worldPosition;
+        const scene = this.node.scene;
+        if (!scene) return null;
+
+        const containers = scene.getComponentsInChildren(Container);
+        let closest: Container | null = null;
+        let minDist = Number.MAX_VALUE;
+
+        for (const c of containers) {
+            if (!c || !c.isValid || !c.isPlaced || c.hp <= 0) continue;
+            const dist = Vec3.distance(playerPos, c.node.worldPosition);
+            if (dist < this.INTERACT_DISTANCE && dist < minDist) {
+                minDist = dist;
+                closest = c;
+            }
+        }
+
+        return closest;
+    }
+
+    /** 在场景中查找 ContainerPanelUI 组件 */
+    private findContainerPanelUI(): ContainerPanelUI | null {
+        const scene = this.node.scene;
+        if (!scene) return null;
+        return scene.getComponentInChildren(ContainerPanelUI);
     }
 }
