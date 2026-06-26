@@ -1,4 +1,4 @@
-import { _decorator, CCFloat, CCInteger, Color, Component, log, Node, Sprite, warn } from 'cc';
+import { _decorator, CCFloat, CCInteger, Color, Component, log, Node, Sprite, find, warn } from 'cc';
 import { PlayerData } from './PlayerData';
 import { PlantGenerator } from './PlantGenerator';
 import { Turret } from './Turret';
@@ -296,12 +296,13 @@ export class BaseSystem extends Component {
             return false;
         }
 
-        // 在 Base 节点的子节点中查找 HealthBar 组件（与炮塔一致：HealthBar 作为子节点挂载）
-        console.log('[DEBUG BaseSystem.startUpgrade] Base node:', this.node.name, 'children count:', this.node.children.length);
-        for (const child of this.node.children) {
+        // BaseSystem 挂在 GameManagers 上，HealthBar 在 GameWorld/Base 节点下
+        const baseNode = find('GameWorld/Base') ?? this.node;
+        console.log('[DEBUG BaseSystem.startUpgrade] Base node:', baseNode.name, 'children count:', baseNode.children.length);
+        for (const child of baseNode.children) {
             console.log('[DEBUG BaseSystem.startUpgrade] child:', child.name, 'active:', child.active);
         }
-        this._upgradeHealthBar = this.node.getComponentInChildren(HealthBar);
+        this._upgradeHealthBar = baseNode.getComponentInChildren(HealthBar);
         console.log('[DEBUG BaseSystem.startUpgrade] getComponentInChildren(HealthBar):', this._upgradeHealthBar ? 'FOUND' : 'NOT FOUND');
         if (!this._upgradeHealthBar) {
             log('[BaseSystem] Base 节点下未挂载 HealthBar 子节点，跳过建造进度，直接升级');
@@ -333,9 +334,10 @@ export class BaseSystem extends Component {
         this.updatePowerStatus();
         this.invokeUpgradeCallbacks();
 
-        // 通知血条切换到战斗模式（绑定 Base 节点以读取 baseHp/maxBaseHp）
+        // 通知血条切换到战斗模式（绑定 GameWorld/Base 节点以读取 baseHp/maxBaseHp）
         if (this._upgradeHealthBar) {
-            this._upgradeHealthBar.bindParent(this.node);
+            const baseNode = find('GameWorld/Base') ?? this.node;
+            this._upgradeHealthBar.bindParent(baseNode);
             this._upgradeHealthBar.finishBuild();
             this._upgradeHealthBar = null;
         }
