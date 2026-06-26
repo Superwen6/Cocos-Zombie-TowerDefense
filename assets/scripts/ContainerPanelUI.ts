@@ -1,10 +1,9 @@
 import {
-    _decorator, Button, Component, input, Input, EventKeyboard, KeyCode, Label, Node, Vec3, warn,
+    _decorator, Button, Component, input, Input, EventKeyboard, KeyCode, Label, Node, Vec3,
 } from 'cc';
 import { Container } from './Container';
 import { GlobalContainerStorage } from './GlobalContainerStorage';
 import { PlayerData } from './PlayerData';
-import { PlayerController } from './PlayerController';
 
 const { ccclass, property } = _decorator;
 
@@ -116,14 +115,10 @@ export class ContainerPanelUI extends Component {
 
     /** 查找玩家附近的集装箱 */
     private findNearbyContainer(): Container | null {
-        const player = this.playerNode ?? this.node.scene?.getChildByName('Player');
+        const player = this.findPlayer();
         if (!player) return null;
 
         const playerPos = player.worldPosition;
-        const storage = GlobalContainerStorage.instance;
-        if (!storage) return null;
-
-        // 遍历场景中所有 Container 组件
         const scene = this.node.scene;
         if (!scene) return null;
 
@@ -141,6 +136,27 @@ export class ContainerPanelUI extends Component {
         }
 
         return closest;
+    }
+
+    /** 查找玩家节点（优先使用绑定节点，其次在场景中搜索） */
+    private findPlayer(): Node | null {
+        if (this.playerNode && this.playerNode.isValid) return this.playerNode;
+        const scene = this.node.scene;
+        if (!scene) return null;
+        // 尝试多种可能的 Player 路径
+        return scene.getChildByName('Player')
+            ?? scene.getChildByName('GameWorld')?.getChildByName('Player')
+            ?? this.findNodeByName(scene, 'Player');
+    }
+
+    /** 递归按名称查找节点 */
+    private findNodeByName(root: Node, name: string): Node | null {
+        if (root.name === name) return root;
+        for (const child of root.children) {
+            const found = this.findNodeByName(child, name);
+            if (found) return found;
+        }
+        return null;
     }
 
     private showHint() {

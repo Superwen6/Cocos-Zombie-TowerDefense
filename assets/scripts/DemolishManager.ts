@@ -5,6 +5,7 @@ import {
 import { CollisionWorld, ColliderGroup } from './CollisionWorld';
 import { Turret } from './Turret';
 import { PlantGenerator } from './PlantGenerator';
+import { Container } from './Container';
 import { PlayerData } from './PlayerData';
 import { BaseSystem } from './BaseSystem';
 import { GameHUDUI } from './GameHUDUI';
@@ -106,7 +107,7 @@ export class DemolishManager extends Component {
         }
     }
 
-    /** 查找鼠标位置下的建筑（炮塔或发电机） */
+    /** 查找鼠标位置下的建筑（炮塔、发电机或集装箱） */
     private findBuildingAt(worldPos: Vec3): Node | null {
         // 1. 检测炮塔（通过 CollisionWorld）
         const hit = CollisionWorld.instance?.checkHit(
@@ -126,6 +127,20 @@ export class DemolishManager extends Component {
             }
         }
 
+        // 3. 检测集装箱（遍历场景中所有 Container 组件）
+        const scene = director.getScene();
+        if (scene) {
+            const containers = scene.getComponentsInChildren(Container);
+            for (const container of containers) {
+                if (!container || !container.isValid || !container.isPlaced || container.hp <= 0) continue;
+                const cPos = container.node.worldPosition;
+                const dist = Vec3.distance(worldPos, cPos);
+                if (dist < PLANT_CLICK_RADIUS) {
+                    return container.node;
+                }
+            }
+        }
+
         return null;
     }
 
@@ -133,6 +148,7 @@ export class DemolishManager extends Component {
     private demolishBuilding(node: Node) {
         const turret = node.getComponent(Turret);
         const plant = node.getComponent(PlantGenerator);
+        const container = node.getComponent(Container);
 
         let costWood = 0;
         let costCopper = 0;
@@ -153,8 +169,13 @@ export class DemolishManager extends Component {
             costMoney = plant.costMoney;
             // 从映射表移除
             plant.onDemolish();
+        } else if (container) {
+            costWood = container.costWood;
+            costCopper = container.costCopper;
+            costIron = container.costIron;
+            costMoney = container.costMoney;
         } else {
-            warn('[DemolishManager] 节点上无 Turret 或 PlantGenerator 组件');
+            warn('[DemolishManager] 节点上无 Turret、PlantGenerator 或 Container 组件');
             return;
         }
 
@@ -183,6 +204,9 @@ export class DemolishManager extends Component {
                     // 发电机是场景预置节点，不能销毁，只能停用并恢复缩放
                     node.active = false;
                     node.setScale(originalScale);
+                } else if (container) {
+                    // 集装箱是动态实例化的预制体，直接销毁
+                    node.destroy();
                 }
                 // 更新电力状态
                 BaseSystem.instance?.updatePowerStatus();

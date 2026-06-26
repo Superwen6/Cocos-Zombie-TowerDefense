@@ -7,7 +7,6 @@ import {
     Sprite,
 } from 'cc';
 import { BaseSystem } from './BaseSystem';
-import { Container } from './Container';
 
 const { ccclass, property } = _decorator;
 
@@ -139,19 +138,19 @@ export class HealthBar extends Component {
         }
 
         if (hp < 0) {
+            const container = parent.getComponent('Container') as any;
+            if (container && typeof container.hp === 'number') {
+                hp = container.hp;
+                max = container.maxHp || this._maxHp;
+            }
+        }
+
+        if (hp < 0 && this.isBaseNode(parent)) {
             // BaseSystem 是全局单例，挂在 GameManagers 上而非 Base 节点
             const baseSys = BaseSystem.instance;
             if (baseSys && typeof baseSys.baseHp === 'number') {
                 hp = baseSys.baseHp;
                 max = baseSys.maxBaseHp || this._maxHp;
-            }
-        }
-
-        if (hp < 0) {
-            const container = parent.getComponent(Container);
-            if (container && typeof container.hp === 'number') {
-                hp = container.hp;
-                max = container.maxHp || this._maxHp;
             }
         }
 
@@ -166,6 +165,17 @@ export class HealthBar extends Component {
         if (hp < max) {
             this.show();
         }
+    }
+
+    /** 判断节点是否为 Base 或其子孙节点 */
+    private isBaseNode(node: Node): boolean {
+        if (!node || !node.isValid) return false;
+        let current: Node | null = node;
+        while (current) {
+            if (current.name === 'Base') return true;
+            current = current.parent;
+        }
+        return false;
     }
 
     /** 更新血量 UI */

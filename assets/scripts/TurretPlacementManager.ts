@@ -658,7 +658,6 @@ export class TurretPlacementManager extends Component {
                 if (this.buildType === 'container') {
                     const container = ghost.getComponent(Container);
                     if (container) {
-                        // Container 组件在 start() 中自动注册到 GlobalContainerStorage
                         BaseSystem.instance?.updatePowerStatus();
                     }
                 } else {

@@ -6,6 +6,7 @@ import {
     Component,
     EventKeyboard,
     EventTouch,
+    find,
     input,
     Input,
     KeyCode,
@@ -371,8 +372,34 @@ export class PlayerController extends Component {
             return;
         }
 
+        // Fallback: 玩家在基地碰撞矩形内则维修基地
+        if (this.tryRepairBaseInRange(playerPos)) {
+            return;
+        }
+
         // 没有目标也播放攻击动画（空挥）：使用鼠标点击方向
         this.playAttackAnimation(isRight);
+    }
+
+    /** 检测玩家是否在基地碰撞矩形内，若是则维修基地 */
+    private tryRepairBaseInRange(playerPos: Vec3): boolean {
+        const base = BaseSystem.instance;
+        if (!base || base.baseHp >= base.maxBaseHp) return false;
+
+        const baseNode = find('GameWorld/Base');
+        if (!baseNode) return false;
+
+        const basePos = baseNode.worldPosition;
+        const dx = Math.abs(playerPos.x - basePos.x);
+        const dy = Math.abs(playerPos.y - basePos.y);
+        if (dx <= base.baseHalfW && dy <= base.baseHalfH) {
+            const state = this.playerState ?? PlayerState.instance;
+            if (!state) return false;
+            base.repairBase(state.repairPerHit);
+            this.showBuildingHealthBar(baseNode);
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -536,7 +563,7 @@ export class PlayerController extends Component {
             return;
         }
 
-        // 尝试维修基地
+        // 尝试维修基地（包括基地自身及其任意子节点）
         const base = BaseSystem.instance;
         if (base && buildingNode.name === 'Base' && base.baseHp < base.maxBaseHp) {
             base.repairBase(repairAmount);
