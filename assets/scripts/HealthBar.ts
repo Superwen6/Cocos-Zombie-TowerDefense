@@ -81,6 +81,7 @@ export class HealthBar extends Component {
 
     /** 建造完成，切换到战斗血量模式 */
     public finishBuild() {
+        this._started = true;
         this._mode = HealthBarMode.COMBAT;
         this._hideTimer = 0;
         this._isVisible = true;
@@ -144,6 +145,14 @@ export class HealthBar extends Component {
             if (plant && typeof plant.hp === 'number') {
                 hp = plant.hp;
                 max = plant.maxHp || this._maxHp;
+            }
+        }
+
+        if (hp < 0) {
+            const baseSys = parent.getComponent('BaseSystem') as any;
+            if (baseSys && typeof baseSys.baseHp === 'number') {
+                hp = baseSys.baseHp;
+                max = baseSys.maxBaseHp || this._maxHp;
             }
         }
 

@@ -1,9 +1,8 @@
-import { _decorator, CCFloat, CCInteger, Color, Component, log, Node, Prefab, Sprite, instantiate, find, warn } from 'cc';
+import { _decorator, CCFloat, CCInteger, Color, Component, log, Node, Sprite, warn } from 'cc';
 import { PlayerData } from './PlayerData';
 import { PlantGenerator } from './PlantGenerator';
 import { Turret } from './Turret';
 import { HealthBar } from './HealthBar';
-import { YSortManager } from './YSortManager';
 
 const { ccclass, property } = _decorator;
 
@@ -100,9 +99,6 @@ export class BaseSystem extends Component {
     @property({ type: CCFloat, tooltip: '基地升级建造时间（秒）' })
     upgradeBuildTime = 5.0;
 
-    @property({ type: Prefab, tooltip: '基地升级血条预制体（需挂载 HealthBar 组件，包含 Background+Fill 子节点）' })
-    healthBarPrefab: Prefab | null = null;
-
     private _wallOriginalColors: Map<Node, Color> = new Map();
 
     /** 升级成功后的回调列表，供面板等外部组件注册刷新逻辑 */
@@ -121,9 +117,7 @@ export class BaseSystem extends Component {
     private _isUpgrading = false;
     /** 升级建造计时器 */
     private _upgradeTimer = 0;
-    /** 升级血条节点 */
-    private _upgradeHealthBarNode: Node | null = null;
-    /** 升级血条组件 */
+    /** 升级血条组件（Base 节点下的子节点，挂载 HealthBar.ts） */
     private _upgradeHealthBar: HealthBar | null = null;
 
     onLoad() {
@@ -273,7 +267,7 @@ export class BaseSystem extends Component {
         return this.startUpgrade();
     }
 
-    /** 启动基地升级建造进度（扣除资源，创建血条，开始倒计时） */
+    /** 启动基地升级建造进度（扣除资源，查找子节点 HealthBar，开始倒计时） */
     startUpgrade(): boolean {
         if (this._isUpgrading) {
             warn('[BaseSystem] 基地正在升级建造中，无法重复操作');
@@ -297,31 +291,10 @@ export class BaseSystem extends Component {
             return false;
         }
 
-        // 如果没有配置血条预制体，直接完成升级（兼容旧逻辑）
-        if (!this.healthBarPrefab) {
-            log('[BaseSystem] 未配置 healthBarPrefab，跳过建造进度，直接升级');
-            this.finishUpgrade();
-            return true;
-        }
-
-        // 在 YSortLayer 下实例化 HealthBar 预制体（YSortLayer 有 RenderRoot2D，GameWorld 没有）
-        const sortLayer = YSortManager.getSortLayer();
-        const parentNode = sortLayer ?? find('GameWorld');
-        if (!parentNode) {
-            warn('[BaseSystem] 未找到 GameWorld 或 YSortLayer 节点，跳过建造进度，直接升级');
-            this.finishUpgrade();
-            return true;
-        }
-
-        this._upgradeHealthBarNode = instantiate(this.healthBarPrefab);
-        this._upgradeHealthBarNode.setParent(parentNode);
-        this._upgradeHealthBarNode.setWorldPosition(this.node.worldPosition);
-        this._upgradeHealthBar = this._upgradeHealthBarNode.getComponent(HealthBar);
-
+        // 在 Base 节点的子节点中查找 HealthBar 组件（与炮塔一致：HealthBar 作为子节点挂载）
+        this._upgradeHealthBar = this.node.getComponentInChildren(HealthBar);
         if (!this._upgradeHealthBar) {
-            warn('[BaseSystem] healthBarPrefab 上未挂载 HealthBar 组件，跳过建造进度，直接升级');
-            this._upgradeHealthBarNode.destroy();
-            this._upgradeHealthBarNode = null;
+            log('[BaseSystem] Base 节点下未挂载 HealthBar 子节点，跳过建造进度，直接升级');
             this.finishUpgrade();
             return true;
         }
@@ -348,10 +321,10 @@ export class BaseSystem extends Component {
         this.updatePowerStatus();
         this.invokeUpgradeCallbacks();
 
-        // 清理升级血条
-        if (this._upgradeHealthBarNode) {
-            this._upgradeHealthBarNode.destroy();
-            this._upgradeHealthBarNode = null;
+        // 通知血条切换到战斗模式（绑定 Base 节点以读取 baseHp/maxBaseHp）
+        if (this._upgradeHealthBar) {
+            this._upgradeHealthBar.bindParent(this.node);
+            this._upgradeHealthBar.finishBuild();
             this._upgradeHealthBar = null;
         }
         this._isUpgrading = false;

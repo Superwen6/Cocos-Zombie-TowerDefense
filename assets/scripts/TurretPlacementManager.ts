@@ -612,6 +612,12 @@ export class TurretPlacementManager extends Component {
                 buildingNode = this._plantTargetNode;
             }
             this._plantTargetNode = null;
+
+            // 销毁建造期间的虚影（ghost 由 plantPrefab 实例化，与 targetNode 是不同节点）
+            if (this._buildGhostNode) {
+                this._buildGhostNode.destroy();
+                this._buildGhostNode = null;
+            }
         } else {
             // 炮塔：将虚影转为实体
             if (this._buildGhostNode) {
