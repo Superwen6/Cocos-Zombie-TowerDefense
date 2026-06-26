@@ -560,8 +560,13 @@ export class TurretPlacementManager extends Component {
                 console.log('[DEBUG startBuildProgress] fillSprite.spriteFrame:', bar.fillSprite.spriteFrame ? 'SET' : 'NULL');
                 console.log('[DEBUG startBuildProgress] fillSprite.node.active:', bar.fillSprite.node.active);
             }
-            // 确保血条完全可见，不受虚影透明度影响（虚影 opacity=100 会递归影响子节点）
-            this.setNodeOpacity(bar.node, 255);
+            // 只对血条自身的 Sprite 子节点恢复完全可见，避免 bar.node 是炮塔根节点时覆盖整个炮塔的透明度
+            if (bar.backgroundSprite) {
+                this.setNodeOpacity(bar.backgroundSprite.node, 255);
+            }
+            if (bar.fillSprite) {
+                this.setNodeOpacity(bar.fillSprite.node, 255);
+            }
             console.log('[DEBUG startBuildProgress] calling bar.startBuild with duration:', this._buildDuration);
             bar.startBuild(this._buildDuration);
         } else {
