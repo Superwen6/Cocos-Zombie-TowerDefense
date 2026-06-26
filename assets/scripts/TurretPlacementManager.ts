@@ -546,6 +546,15 @@ export class TurretPlacementManager extends Component {
             this.ghostNode = null;
         }
 
+        // 发电机模式：保留虚影作为建造预览（targetNode 此时 inactive，需从 ghost 查找 HealthBar）
+        if (this.buildType === 'plant' && this.ghostNode) {
+            this.ghostNode.active = true;
+            this.ghostNode.setPosition(this._buildLocalPos);
+            this.setNodeOpacity(this.ghostNode, 100);
+            this._buildGhostNode = this.ghostNode;
+            this.ghostNode = null;
+        }
+
         // 从虚影/目标节点上查找 HealthBar 组件
         const targetNode = this._buildGhostNode || this._plantTargetNode;
         console.log('[DEBUG startBuildProgress] targetNode:', targetNode?.name, 'active:', targetNode?.active);

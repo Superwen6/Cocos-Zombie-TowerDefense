@@ -3,6 +3,7 @@ import { PlayerData } from './PlayerData';
 import { PlantGenerator } from './PlantGenerator';
 import { Turret } from './Turret';
 import { HealthBar } from './HealthBar';
+import { YSortManager } from './YSortManager';
 
 const { ccclass, property } = _decorator;
 
@@ -303,16 +304,17 @@ export class BaseSystem extends Component {
             return true;
         }
 
-        // 在 GameWorld 下实例化 HealthBar 预制体，位置与 Base 节点对齐
-        const gameWorld = find('GameWorld');
-        if (!gameWorld) {
-            warn('[BaseSystem] 未找到 GameWorld 节点，跳过建造进度，直接升级');
+        // 在 YSortLayer 下实例化 HealthBar 预制体（YSortLayer 有 RenderRoot2D，GameWorld 没有）
+        const sortLayer = YSortManager.getSortLayer();
+        const parentNode = sortLayer ?? find('GameWorld');
+        if (!parentNode) {
+            warn('[BaseSystem] 未找到 GameWorld 或 YSortLayer 节点，跳过建造进度，直接升级');
             this.finishUpgrade();
             return true;
         }
 
         this._upgradeHealthBarNode = instantiate(this.healthBarPrefab);
-        this._upgradeHealthBarNode.setParent(gameWorld);
+        this._upgradeHealthBarNode.setParent(parentNode);
         this._upgradeHealthBarNode.setWorldPosition(this.node.worldPosition);
         this._upgradeHealthBar = this._upgradeHealthBarNode.getComponent(HealthBar);
 
@@ -343,6 +345,7 @@ export class BaseSystem extends Component {
             `[BaseSystem] 基地升级成功 Lv.${prevLevel} -> Lv.${this.currentLevel} | 耐久 ${this.baseHp}/${this.maxBaseHp} | 安全区 ${this.getCurrentSafeRadius()} | 回血 ${this.getCurrentHpRegen()}/秒 | 防御塔: ${this.getUnlockedTowers().join(', ') || '无'}`,
         );
         this.refreshBaseAppearance();
+        this.updatePowerStatus();
         this.invokeUpgradeCallbacks();
 
         // 清理升级血条
