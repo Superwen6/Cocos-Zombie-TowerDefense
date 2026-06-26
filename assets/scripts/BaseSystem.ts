@@ -1,7 +1,8 @@
-import { _decorator, CCFloat, CCInteger, Color, Component, log, Node, Sprite, warn } from 'cc';
+import { _decorator, CCFloat, CCInteger, Color, Component, log, Node, Prefab, Sprite, instantiate, find, warn } from 'cc';
 import { PlayerData } from './PlayerData';
 import { PlantGenerator } from './PlantGenerator';
 import { Turret } from './Turret';
+import { HealthBar } from './HealthBar';
 
 const { ccclass, property } = _decorator;
 
@@ -74,6 +75,12 @@ export class BaseSystem extends Component {
     @property({ type: [CCInteger], tooltip: '升级所需美元 (Lv1→2, Lv2→3, Lv3→4, Lv4→5)' })
     upgradeMoney: number[] = [800, 2000, 5000, 10000];
 
+    @property({ type: CCInteger, tooltip: '1级基地自身耗电量（瓦）' })
+    basePowerCost = 5;
+
+    @property({ type: [CCInteger], tooltip: '各等级基地自身耗电量 (Lv1-Lv5)' })
+    levelPowerCosts: number[] = [5, 10, 15, 20, 25];
+
     @property({ type: Node, tooltip: '二级基地外观节点（SecondaryBase）' })
     secondaryBase: Node | null = null;
 
@@ -89,6 +96,12 @@ export class BaseSystem extends Component {
     @property({ type: Color, tooltip: '5级时墙体的颜色' })
     wallColorLv5: Color = new Color(255, 102, 102, 255);
 
+    @property({ type: CCFloat, tooltip: '基地升级建造时间（秒）' })
+    upgradeBuildTime = 5.0;
+
+    @property({ type: Prefab, tooltip: '基地升级血条预制体（需挂载 HealthBar 组件，包含 Background+Fill 子节点）' })
+    healthBarPrefab: Prefab | null = null;
+
     private _wallOriginalColors: Map<Node, Color> = new Map();
 
     /** 升级成功后的回调列表，供面板等外部组件注册刷新逻辑 */
@@ -101,6 +114,16 @@ export class BaseSystem extends Component {
     public totalPowerCost = 0;
     /** 是否处于断电状态（发电量 < 耗电量） */
     public isPowerOutage = false;
+
+    // ── 基地升级建造进度 ──
+    /** 是否正在升级建造中 */
+    private _isUpgrading = false;
+    /** 升级建造计时器 */
+    private _upgradeTimer = 0;
+    /** 升级血条节点 */
+    private _upgradeHealthBarNode: Node | null = null;
+    /** 升级血条组件 */
+    private _upgradeHealthBar: HealthBar | null = null;
 
     onLoad() {
         if (BaseSystem.instance && BaseSystem.instance !== this) {
@@ -129,6 +152,25 @@ export class BaseSystem extends Component {
 
     get isMaxLevel(): boolean {
         return this.currentLevel >= this.maxLevel;
+    }
+
+    /** 是否正在升级建造中 */
+    get isUpgrading(): boolean {
+        return this._isUpgrading;
+    }
+
+    update(dt: number) {
+        if (!this._isUpgrading) return;
+
+        this._upgradeTimer += dt;
+        if (this._upgradeHealthBar) {
+            const progress = Math.min(1, this._upgradeTimer / this.upgradeBuildTime);
+            this._upgradeHealthBar.updateProgress(progress);
+        }
+
+        if (this._upgradeTimer >= this.upgradeBuildTime) {
+            this.finishUpgrade();
+        }
     }
 
     getNextUpgradeTier(): BaseUpgradeTier | null {
@@ -167,6 +209,15 @@ export class BaseSystem extends Component {
             }
         }
         return FALLBACK_HP_REGEN;
+    }
+
+    /** 获取当前等级基地的自身耗电量 */
+    getCurrentBasePowerCost(): number {
+        const index = this.currentLevel - 1;
+        if (index >= 0 && index < this.levelPowerCosts.length) {
+            return this.levelPowerCosts[index];
+        }
+        return this.basePowerCost;
     }
 
     getMaxBaseHpForLevel(level: number): number {
@@ -218,13 +269,22 @@ export class BaseSystem extends Component {
     }
 
     upgradeBase(): boolean {
+        return this.startUpgrade();
+    }
+
+    /** 启动基地升级建造进度（扣除资源，创建血条，开始倒计时） */
+    startUpgrade(): boolean {
+        if (this._isUpgrading) {
+            warn('[BaseSystem] 基地正在升级建造中，无法重复操作');
+            return false;
+        }
+
         const tier = this.getNextUpgradeTier();
         if (!tier) {
             warn('[BaseSystem] 基地已满级，无法继续升级');
             return false;
         }
 
-        // 检查发电机部署条件
         if (!this.checkUpgradePlantRequirement()) {
             const requiredId = this.getRequiredPlantIdForNextLevel();
             warn(`[BaseSystem] 需要先建造发电机 ID=${requiredId} 才能升级到 Lv.${this.currentLevel + 1}`);
@@ -236,6 +296,44 @@ export class BaseSystem extends Component {
             return false;
         }
 
+        // 如果没有配置血条预制体，直接完成升级（兼容旧逻辑）
+        if (!this.healthBarPrefab) {
+            log('[BaseSystem] 未配置 healthBarPrefab，跳过建造进度，直接升级');
+            this.finishUpgrade();
+            return true;
+        }
+
+        // 在 GameWorld 下实例化 HealthBar 预制体，位置与 Base 节点对齐
+        const gameWorld = find('GameWorld');
+        if (!gameWorld) {
+            warn('[BaseSystem] 未找到 GameWorld 节点，跳过建造进度，直接升级');
+            this.finishUpgrade();
+            return true;
+        }
+
+        this._upgradeHealthBarNode = instantiate(this.healthBarPrefab);
+        this._upgradeHealthBarNode.setParent(gameWorld);
+        this._upgradeHealthBarNode.setWorldPosition(this.node.worldPosition);
+        this._upgradeHealthBar = this._upgradeHealthBarNode.getComponent(HealthBar);
+
+        if (!this._upgradeHealthBar) {
+            warn('[BaseSystem] healthBarPrefab 上未挂载 HealthBar 组件，跳过建造进度，直接升级');
+            this._upgradeHealthBarNode.destroy();
+            this._upgradeHealthBarNode = null;
+            this.finishUpgrade();
+            return true;
+        }
+
+        this._upgradeHealthBar.startBuild(this.upgradeBuildTime);
+        this._upgradeTimer = 0;
+        this._isUpgrading = true;
+
+        log(`[BaseSystem] 基地升级建造开始，预计 ${this.upgradeBuildTime} 秒完成`);
+        return true;
+    }
+
+    /** 完成升级：执行真正的等级提升逻辑 */
+    private finishUpgrade() {
         const prevLevel = this.currentLevel;
         this.currentLevel += 1;
         this.maxBaseHp = this.getMaxBaseHpForLevel(this.currentLevel);
@@ -246,7 +344,15 @@ export class BaseSystem extends Component {
         );
         this.refreshBaseAppearance();
         this.invokeUpgradeCallbacks();
-        return true;
+
+        // 清理升级血条
+        if (this._upgradeHealthBarNode) {
+            this._upgradeHealthBarNode.destroy();
+            this._upgradeHealthBarNode = null;
+            this._upgradeHealthBar = null;
+        }
+        this._isUpgrading = false;
+        this._upgradeTimer = 0;
     }
 
     damageBase(amount: number) {
@@ -274,6 +380,10 @@ export class BaseSystem extends Component {
                 }
             }
         }
+
+        // 加上基地自身耗电量
+        totalCost += this.getCurrentBasePowerCost();
+
         this.totalPowerCost = totalCost;
 
         const wasOutage = this.isPowerOutage;

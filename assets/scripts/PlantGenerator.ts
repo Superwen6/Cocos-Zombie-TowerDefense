@@ -17,6 +17,15 @@ export class PlantGenerator extends Component {
     @property({ type: CCInteger, tooltip: '发电机唯一 ID（1=光伏板, 2=光伏矩阵, 3=燃料电机, 4=能源核心）' })
     plantId = 1;
 
+    @property({ type: CCInteger, tooltip: '发电机最大血量' })
+    maxHp = 100;
+
+    /** 当前血量（运行时由 start 初始化，HealthBar 通过 getComponent 读取） */
+    hp = 100;
+
+    @property({ type: CCFloat, tooltip: '建造时间（秒）' })
+    buildTime = 4.0;
+
     @property({ type: CCInteger, tooltip: '该发电机产生的电力（瓦）' })
     powerGenerate = 10;
 
@@ -44,6 +53,19 @@ export class PlantGenerator extends Component {
     private _isPlaced = false;
 
     onLoad() {
+    }
+
+    start() {
+        this.hp = this.maxHp;
+    }
+
+    /** 受伤，供僵尸攻击等调用 */
+    takeDamage(amount: number) {
+        if (this.hp <= 0 || amount <= 0) return;
+        this.hp = Math.max(0, this.hp - amount);
+        if (this.hp <= 0) {
+            this.node.destroy();
+        }
     }
 
     get isPlaced(): boolean {

@@ -111,16 +111,15 @@ export class BuildPanelUI extends Component {
             return;
         }
 
-        if (base.isMaxLevel) {
+        if (base.isMaxLevel || base.isUpgrading) {
             return;
         }
 
-        const success = base.upgradeBase();
+        const success = base.startUpgrade();
         if (success) {
-            // 升级成功：自动关闭面板
+            // 升级建造开始：关闭面板
             this.hidePanel();
         }
-        // 失败不弹窗，颜色反馈已由 refreshUpgradeUI 处理
         this.refreshUpgradeUI();
     }
 
@@ -149,7 +148,7 @@ export class BuildPanelUI extends Component {
         // 按钮交互状态
         if (this.upgradeButton) {
             const canUpgrade =
-                base != null && !base.isMaxLevel && base.checkUpgradeAvailable();
+                base != null && !base.isMaxLevel && !base.isUpgrading && base.checkUpgradeAvailable();
             this.upgradeButton.interactable = canUpgrade;
         }
     }
