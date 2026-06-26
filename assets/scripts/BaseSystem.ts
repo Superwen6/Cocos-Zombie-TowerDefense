@@ -96,9 +96,6 @@ export class BaseSystem extends Component {
     @property({ type: Color, tooltip: '5级时墙体的颜色' })
     wallColorLv5: Color = new Color(255, 102, 102, 255);
 
-    @property({ type: CCFloat, tooltip: '基地升级建造时间（秒）' })
-    upgradeBuildTime = 5.0;
-
     private _wallOriginalColors: Map<Node, Color> = new Map();
 
     /** 升级成功后的回调列表，供面板等外部组件注册刷新逻辑 */
@@ -159,11 +156,11 @@ export class BaseSystem extends Component {
 
         this._upgradeTimer += dt;
         if (this._upgradeHealthBar) {
-            const progress = Math.min(1, this._upgradeTimer / this.upgradeBuildTime);
+            const progress = Math.min(1, this._upgradeTimer / this._upgradeHealthBar.buildTime);
             this._upgradeHealthBar.updateProgress(progress);
         }
 
-        if (this._upgradeTimer >= this.upgradeBuildTime) {
+        if (this._upgradeHealthBar && this._upgradeTimer >= this._upgradeHealthBar.buildTime) {
             this.finishUpgrade();
         }
     }
@@ -300,11 +297,11 @@ export class BaseSystem extends Component {
             return true;
         }
 
-        this._upgradeHealthBar.startBuild(this.upgradeBuildTime);
+        this._upgradeHealthBar.startBuild();
         this._upgradeTimer = 0;
         this._isUpgrading = true;
 
-        log(`[BaseSystem] 基地升级建造开始，预计 ${this.upgradeBuildTime} 秒完成`);
+        log(`[BaseSystem] 基地升级建造开始，预计 ${this._upgradeHealthBar.buildTime} 秒完成`);
         return true;
     }
 

@@ -64,7 +64,8 @@ export class TurretPlacementManager extends Component {
     /** 建造进度状态 */
     private _isBuilding = false;
     private _buildTimer = 0;
-    private _buildDuration = 0;
+    /** 建造中的 HealthBar 引用，用于读取其 buildTime 属性 */
+    private _buildHealthBar: HealthBar | null = null;
     /** 建造位置（GameWorld 本地坐标，不随 Canvas 移动而漂移） */
     private readonly _buildLocalPos = new Vec3();
     /** 建造过程中的半透明虚影（炮塔模式） */
@@ -84,7 +85,7 @@ export class TurretPlacementManager extends Component {
     update(dt: number) {
         if (!this._isBuilding) return;
         this._buildTimer += dt;
-        if (this._buildTimer >= this._buildDuration) {
+        if (this._buildHealthBar && this._buildTimer >= this._buildHealthBar.buildTime) {
             this.finishBuild();
         }
     }
@@ -412,21 +413,11 @@ export class TurretPlacementManager extends Component {
             // 固定节点放置：保存目标节点在父节点下的本地坐标
             if (this._plantTargetNode) {
                 this._buildLocalPos.set(this._plantTargetNode.position);
-                const plant = this._plantTargetNode.getComponent(PlantGenerator);
-                this._buildDuration = plant ? (plant as any).buildTime || 4.0 : 4.0;
             }
         } else {
             // 炮塔放置：保存虚影在父节点下的本地坐标（不随 Canvas 移动而漂移）
             if (this.ghostNode) {
                 this._buildLocalPos.set(this.ghostNode.position);
-            }
-            // 读取建造时间
-            this._buildDuration = 3.0;
-            if (this.ghostNode) {
-                const turret = this.ghostNode.getComponent(Turret);
-                if (turret && (turret as any).buildTime) {
-                    this._buildDuration = (turret as any).buildTime;
-                }
             }
         }
         this._isPlacing = false;
@@ -566,7 +557,8 @@ export class TurretPlacementManager extends Component {
             if (bar.fillSprite) {
                 this.setNodeOpacity(bar.fillSprite.node, 255);
             }
-            bar.startBuild(this._buildDuration);
+            this._buildHealthBar = bar;
+            bar.startBuild();
         } else {
             // 没有 HealthBar，跳过进度直接完成建造
             this.finishBuild();
