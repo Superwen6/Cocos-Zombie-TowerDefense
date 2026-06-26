@@ -75,9 +75,6 @@ export class BaseSystem extends Component {
     @property({ type: [CCInteger], tooltip: '升级所需美元 (Lv1→2, Lv2→3, Lv3→4, Lv4→5)' })
     upgradeMoney: number[] = [800, 2000, 5000, 10000];
 
-    @property({ type: CCInteger, tooltip: '1级基地自身耗电量（瓦）' })
-    basePowerCost = 5;
-
     @property({ type: [CCInteger], tooltip: '各等级基地自身耗电量 (Lv1-Lv5)' })
     levelPowerCosts: number[] = [5, 10, 15, 20, 25];
 
@@ -209,7 +206,7 @@ export class BaseSystem extends Component {
         if (index >= 0 && index < this.levelPowerCosts.length) {
             return this.levelPowerCosts[index];
         }
-        return this.basePowerCost;
+        return 0;
     }
 
     getMaxBaseHpForLevel(level: number): number {
