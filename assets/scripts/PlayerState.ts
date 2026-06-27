@@ -37,6 +37,9 @@ export class PlayerState extends Component {
     @property({ tooltip: '每次攻击建筑的回血量' })
     repairPerHit = 10;
 
+    @property({ tooltip: '攻击/维修范围（像素）' })
+    repairRange = 50;
+
     @property({ tooltip: '移动速度（像素/秒）' })
     moveSpeed = 250;
 

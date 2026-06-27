@@ -290,6 +290,7 @@
     "maxHp": 100,
     "damage": 1,
     "moveSpeed": 120,
+    "attackRange": 30,
     "alertRadius": 300,
     "colliderHalfW": 8,
     "colliderHalfH": 8,

@@ -132,6 +132,16 @@ export class BaseSystem extends Component {
         this.captureWallOriginalColors();
         this.refreshBaseAppearance();
         this.updatePowerStatus();
+
+        // 初始化基地血条为战斗模式（_started 默认为 false，不调用 finishBuild 则血条不显示）
+        const baseNode = find('GameWorld/Base');
+        if (baseNode) {
+            const healthBar = baseNode.getComponentInChildren(HealthBar);
+            if (healthBar) {
+                healthBar.bindParent(baseNode);
+                healthBar.finishBuild();
+            }
+        }
     }
 
     onDestroy() {

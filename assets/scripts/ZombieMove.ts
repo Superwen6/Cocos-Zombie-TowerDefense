@@ -10,8 +10,6 @@ const { ccclass, property } = _decorator;
 const ALERT_RADIUS = 300;
 /** 拉扯距离：玩家超出此范围会放弃追击 */
 const LEASH_RADIUS = 350;
-/** 攻击距离：进入此范围停止移动开始攻击 */
-const ATTACK_RANGE = 40;
 /** 攻击冷却时间（秒） */
 const ATTACK_COOLDOWN = 1.5;
 /** 玩家记忆：失去视线后继续追击的时长（秒） */
@@ -52,6 +50,9 @@ export class ZombieMove extends Component {
 
     @property({ type: CCFloat, tooltip: '僵尸移动速度（像素/秒）' })
     moveSpeed = 120;
+
+    @property({ type: CCFloat, tooltip: '攻击距离（像素）' })
+    attackRange = 40;
 
     @property({ type: CCFloat, tooltip: '感知玩家距离（像素）', min: 100, max: 500 })
     alertRadius = 300;
@@ -288,7 +289,7 @@ export class ZombieMove extends Component {
         // 攻击状态由 updateAIState 统一管理切换，不交给 tickMoveByState
         if (this._aiState === 'ATTACK_PLAYER') {
             // 先判距离：玩家跑远/丢失视线，立刻退出攻击去追
-            if (!lineClear || distToPlayer > ATTACK_RANGE + 5) {
+            if (!lineClear || distToPlayer > this.attackRange + 5) {
                 this._aiState = this._memoryTimer > 0 ? 'MEMORY_TRACK' : 'CHASE_BASE';
                 return;
             }
@@ -299,7 +300,7 @@ export class ZombieMove extends Component {
         }
         if (this._aiState === 'ATTACK_BASE') {
             const bp = this.getEffectiveTargetPos(this._tempPos);
-            if (Vec3.distance(this.node.worldPosition, bp) > ATTACK_RANGE + 5) {
+            if (Vec3.distance(this.node.worldPosition, bp) > this.attackRange + 5) {
                 this._aiState = 'CHASE_BASE';
                 return;
             }
@@ -313,7 +314,7 @@ export class ZombieMove extends Component {
             this._memoryTimer = MEMORY_DURATION;
 
             const distToPlayerNow = Vec3.distance(this.node.worldPosition, playerNode.worldPosition);
-            if (distToPlayerNow <= ATTACK_RANGE + 5 && this._attackCooldown <= 0) {
+            if (distToPlayerNow <= this.attackRange + 5 && this._attackCooldown <= 0) {
                 this._aiState = 'ATTACK_PLAYER';
             } else {
                 this._aiState = 'CHASE_PLAYER';
@@ -357,13 +358,13 @@ export class ZombieMove extends Component {
         if (this._aiState === 'CHASE_BASE') {
             const targetPos = this.getEffectiveTargetPos(this._tempPos);
             const dist = Vec3.distance(this.node.worldPosition, targetPos);
-            if (dist <= ATTACK_RANGE + 5 && this._attackCooldown <= 0) {
+            if (dist <= this.attackRange + 5 && this._attackCooldown <= 0) {
                 this._aiState = 'ATTACK_BASE';
             }
         } else if (this._aiState === 'CHASE_PLAYER') {
             const targetPos = this.getEffectiveTargetPos(this._tempPos);
             const dist = Vec3.distance(this.node.worldPosition, targetPos);
-            if (dist <= ATTACK_RANGE + 5 && this._attackCooldown <= 0) {
+            if (dist <= this.attackRange + 5 && this._attackCooldown <= 0) {
                 this._aiState = 'ATTACK_PLAYER';
             }
         }
@@ -392,7 +393,7 @@ export class ZombieMove extends Component {
         const dist = Vec3.distance(selfPos, targetPos);
 
         // 接近目标进入攻击
-        if (dist <= ATTACK_RANGE && this._attackCooldown <= 0) {
+        if (dist <= this.attackRange && this._attackCooldown <= 0) {
             if (this._aiState === 'CHASE_BASE') {
                 this._aiState = 'ATTACK_BASE';
             } else if (this._aiState === 'CHASE_PLAYER' || this._aiState === 'MEMORY_TRACK') {

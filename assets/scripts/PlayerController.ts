@@ -30,9 +30,6 @@ import { CollisionWorld, Collider2D, ColliderGroup } from './CollisionWorld';
 
 const { ccclass, property } = _decorator;
 
-/** 攻击/采集检测范围（像素） */
-const HIT_RANGE = 50;
-
 /**
  * 主角键盘移动、攻击频率节流与采集/战斗。
  * 集成四方向行走动画：按下 WASD 循环播放，松开停止并显示第一帧。
@@ -41,9 +38,6 @@ const HIT_RANGE = 50;
 export class PlayerController extends Component {
     @property({ type: PlayerState, tooltip: '主角状态组件，不填则从本节点获取' })
     playerState: PlayerState | null = null;
-
-    @property({ tooltip: '攻击/采集检测范围（像素）' })
-    hitRange = HIT_RANGE;
 
     @property({ type: Node, tooltip: '搜索资源/僵尸的根节点，不填则搜索整个场景' })
     resourceSearchRoot: Node | null = null;
@@ -75,6 +69,11 @@ export class PlayerController extends Component {
 
     @property({ tooltip: '碰撞框半高（碰撞体总高度 = 此值 × 2）' })
     colliderHalfH = 15;
+
+    /** 从 PlayerState 读取攻击/维修范围（可在属性检查器中调整） */
+    private get hitRange(): number {
+        return this.playerState?.repairRange ?? 50;
+    }
 
     private keyPressedMap: Record<number, boolean> = {};
     private _canvasWidget: Widget | null = null;
