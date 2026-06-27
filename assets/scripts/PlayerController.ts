@@ -654,14 +654,12 @@ export class PlayerController extends Component {
     private onInteractKey() {
         const container = this.findNearbyContainer();
         if (!container) {
-            warn('[PlayerController] E键按下，但附近没有集装箱');
             return;
         }
 
         const panelUI = this.findContainerPanelUI();
         if (panelUI) {
-            warn('[PlayerController] 找到 ContainerPanelUI，打开面板');
-            panelUI.openPanelPublic();
+            panelUI.openPanelPublic(container);
         } else {
             warn('[PlayerController] 附近有集装箱，但 ContainerPanelUI 组件未挂载到场景中！请在 Canvas 下挂载 ContainerPanelUI 组件');
         }
