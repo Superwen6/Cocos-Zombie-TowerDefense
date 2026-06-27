@@ -24,6 +24,12 @@ export class EnemyManager extends Component {
     @property({ type: Prefab, tooltip: '僵尸预制体' })
     enemyPrefab: Prefab | null = null;
 
+    @property({ type: Prefab, tooltip: '护士僵尸预制体' })
+    nurseZombiePrefab: Prefab | null = null;
+
+    @property({ tooltip: '护士僵尸刷出概率（0~1）' })
+    nurseZombieChance = 0.25;
+
     @property({ tooltip: '黑夜持续刷怪间隔（秒）' })
     spawnInterval = 2;
 
@@ -122,11 +128,21 @@ export class EnemyManager extends Component {
         this.unschedule(this.spawnDayWanderer);
     }
 
+    /** 根据权重随机选取一个僵尸预制体 */
+    private pickZombiePrefab(): Prefab | null {
+        if (!this.nurseZombiePrefab) return this.enemyPrefab;
+        if (!this.enemyPrefab) return this.nurseZombiePrefab;
+        return Math.random() < this.nurseZombieChance
+            ? this.nurseZombiePrefab
+            : this.enemyPrefab;
+    }
+
     /** 黑夜：在屏幕边缘生成攻击型僵尸 */
     private spawnZombie() {
-        if (!this.enemyPrefab || this.getActiveZombieCount() >= this.maxZombiesOnScreen) return;
+        const prefab = this.pickZombiePrefab();
+        if (!prefab || this.getActiveZombieCount() >= this.maxZombiesOnScreen) return;
 
-        const enemy = instantiate(this.enemyPrefab);
+        const enemy = instantiate(prefab);
         const finalParent = this.resolveEnemyRoot();
         enemy.setParent(finalParent);
 
@@ -148,9 +164,10 @@ export class EnemyManager extends Component {
 
     /** 白天：在基地周围生成游荡型僵尸（不攻击基地/玩家） */
     private spawnDayWanderer() {
-        if (!this.enemyPrefab || this.getWandererCount() >= this.maxDayWanderers) return;
+        const prefab = this.pickZombiePrefab();
+        if (!prefab || this.getWandererCount() >= this.maxDayWanderers) return;
 
-        const enemy = instantiate(this.enemyPrefab);
+        const enemy = instantiate(prefab);
         const finalParent = this.resolveEnemyRoot();
         enemy.setParent(finalParent);
 
