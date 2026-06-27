@@ -525,14 +525,35 @@ export class PlayerController extends Component {
 
         for (const node of buildings) {
             if (!node.isValid || !node.active) continue;
+            if (!this.isNodeInAttackRange(playerPos, node)) continue;
             const dist = Vec3.distance(playerPos, node.worldPosition);
-            if (dist <= this.hitRange && dist < minDist) {
+            if (dist < minDist) {
                 minDist = dist;
                 closest = node;
             }
         }
 
         return closest;
+    }
+
+    /** 判断建筑节点的碰撞框是否与玩家攻击圆重叠（圆心=玩家位置，半径=hitRange） */
+    private isNodeInAttackRange(playerPos: Vec3, node: Node): boolean {
+        const transform = node.getComponent(UITransform);
+        if (!transform) {
+            return Vec3.distance(playerPos, node.worldPosition) <= this.hitRange;
+        }
+        const nodePos = node.worldPosition;
+        const scale = node.scale;
+        const halfW = transform.width * 0.5 * Math.abs(scale.x);
+        const halfH = transform.height * 0.5 * Math.abs(scale.y);
+
+        // 矩形上离玩家最近的点
+        const closestX = Math.max(nodePos.x - halfW, Math.min(playerPos.x, nodePos.x + halfW));
+        const closestY = Math.max(nodePos.y - halfH, Math.min(playerPos.y, nodePos.y + halfH));
+
+        const dx = playerPos.x - closestX;
+        const dy = playerPos.y - closestY;
+        return (dx * dx + dy * dy) <= (this.hitRange * this.hitRange);
     }
 
     /** 维修建筑：回复血量，不消耗资源，显示血条 */
@@ -570,9 +591,13 @@ export class PlayerController extends Component {
 
         // 尝试维修基地（包括基地自身及其任意子节点）
         const base = BaseSystem.instance;
-        if (base && buildingNode.name === 'Base' && base.baseHp < base.maxBaseHp) {
+        if (base && this.isBaseOrDescendant(buildingNode) && base.baseHp < base.maxBaseHp) {
             base.repairBase(repairAmount);
-            this.showBuildingHealthBar(buildingNode);
+            // 查找 Base 节点以显示其血条
+            const baseNode = this.findBaseAncestor(buildingNode);
+            if (baseNode) {
+                this.showBuildingHealthBar(baseNode);
+            }
             return;
         }
     }
@@ -583,6 +608,20 @@ export class PlayerController extends Component {
         if (bar) {
             bar.show();
         }
+    }
+
+    /** 判断节点是否为 Base 或其子孙节点 */
+    private isBaseOrDescendant(node: Node): boolean {
+        if (node.name === 'Base') return true;
+        if (node.parent) return this.isBaseOrDescendant(node.parent);
+        return false;
+    }
+
+    /** 向上查找 Base 祖先节点 */
+    private findBaseAncestor(node: Node): Node | null {
+        if (node.name === 'Base') return node;
+        if (node.parent) return this.findBaseAncestor(node.parent);
+        return null;
     }
 
     private collectZombies(): ZombieMove[] {
@@ -639,6 +678,10 @@ export class PlayerController extends Component {
         const container = node.getComponent(Container);
         const isBase = node.name === 'Base';
         if (turret || plant || container || isBase) {
+            out.push(node);
+        }
+        // Base 的直接子节点（墙体等）也作为可维修建筑收集
+        if (node.parent?.name === 'Base' && !turret && !plant && !container && !isBase) {
             out.push(node);
         }
         for (const child of node.children) {
