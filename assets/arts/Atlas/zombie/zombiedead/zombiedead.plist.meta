@@ -1,0 +1,293 @@
+{
+  "ver": "1.0.8",
+  "importer": "sprite-atlas",
+  "imported": true,
+  "uuid": "b7111338-5c5c-474c-bd86-0fb4637917f9",
+  "files": [
+    ".json"
+  ],
+  "subMetas": {
+    "fc34d": {
+      "importer": "sprite-frame",
+      "uuid": "b7111338-5c5c-474c-bd86-0fb4637917f9@fc34d",
+      "displayName": "",
+      "id": "fc34d",
+      "name": "zombiedead (6)",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -8,
+        "offsetY": -214,
+        "trimX": 1,
+        "trimY": 1,
+        "width": 901,
+        "height": 255,
+        "rawWidth": 960,
+        "rawHeight": 960,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "47359a09-ec75-4159-ba70-b6049196f57e@6c48a",
+        "atlasUuid": "b7111338-5c5c-474c-bd86-0fb4637917f9",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "50dac": {
+      "importer": "sprite-frame",
+      "uuid": "b7111338-5c5c-474c-bd86-0fb4637917f9@50dac",
+      "displayName": "",
+      "id": "50dac",
+      "name": "zombiedead (1)",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -72,
+        "offsetY": -8,
+        "trimX": 1,
+        "trimY": 257,
+        "width": 540,
+        "height": 866,
+        "rawWidth": 960,
+        "rawHeight": 960,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "47359a09-ec75-4159-ba70-b6049196f57e@6c48a",
+        "atlasUuid": "b7111338-5c5c-474c-bd86-0fb4637917f9",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "1ce82": {
+      "importer": "sprite-frame",
+      "uuid": "b7111338-5c5c-474c-bd86-0fb4637917f9@1ce82",
+      "displayName": "",
+      "id": "1ce82",
+      "name": "zombiedead (5)",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -33,
+        "offsetY": -164,
+        "trimX": 542,
+        "trimY": 257,
+        "width": 848,
+        "height": 356,
+        "rawWidth": 960,
+        "rawHeight": 960,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "47359a09-ec75-4159-ba70-b6049196f57e@6c48a",
+        "atlasUuid": "b7111338-5c5c-474c-bd86-0fb4637917f9",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "ca330": {
+      "importer": "sprite-frame",
+      "uuid": "b7111338-5c5c-474c-bd86-0fb4637917f9@ca330",
+      "displayName": "",
+      "id": "ca330",
+      "name": "zombiedead (2)",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -78,
+        "offsetY": -18,
+        "trimX": 542,
+        "trimY": 614,
+        "width": 538,
+        "height": 845,
+        "rawWidth": 960,
+        "rawHeight": 960,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "47359a09-ec75-4159-ba70-b6049196f57e@6c48a",
+        "atlasUuid": "b7111338-5c5c-474c-bd86-0fb4637917f9",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "9dbc7": {
+      "importer": "sprite-frame",
+      "uuid": "b7111338-5c5c-474c-bd86-0fb4637917f9@9dbc7",
+      "displayName": "",
+      "id": "9dbc7",
+      "name": "zombiedead (4)",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -69,
+        "offsetY": -221,
+        "trimX": 1,
+        "trimY": 1460,
+        "width": 821,
+        "height": 307,
+        "rawWidth": 960,
+        "rawHeight": 960,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "47359a09-ec75-4159-ba70-b6049196f57e@6c48a",
+        "atlasUuid": "b7111338-5c5c-474c-bd86-0fb4637917f9",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "d8fb5": {
+      "importer": "sprite-frame",
+      "uuid": "b7111338-5c5c-474c-bd86-0fb4637917f9@d8fb5",
+      "displayName": "",
+      "id": "d8fb5",
+      "name": "zombiedead (3)",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -106,
+        "offsetY": -63,
+        "trimX": 1081,
+        "trimY": 614,
+        "width": 621,
+        "height": 754,
+        "rawWidth": 960,
+        "rawHeight": 960,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "47359a09-ec75-4159-ba70-b6049196f57e@6c48a",
+        "atlasUuid": "b7111338-5c5c-474c-bd86-0fb4637917f9",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "atlasTextureName": "zombiedead.png",
+    "format": 3,
+    "uuid": "b7111338-5c5c-474c-bd86-0fb4637917f9",
+    "textureUuid": "47359a09-ec75-4159-ba70-b6049196f57e@6c48a"
+  }
+}

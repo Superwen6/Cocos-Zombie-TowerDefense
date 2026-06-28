@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+<key>frames</key>
+<dict>
+<key>zombiewalk (1)</key>
+<dict>
+<key>spriteOffset</key>
+<string>{-70,-13}</string>
+<key>spriteSize</key>
+<string>{545,852}</string>
+<key>spriteSourceSize</key>
+<string>{960,960}</string>
+<key>textureRect</key>
+<string>{{1,1},{545,852}}</string>
+<key>textureRotated</key>
+<false/>
+</dict>
+<key>zombiewalk (5)</key>
+<dict>
+<key>spriteOffset</key>
+<string>{-70,-13}</string>
+<key>spriteSize</key>
+<string>{545,852}</string>
+<key>spriteSourceSize</key>
+<string>{960,960}</string>
+<key>textureRect</key>
+<string>{{547,1},{545,852}}</string>
+<key>textureRotated</key>
+<false/>
+</dict>
+<key>zombiewalk (4)</key>
+<dict>
+<key>spriteOffset</key>
+<string>{-87,-9}</string>
+<key>spriteSize</key>
+<string>{492,873}</string>
+<key>spriteSourceSize</key>
+<string>{960,960}</string>
+<key>textureRect</key>
+<string>{{1093,1},{492,873}}</string>
+<key>textureRotated</key>
+<false/>
+</dict>
+<key>zombiewalk (3)</key>
+<dict>
+<key>spriteOffset</key>
+<string>{-74,-8}</string>
+<key>spriteSize</key>
+<string>{472,871}</string>
+<key>spriteSourceSize</key>
+<string>{960,960}</string>
+<key>textureRect</key>
+<string>{{1,854},{472,871}}</string>
+<key>textureRotated</key>
+<false/>
+</dict>
+<key>zombiewalk (2)</key>
+<dict>
+<key>spriteOffset</key>
+<string>{-76,-5}</string>
+<key>spriteSize</key>
+<string>{474,860}</string>
+<key>spriteSourceSize</key>
+<string>{960,960}</string>
+<key>textureRect</key>
+<string>{{474,854},{474,860}}</string>
+<key>textureRotated</key>
+<false/>
+</dict>
+</dict>
+<key>metadata</key>
+<dict>
+<key>format</key>
+<integer>3</integer>
+<key>pixelFormat</key>
+<string>RGBA8888</string>
+<key>premultiplyAlpha</key>
+<false/>
+<key>realTextureFileName</key>
+<string>zombiewalk.png</string>
+<key>textureFileName</key>
+<string>zombiewalk.png</string>
+<key>size</key>
+<string>{1726,1726}</string>
+</dict>
+</dict>
+</plist>

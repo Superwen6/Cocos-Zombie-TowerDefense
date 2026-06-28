@@ -1,0 +1,293 @@
+{
+  "ver": "1.0.8",
+  "importer": "sprite-atlas",
+  "imported": true,
+  "uuid": "acb060dd-b917-412a-a768-a6c6e270cd1b",
+  "files": [
+    ".json"
+  ],
+  "subMetas": {
+    "597bc": {
+      "importer": "sprite-frame",
+      "uuid": "acb060dd-b917-412a-a768-a6c6e270cd1b@597bc",
+      "displayName": "",
+      "id": "597bc",
+      "name": "普通攻击 (1)",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": 43,
+        "offsetY": 13,
+        "trimX": 1,
+        "trimY": 1,
+        "width": 233,
+        "height": 355,
+        "rawWidth": 458,
+        "rawHeight": 470,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "9f97ee9e-47d7-410f-a05c-2d771061dd93@6c48a",
+        "atlasUuid": "acb060dd-b917-412a-a768-a6c6e270cd1b",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "f6e7f": {
+      "importer": "sprite-frame",
+      "uuid": "acb060dd-b917-412a-a768-a6c6e270cd1b@f6e7f",
+      "displayName": "",
+      "id": "f6e7f",
+      "name": "普通攻击 (2)",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": 23,
+        "offsetY": 13,
+        "trimX": 235,
+        "trimY": 1,
+        "width": 187,
+        "height": 355,
+        "rawWidth": 458,
+        "rawHeight": 470,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "9f97ee9e-47d7-410f-a05c-2d771061dd93@6c48a",
+        "atlasUuid": "acb060dd-b917-412a-a768-a6c6e270cd1b",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "97a01": {
+      "importer": "sprite-frame",
+      "uuid": "acb060dd-b917-412a-a768-a6c6e270cd1b@97a01",
+      "displayName": "",
+      "id": "97a01",
+      "name": "普通攻击 (3)",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": 19,
+        "offsetY": 13,
+        "trimX": 423,
+        "trimY": 1,
+        "width": 176,
+        "height": 355,
+        "rawWidth": 458,
+        "rawHeight": 470,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "9f97ee9e-47d7-410f-a05c-2d771061dd93@6c48a",
+        "atlasUuid": "acb060dd-b917-412a-a768-a6c6e270cd1b",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "37da4": {
+      "importer": "sprite-frame",
+      "uuid": "acb060dd-b917-412a-a768-a6c6e270cd1b@37da4",
+      "displayName": "",
+      "id": "37da4",
+      "name": "普通攻击 (4)",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": 12,
+        "offsetY": 23,
+        "trimX": 1,
+        "trimY": 357,
+        "width": 172,
+        "height": 352,
+        "rawWidth": 458,
+        "rawHeight": 470,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "9f97ee9e-47d7-410f-a05c-2d771061dd93@6c48a",
+        "atlasUuid": "acb060dd-b917-412a-a768-a6c6e270cd1b",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "8f639": {
+      "importer": "sprite-frame",
+      "uuid": "acb060dd-b917-412a-a768-a6c6e270cd1b@8f639",
+      "displayName": "",
+      "id": "8f639",
+      "name": "普通攻击 (6)",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -32,
+        "offsetY": 21,
+        "trimX": 174,
+        "trimY": 357,
+        "width": 252,
+        "height": 347,
+        "rawWidth": 458,
+        "rawHeight": 470,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "9f97ee9e-47d7-410f-a05c-2d771061dd93@6c48a",
+        "atlasUuid": "acb060dd-b917-412a-a768-a6c6e270cd1b",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "6f085": {
+      "importer": "sprite-frame",
+      "uuid": "acb060dd-b917-412a-a768-a6c6e270cd1b@6f085",
+      "displayName": "",
+      "id": "6f085",
+      "name": "普通攻击 (5)",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -25,
+        "offsetY": 21,
+        "trimX": 427,
+        "trimY": 357,
+        "width": 239,
+        "height": 347,
+        "rawWidth": 458,
+        "rawHeight": 470,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "9f97ee9e-47d7-410f-a05c-2d771061dd93@6c48a",
+        "atlasUuid": "acb060dd-b917-412a-a768-a6c6e270cd1b",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "atlasTextureName": "root.png",
+    "format": 3,
+    "uuid": "acb060dd-b917-412a-a768-a6c6e270cd1b",
+    "textureUuid": "9f97ee9e-47d7-410f-a05c-2d771061dd93@6c48a"
+  }
+}

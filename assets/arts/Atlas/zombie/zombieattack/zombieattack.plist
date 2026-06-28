@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+<key>frames</key>
+<dict>
+<key>zombieattack (1)</key>
+<dict>
+<key>spriteOffset</key>
+<string>{-34,3}</string>
+<key>spriteSize</key>
+<string>{505,893}</string>
+<key>spriteSourceSize</key>
+<string>{960,960}</string>
+<key>textureRect</key>
+<string>{{1,1},{505,893}}</string>
+<key>textureRotated</key>
+<false/>
+</dict>
+<key>zombieattack (2)</key>
+<dict>
+<key>spriteOffset</key>
+<string>{-33,3}</string>
+<key>spriteSize</key>
+<string>{503,893}</string>
+<key>spriteSourceSize</key>
+<string>{960,960}</string>
+<key>textureRect</key>
+<string>{{507,1},{503,893}}</string>
+<key>textureRotated</key>
+<false/>
+</dict>
+<key>zombieattack (3)</key>
+<dict>
+<key>spriteOffset</key>
+<string>{-36,-4}</string>
+<key>spriteSize</key>
+<string>{509,879}</string>
+<key>spriteSourceSize</key>
+<string>{960,960}</string>
+<key>textureRect</key>
+<string>{{1011,1},{509,879}}</string>
+<key>textureRotated</key>
+<false/>
+</dict>
+<key>zombieattack (4)</key>
+<dict>
+<key>spriteOffset</key>
+<string>{-63,-23}</string>
+<key>spriteSize</key>
+<string>{557,842}</string>
+<key>spriteSourceSize</key>
+<string>{960,960}</string>
+<key>textureRect</key>
+<string>{{1011,881},{557,842}}</string>
+<key>textureRotated</key>
+<false/>
+</dict>
+<key>zombieattack (6)</key>
+<dict>
+<key>spriteOffset</key>
+<string>{-18,-25}</string>
+<key>spriteSize</key>
+<string>{470,838}</string>
+<key>spriteSourceSize</key>
+<string>{960,960}</string>
+<key>textureRect</key>
+<string>{{1,895},{470,838}}</string>
+<key>textureRotated</key>
+<false/>
+</dict>
+<key>zombieattack (5)</key>
+<dict>
+<key>spriteOffset</key>
+<string>{-40,-43}</string>
+<key>spriteSize</key>
+<string>{506,802}</string>
+<key>spriteSourceSize</key>
+<string>{960,960}</string>
+<key>textureRect</key>
+<string>{{472,895},{506,802}}</string>
+<key>textureRotated</key>
+<false/>
+</dict>
+</dict>
+<key>metadata</key>
+<dict>
+<key>format</key>
+<integer>3</integer>
+<key>pixelFormat</key>
+<string>RGBA8888</string>
+<key>premultiplyAlpha</key>
+<false/>
+<key>realTextureFileName</key>
+<string>zombieattack.png</string>
+<key>textureFileName</key>
+<string>zombieattack.png</string>
+<key>size</key>
+<string>{1734,1734}</string>
+</dict>
+</dict>
+</plist>

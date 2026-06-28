@@ -751,32 +751,32 @@
       "__id__": 17
     },
     "idleSpriteFrame": {
-      "__uuid__": "31c0cab8-ed60-46fb-a62c-26d7e681f295@f9941",
+      "__uuid__": "15ad0099-c837-41fa-964f-86baa6445ea8@cd573",
       "__expectedType__": "cc.SpriteFrame"
     },
     "attackFrames": [
       {
-        "__uuid__": "dfe10583-6960-4e6e-a7d1-54d1b87b6fdd@f9941",
+        "__uuid__": "acb060dd-b917-412a-a768-a6c6e270cd1b@597bc",
         "__expectedType__": "cc.SpriteFrame"
       },
       {
-        "__uuid__": "81117b2e-2def-4528-8f3f-0a32975d0823@f9941",
+        "__uuid__": "acb060dd-b917-412a-a768-a6c6e270cd1b@f6e7f",
         "__expectedType__": "cc.SpriteFrame"
       },
       {
-        "__uuid__": "f3f7f573-0252-4a51-9dd4-3fd66d2d74b6@f9941",
+        "__uuid__": "acb060dd-b917-412a-a768-a6c6e270cd1b@97a01",
         "__expectedType__": "cc.SpriteFrame"
       },
       {
-        "__uuid__": "c00630a2-f04f-4a2d-bb45-f4deadad7b1f@f9941",
+        "__uuid__": "acb060dd-b917-412a-a768-a6c6e270cd1b@37da4",
         "__expectedType__": "cc.SpriteFrame"
       },
       {
-        "__uuid__": "093622df-6bd6-4aaa-8d7f-657143fff987@f9941",
+        "__uuid__": "acb060dd-b917-412a-a768-a6c6e270cd1b@6f085",
         "__expectedType__": "cc.SpriteFrame"
       },
       {
-        "__uuid__": "87b30722-d2e4-4e0b-a088-de446fe70f8d@f9941",
+        "__uuid__": "acb060dd-b917-412a-a768-a6c6e270cd1b@8f639",
         "__expectedType__": "cc.SpriteFrame"
       }
     ],
@@ -7771,7 +7771,7 @@
     "_priority": 1,
     "_fov": 45,
     "_fovAxis": 0,
-    "_orthoHeight": 360,
+    "_orthoHeight": 391.59029649595686,
     "_near": 0,
     "_far": 2000,
     "_color": {
@@ -22712,7 +22712,12 @@
       "__uuid__": "41bf9447-2862-437e-b2d6-a8d79941162d",
       "__expectedType__": "cc.Prefab"
     },
-    "nurseZombieChance": 0.5,
+    "fatZombiePrefab": {
+      "__uuid__": "b4947c58-5efc-4ca7-9d0b-cd88ffdeace7",
+      "__expectedType__": "cc.Prefab"
+    },
+    "nurseZombieChance": 0.3,
+    "fatZombieChance": 0.3,
     "spawnInterval": 1,
     "dayWanderInterval": 8,
     "maxDayWanderers": 5,

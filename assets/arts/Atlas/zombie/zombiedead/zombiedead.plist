@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+<key>frames</key>
+<dict>
+<key>zombiedead (6)</key>
+<dict>
+<key>spriteOffset</key>
+<string>{-8,-214}</string>
+<key>spriteSize</key>
+<string>{901,255}</string>
+<key>spriteSourceSize</key>
+<string>{960,960}</string>
+<key>textureRect</key>
+<string>{{1,1},{901,255}}</string>
+<key>textureRotated</key>
+<false/>
+</dict>
+<key>zombiedead (1)</key>
+<dict>
+<key>spriteOffset</key>
+<string>{-72,-8}</string>
+<key>spriteSize</key>
+<string>{540,866}</string>
+<key>spriteSourceSize</key>
+<string>{960,960}</string>
+<key>textureRect</key>
+<string>{{1,257},{540,866}}</string>
+<key>textureRotated</key>
+<false/>
+</dict>
+<key>zombiedead (5)</key>
+<dict>
+<key>spriteOffset</key>
+<string>{-33,-164}</string>
+<key>spriteSize</key>
+<string>{848,356}</string>
+<key>spriteSourceSize</key>
+<string>{960,960}</string>
+<key>textureRect</key>
+<string>{{542,257},{848,356}}</string>
+<key>textureRotated</key>
+<false/>
+</dict>
+<key>zombiedead (2)</key>
+<dict>
+<key>spriteOffset</key>
+<string>{-78,-18}</string>
+<key>spriteSize</key>
+<string>{538,845}</string>
+<key>spriteSourceSize</key>
+<string>{960,960}</string>
+<key>textureRect</key>
+<string>{{542,614},{538,845}}</string>
+<key>textureRotated</key>
+<false/>
+</dict>
+<key>zombiedead (4)</key>
+<dict>
+<key>spriteOffset</key>
+<string>{-69,-221}</string>
+<key>spriteSize</key>
+<string>{821,307}</string>
+<key>spriteSourceSize</key>
+<string>{960,960}</string>
+<key>textureRect</key>
+<string>{{1,1460},{821,307}}</string>
+<key>textureRotated</key>
+<false/>
+</dict>
+<key>zombiedead (3)</key>
+<dict>
+<key>spriteOffset</key>
+<string>{-106,-63}</string>
+<key>spriteSize</key>
+<string>{621,754}</string>
+<key>spriteSourceSize</key>
+<string>{960,960}</string>
+<key>textureRect</key>
+<string>{{1081,614},{621,754}}</string>
+<key>textureRotated</key>
+<false/>
+</dict>
+</dict>
+<key>metadata</key>
+<dict>
+<key>format</key>
+<integer>3</integer>
+<key>pixelFormat</key>
+<string>RGBA8888</string>
+<key>premultiplyAlpha</key>
+<false/>
+<key>realTextureFileName</key>
+<string>zombiedead.png</string>
+<key>textureFileName</key>
+<string>zombiedead.png</string>
+<key>size</key>
+<string>{1768,1768}</string>
+</dict>
+</dict>
+</plist>

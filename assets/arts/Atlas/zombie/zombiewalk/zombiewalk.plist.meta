@@ -1,0 +1,247 @@
+{
+  "ver": "1.0.8",
+  "importer": "sprite-atlas",
+  "imported": true,
+  "uuid": "4a8cc6ab-fe4e-486d-bf52-f336e8f13d4f",
+  "files": [
+    ".json"
+  ],
+  "subMetas": {
+    "1fb44": {
+      "importer": "sprite-frame",
+      "uuid": "4a8cc6ab-fe4e-486d-bf52-f336e8f13d4f@1fb44",
+      "displayName": "",
+      "id": "1fb44",
+      "name": "zombiewalk (1)",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -70,
+        "offsetY": -13,
+        "trimX": 1,
+        "trimY": 1,
+        "width": 545,
+        "height": 852,
+        "rawWidth": 960,
+        "rawHeight": 960,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "65884986-137b-43c8-a37e-1e53c755cbb7@6c48a",
+        "atlasUuid": "4a8cc6ab-fe4e-486d-bf52-f336e8f13d4f",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "748a1": {
+      "importer": "sprite-frame",
+      "uuid": "4a8cc6ab-fe4e-486d-bf52-f336e8f13d4f@748a1",
+      "displayName": "",
+      "id": "748a1",
+      "name": "zombiewalk (5)",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -70,
+        "offsetY": -13,
+        "trimX": 547,
+        "trimY": 1,
+        "width": 545,
+        "height": 852,
+        "rawWidth": 960,
+        "rawHeight": 960,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "65884986-137b-43c8-a37e-1e53c755cbb7@6c48a",
+        "atlasUuid": "4a8cc6ab-fe4e-486d-bf52-f336e8f13d4f",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "9988b": {
+      "importer": "sprite-frame",
+      "uuid": "4a8cc6ab-fe4e-486d-bf52-f336e8f13d4f@9988b",
+      "displayName": "",
+      "id": "9988b",
+      "name": "zombiewalk (4)",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -87,
+        "offsetY": -9,
+        "trimX": 1093,
+        "trimY": 1,
+        "width": 492,
+        "height": 873,
+        "rawWidth": 960,
+        "rawHeight": 960,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "65884986-137b-43c8-a37e-1e53c755cbb7@6c48a",
+        "atlasUuid": "4a8cc6ab-fe4e-486d-bf52-f336e8f13d4f",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "ddb7f": {
+      "importer": "sprite-frame",
+      "uuid": "4a8cc6ab-fe4e-486d-bf52-f336e8f13d4f@ddb7f",
+      "displayName": "",
+      "id": "ddb7f",
+      "name": "zombiewalk (3)",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -74,
+        "offsetY": -8,
+        "trimX": 1,
+        "trimY": 854,
+        "width": 472,
+        "height": 871,
+        "rawWidth": 960,
+        "rawHeight": 960,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "65884986-137b-43c8-a37e-1e53c755cbb7@6c48a",
+        "atlasUuid": "4a8cc6ab-fe4e-486d-bf52-f336e8f13d4f",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "b9281": {
+      "importer": "sprite-frame",
+      "uuid": "4a8cc6ab-fe4e-486d-bf52-f336e8f13d4f@b9281",
+      "displayName": "",
+      "id": "b9281",
+      "name": "zombiewalk (2)",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -76,
+        "offsetY": -5,
+        "trimX": 474,
+        "trimY": 854,
+        "width": 474,
+        "height": 860,
+        "rawWidth": 960,
+        "rawHeight": 960,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "65884986-137b-43c8-a37e-1e53c755cbb7@6c48a",
+        "atlasUuid": "4a8cc6ab-fe4e-486d-bf52-f336e8f13d4f",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "atlasTextureName": "zombiewalk.png",
+    "format": 3,
+    "uuid": "4a8cc6ab-fe4e-486d-bf52-f336e8f13d4f",
+    "textureUuid": "65884986-137b-43c8-a37e-1e53c755cbb7@6c48a"
+  }
+}

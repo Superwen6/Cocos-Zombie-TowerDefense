@@ -1,0 +1,293 @@
+{
+  "ver": "1.0.8",
+  "importer": "sprite-atlas",
+  "imported": true,
+  "uuid": "a9be83a9-f255-466c-b469-408afa865cc9",
+  "files": [
+    ".json"
+  ],
+  "subMetas": {
+    "e7210": {
+      "importer": "sprite-frame",
+      "uuid": "a9be83a9-f255-466c-b469-408afa865cc9@e7210",
+      "displayName": "",
+      "id": "e7210",
+      "name": "zombieattack (1)",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -34,
+        "offsetY": 3,
+        "trimX": 1,
+        "trimY": 1,
+        "width": 505,
+        "height": 893,
+        "rawWidth": 960,
+        "rawHeight": 960,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "9a24dedb-b016-4ef5-a4ac-56a80ee31dba@6c48a",
+        "atlasUuid": "a9be83a9-f255-466c-b469-408afa865cc9",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "f5609": {
+      "importer": "sprite-frame",
+      "uuid": "a9be83a9-f255-466c-b469-408afa865cc9@f5609",
+      "displayName": "",
+      "id": "f5609",
+      "name": "zombieattack (2)",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -33,
+        "offsetY": 3,
+        "trimX": 507,
+        "trimY": 1,
+        "width": 503,
+        "height": 893,
+        "rawWidth": 960,
+        "rawHeight": 960,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "9a24dedb-b016-4ef5-a4ac-56a80ee31dba@6c48a",
+        "atlasUuid": "a9be83a9-f255-466c-b469-408afa865cc9",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "b3de1": {
+      "importer": "sprite-frame",
+      "uuid": "a9be83a9-f255-466c-b469-408afa865cc9@b3de1",
+      "displayName": "",
+      "id": "b3de1",
+      "name": "zombieattack (3)",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -36,
+        "offsetY": -4,
+        "trimX": 1011,
+        "trimY": 1,
+        "width": 509,
+        "height": 879,
+        "rawWidth": 960,
+        "rawHeight": 960,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "9a24dedb-b016-4ef5-a4ac-56a80ee31dba@6c48a",
+        "atlasUuid": "a9be83a9-f255-466c-b469-408afa865cc9",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "39ec4": {
+      "importer": "sprite-frame",
+      "uuid": "a9be83a9-f255-466c-b469-408afa865cc9@39ec4",
+      "displayName": "",
+      "id": "39ec4",
+      "name": "zombieattack (4)",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -63,
+        "offsetY": -23,
+        "trimX": 1011,
+        "trimY": 881,
+        "width": 557,
+        "height": 842,
+        "rawWidth": 960,
+        "rawHeight": 960,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "9a24dedb-b016-4ef5-a4ac-56a80ee31dba@6c48a",
+        "atlasUuid": "a9be83a9-f255-466c-b469-408afa865cc9",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "e18e6": {
+      "importer": "sprite-frame",
+      "uuid": "a9be83a9-f255-466c-b469-408afa865cc9@e18e6",
+      "displayName": "",
+      "id": "e18e6",
+      "name": "zombieattack (6)",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -18,
+        "offsetY": -25,
+        "trimX": 1,
+        "trimY": 895,
+        "width": 470,
+        "height": 838,
+        "rawWidth": 960,
+        "rawHeight": 960,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "9a24dedb-b016-4ef5-a4ac-56a80ee31dba@6c48a",
+        "atlasUuid": "a9be83a9-f255-466c-b469-408afa865cc9",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "a52e8": {
+      "importer": "sprite-frame",
+      "uuid": "a9be83a9-f255-466c-b469-408afa865cc9@a52e8",
+      "displayName": "",
+      "id": "a52e8",
+      "name": "zombieattack (5)",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -40,
+        "offsetY": -43,
+        "trimX": 472,
+        "trimY": 895,
+        "width": 506,
+        "height": 802,
+        "rawWidth": 960,
+        "rawHeight": 960,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "9a24dedb-b016-4ef5-a4ac-56a80ee31dba@6c48a",
+        "atlasUuid": "a9be83a9-f255-466c-b469-408afa865cc9",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "atlasTextureName": "zombieattack.png",
+    "format": 3,
+    "uuid": "a9be83a9-f255-466c-b469-408afa865cc9",
+    "textureUuid": "9a24dedb-b016-4ef5-a4ac-56a80ee31dba@6c48a"
+  }
+}

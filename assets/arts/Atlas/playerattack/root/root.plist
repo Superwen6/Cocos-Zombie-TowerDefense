@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+<key>frames</key>
+<dict>
+<key>普通攻击 (1)</key>
+<dict>
+<key>spriteOffset</key>
+<string>{43,13}</string>
+<key>spriteSize</key>
+<string>{233,355}</string>
+<key>spriteSourceSize</key>
+<string>{458,470}</string>
+<key>textureRect</key>
+<string>{{1,1},{233,355}}</string>
+<key>textureRotated</key>
+<false/>
+</dict>
+<key>普通攻击 (2)</key>
+<dict>
+<key>spriteOffset</key>
+<string>{23,13}</string>
+<key>spriteSize</key>
+<string>{187,355}</string>
+<key>spriteSourceSize</key>
+<string>{458,470}</string>
+<key>textureRect</key>
+<string>{{235,1},{187,355}}</string>
+<key>textureRotated</key>
+<false/>
+</dict>
+<key>普通攻击 (3)</key>
+<dict>
+<key>spriteOffset</key>
+<string>{19,13}</string>
+<key>spriteSize</key>
+<string>{176,355}</string>
+<key>spriteSourceSize</key>
+<string>{458,470}</string>
+<key>textureRect</key>
+<string>{{423,1},{176,355}}</string>
+<key>textureRotated</key>
+<false/>
+</dict>
+<key>普通攻击 (4)</key>
+<dict>
+<key>spriteOffset</key>
+<string>{12,23}</string>
+<key>spriteSize</key>
+<string>{172,352}</string>
+<key>spriteSourceSize</key>
+<string>{458,470}</string>
+<key>textureRect</key>
+<string>{{1,357},{172,352}}</string>
+<key>textureRotated</key>
+<false/>
+</dict>
+<key>普通攻击 (6)</key>
+<dict>
+<key>spriteOffset</key>
+<string>{-32,21}</string>
+<key>spriteSize</key>
+<string>{252,347}</string>
+<key>spriteSourceSize</key>
+<string>{458,470}</string>
+<key>textureRect</key>
+<string>{{174,357},{252,347}}</string>
+<key>textureRotated</key>
+<false/>
+</dict>
+<key>普通攻击 (5)</key>
+<dict>
+<key>spriteOffset</key>
+<string>{-25,21}</string>
+<key>spriteSize</key>
+<string>{239,347}</string>
+<key>spriteSourceSize</key>
+<string>{458,470}</string>
+<key>textureRect</key>
+<string>{{427,357},{239,347}}</string>
+<key>textureRotated</key>
+<false/>
+</dict>
+</dict>
+<key>metadata</key>
+<dict>
+<key>format</key>
+<integer>3</integer>
+<key>pixelFormat</key>
+<string>RGBA8888</string>
+<key>premultiplyAlpha</key>
+<false/>
+<key>realTextureFileName</key>
+<string>root.png</string>
+<key>textureFileName</key>
+<string>root.png</string>
+<key>size</key>
+<string>{710,710}</string>
+</dict>
+</dict>
+</plist>
