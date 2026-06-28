@@ -22708,7 +22708,12 @@
       "__uuid__": "1b8858e9-60b2-491f-930b-5b3c935bf2d8",
       "__expectedType__": "cc.Prefab"
     },
-    "spawnInterval": 2,
+    "nurseZombiePrefab": {
+      "__uuid__": "41bf9447-2862-437e-b2d6-a8d79941162d",
+      "__expectedType__": "cc.Prefab"
+    },
+    "nurseZombieChance": 0.5,
+    "spawnInterval": 1,
     "dayWanderInterval": 8,
     "maxDayWanderers": 5,
     "baseNode": {

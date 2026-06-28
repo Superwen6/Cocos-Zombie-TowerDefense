@@ -288,7 +288,7 @@
       "__id__": 13
     },
     "maxHp": 100,
-    "damage": 10,
+    "damage": 1,
     "moveSpeed": 120,
     "attackRange": 40,
     "alertRadius": 300,
@@ -348,7 +348,7 @@
         "__expectedType__": "cc.SpriteFrame"
       }
     ],
-    "attackFrameDuration": 0.1,
+    "attackFrameDuration": 0.15,
     "deathFrames": [
       {
         "__uuid__": "eff04226-6d79-4377-b375-8124ed374cb5@f9941",
@@ -397,13 +397,22 @@
     "__prefab": {
       "__id__": 15
     },
-    "woodPrefab": null,
-    "copperPrefab": null,
-    "ironPrefab": null,
+    "woodPrefab": {
+      "__uuid__": "8f7cea54-ad1c-4f9a-9595-4ce3ce2c5ea9",
+      "__expectedType__": "cc.Prefab"
+    },
+    "copperPrefab": {
+      "__uuid__": "fb5b0fa0-9d1d-486d-baa1-172913277145",
+      "__expectedType__": "cc.Prefab"
+    },
+    "ironPrefab": {
+      "__uuid__": "a506f69e-3fa0-4188-bb67-daad8cb6a48e",
+      "__expectedType__": "cc.Prefab"
+    },
     "woodDropChance": 0.08,
     "copperDropChance": 0.04,
     "ironDropChance": 0.02,
-    "moneyDropChance": 0.3,
+    "moneyDropChance": 0.8,
     "moneyAmount": 10,
     "_id": ""
   },

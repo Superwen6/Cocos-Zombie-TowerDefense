@@ -27,8 +27,14 @@ export class EnemyManager extends Component {
     @property({ type: Prefab, tooltip: '护士僵尸预制体' })
     nurseZombiePrefab: Prefab | null = null;
 
+    @property({ type: Prefab, tooltip: '胖子僵尸预制体' })
+    fatZombiePrefab: Prefab | null = null;
+
     @property({ tooltip: '护士僵尸刷出概率（0~1）' })
     nurseZombieChance = 0.25;
+
+    @property({ tooltip: '胖子僵尸刷出概率（0~1）' })
+    fatZombieChance = 0.20;
 
     @property({ tooltip: '黑夜持续刷怪间隔（秒）' })
     spawnInterval = 2;
@@ -130,11 +136,24 @@ export class EnemyManager extends Component {
 
     /** 根据权重随机选取一个僵尸预制体 */
     private pickZombiePrefab(): Prefab | null {
-        if (!this.nurseZombiePrefab) return this.enemyPrefab;
-        if (!this.enemyPrefab) return this.nurseZombiePrefab;
-        return Math.random() < this.nurseZombieChance
-            ? this.nurseZombiePrefab
-            : this.enemyPrefab;
+        const hasFat = !!this.fatZombiePrefab;
+        const hasNurse = !!this.nurseZombiePrefab;
+        const hasNormal = !!this.enemyPrefab;
+
+        // 只有一个可用时直接返回
+        const count = [hasFat, hasNurse, hasNormal].filter(Boolean).length;
+        if (count === 0) return null;
+        if (count === 1) {
+            return this.fatZombiePrefab || this.nurseZombiePrefab || this.enemyPrefab;
+        }
+
+        const rand = Math.random();
+        // 胖子僵尸：fatZombieChance（默认 20%）
+        if (hasFat && rand < this.fatZombieChance) return this.fatZombiePrefab;
+        // 护士僵尸：nurseZombieChance（默认 25%）
+        if (hasNurse && rand < this.fatZombieChance + this.nurseZombieChance) return this.nurseZombiePrefab;
+        // 其余为普通僵尸
+        return this.enemyPrefab || this.nurseZombiePrefab || this.fatZombiePrefab;
     }
 
     /** 黑夜：在屏幕边缘生成攻击型僵尸 */

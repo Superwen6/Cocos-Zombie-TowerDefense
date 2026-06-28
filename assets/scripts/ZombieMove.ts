@@ -10,7 +10,6 @@ const { ccclass, property } = _decorator;
 const ALERT_RADIUS = 300;
 /** 拉扯距离：玩家超出此范围会放弃追击 */
 const LEASH_RADIUS = 350;
-/** 攻击冷却时间（秒） */
 const ATTACK_COOLDOWN = 1.5;
 /** 玩家记忆：失去视线后继续追击的时长（秒） */
 const MEMORY_DURATION = 3.0;
@@ -316,6 +315,7 @@ export class ZombieMove extends Component {
             const distToPlayerNow = Vec3.distance(this.node.worldPosition, playerNode.worldPosition);
             if (distToPlayerNow <= this.attackRange + 5 && this._attackCooldown <= 0) {
                 this._aiState = 'ATTACK_PLAYER';
+                this._attackCooldown = 0.3;
             } else {
                 this._aiState = 'CHASE_PLAYER';
             }
@@ -360,12 +360,14 @@ export class ZombieMove extends Component {
             const dist = Vec3.distance(this.node.worldPosition, targetPos);
             if (dist <= this.attackRange + 5 && this._attackCooldown <= 0) {
                 this._aiState = 'ATTACK_BASE';
+                this._attackCooldown = 0.3;
             }
         } else if (this._aiState === 'CHASE_PLAYER') {
             const targetPos = this.getEffectiveTargetPos(this._tempPos);
             const dist = Vec3.distance(this.node.worldPosition, targetPos);
             if (dist <= this.attackRange + 5 && this._attackCooldown <= 0) {
                 this._aiState = 'ATTACK_PLAYER';
+                this._attackCooldown = 0.3;
             }
         }
     }
@@ -375,13 +377,9 @@ export class ZombieMove extends Component {
         if (this._aiState === 'DEAD') return;
 
         if (this._aiState === 'ATTACK_BASE' || this._aiState === 'ATTACK_PLAYER') {
-            // 攻击状态：停止移动，执行攻击
+            // 攻击状态：停止移动，仅播放攻击动画（实际攻击由动画周期触发）
             const target = this.getTargetNode();
             if (target) {
-                if (this._attackCooldown <= 0) {
-                    this.performAttack(target);
-                    this._attackCooldown = ATTACK_COOLDOWN;
-                }
                 this.playAttackAnimation(target);
             }
             return;
@@ -396,8 +394,10 @@ export class ZombieMove extends Component {
         if (dist <= this.attackRange && this._attackCooldown <= 0) {
             if (this._aiState === 'CHASE_BASE') {
                 this._aiState = 'ATTACK_BASE';
+                this._attackCooldown = 0.3;
             } else if (this._aiState === 'CHASE_PLAYER' || this._aiState === 'MEMORY_TRACK') {
                 this._aiState = 'ATTACK_PLAYER';
+                this._attackCooldown = 0.3;
             }
             return;
         }
@@ -782,9 +782,19 @@ export class ZombieMove extends Component {
             this._animFrameTimer = 0;
             this._animFrameIndex++;
             if (this._animFrameIndex >= this.attackFrames.length) {
-                this._animFrameIndex = 0; // 循环播放
+                this._animFrameIndex = 0;
+                // 动画循环一圈，执行一次攻击
+                this.tryAttackCurrentTarget();
             }
             this.bodySprite.spriteFrame = this.attackFrames[this._animFrameIndex];
+        }
+    }
+
+    /** 对当前目标执行一次攻击（由动画循环触发） */
+    private tryAttackCurrentTarget() {
+        const target = this.getTargetNode();
+        if (target) {
+            this.performAttack(target);
         }
     }
 
