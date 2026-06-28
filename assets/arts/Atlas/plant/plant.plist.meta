@@ -1,0 +1,247 @@
+{
+  "ver": "1.0.8",
+  "importer": "sprite-atlas",
+  "imported": true,
+  "uuid": "87bb4c4b-46ea-41fe-8dea-17b2fabf7174",
+  "files": [
+    ".json"
+  ],
+  "subMetas": {
+    "73248": {
+      "importer": "sprite-frame",
+      "uuid": "87bb4c4b-46ea-41fe-8dea-17b2fabf7174@73248",
+      "displayName": "",
+      "id": "73248",
+      "name": "光伏电站",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -6,
+        "offsetY": -11,
+        "trimX": 2158,
+        "trimY": 1,
+        "width": 1071,
+        "height": 1567,
+        "rawWidth": 1310,
+        "rawHeight": 1827,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "06777b21-6b5f-44f3-98df-027bd00db5c9@6c48a",
+        "atlasUuid": "87bb4c4b-46ea-41fe-8dea-17b2fabf7174",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "75172": {
+      "importer": "sprite-frame",
+      "uuid": "87bb4c4b-46ea-41fe-8dea-17b2fabf7174@75172",
+      "displayName": "",
+      "id": "75172",
+      "name": "光伏矩阵",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -8,
+        "offsetY": -41,
+        "trimX": 1,
+        "trimY": 1,
+        "width": 2156,
+        "height": 3141,
+        "rawWidth": 2387,
+        "rawHeight": 3340,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "06777b21-6b5f-44f3-98df-027bd00db5c9@6c48a",
+        "atlasUuid": "87bb4c4b-46ea-41fe-8dea-17b2fabf7174",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "9193e": {
+      "importer": "sprite-frame",
+      "uuid": "87bb4c4b-46ea-41fe-8dea-17b2fabf7174@9193e",
+      "displayName": "",
+      "id": "9193e",
+      "name": "柴油电机",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": 4,
+        "offsetY": 27,
+        "trimX": 2158,
+        "trimY": 1569,
+        "width": 1279,
+        "height": 1482,
+        "rawWidth": 1369,
+        "rawHeight": 1620,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "06777b21-6b5f-44f3-98df-027bd00db5c9@6c48a",
+        "atlasUuid": "87bb4c4b-46ea-41fe-8dea-17b2fabf7174",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "219ef": {
+      "importer": "sprite-frame",
+      "uuid": "87bb4c4b-46ea-41fe-8dea-17b2fabf7174@219ef",
+      "displayName": "",
+      "id": "219ef",
+      "name": "能源核心",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -7,
+        "offsetY": -19,
+        "trimX": 2158,
+        "trimY": 3052,
+        "width": 1405,
+        "height": 1281,
+        "rawWidth": 1496,
+        "rawHeight": 1429,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "06777b21-6b5f-44f3-98df-027bd00db5c9@6c48a",
+        "atlasUuid": "87bb4c4b-46ea-41fe-8dea-17b2fabf7174",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "9f82f": {
+      "importer": "sprite-frame",
+      "uuid": "87bb4c4b-46ea-41fe-8dea-17b2fabf7174@9f82f",
+      "displayName": "",
+      "id": "9f82f",
+      "name": "集装箱",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -2,
+        "offsetY": 0,
+        "trimX": 3230,
+        "trimY": 1,
+        "width": 161,
+        "height": 262,
+        "rawWidth": 221,
+        "rawHeight": 305,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "06777b21-6b5f-44f3-98df-027bd00db5c9@6c48a",
+        "atlasUuid": "87bb4c4b-46ea-41fe-8dea-17b2fabf7174",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "atlasTextureName": "plant.png",
+    "format": 3,
+    "uuid": "87bb4c4b-46ea-41fe-8dea-17b2fabf7174",
+    "textureUuid": "06777b21-6b5f-44f3-98df-027bd00db5c9@6c48a"
+  }
+}
