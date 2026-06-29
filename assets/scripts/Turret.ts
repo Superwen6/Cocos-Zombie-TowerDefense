@@ -315,7 +315,7 @@ export class Turret extends Component {
 
         const bullet = bulletNode.getComponent(Bullet);
         if (bullet) {
-            bullet.init(target.node, this.damage);
+            bullet.init(target.node, this.damage, this.node);
         } else {
             warn('[Turret] 子弹预制体上未找到 Bullet 组件');
             bulletNode.destroy();

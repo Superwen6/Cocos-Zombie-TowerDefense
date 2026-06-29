@@ -22742,9 +22742,14 @@
     },
     "nurseZombieChance": 0.3,
     "fatZombieChance": 0.3,
-    "spawnInterval": 1,
-    "dayWanderInterval": 8,
+    "spawnInterval": 0.1,
+    "dayWanderInterval": 3,
     "maxDayWanderers": 5,
+    "minEnemyNumber": 20,
+    "maxEnemyNumber": 100,
+    "maxEnemyDay": 30,
+    "maxHpMultiplier": 3,
+    "hpCurveExponent": 2,
     "baseNode": {
       "__id__": 6
     },

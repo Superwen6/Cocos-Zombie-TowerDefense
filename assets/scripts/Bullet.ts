@@ -16,6 +16,7 @@ export class Bullet extends Component {
 
     private _targetZombie: ZombieMove | null = null;
     private _targetNode: Node | null = null;
+    private _attackerNode: Node | null = null;
     private _damage = 0;
     private _lifetime = 0;
     private readonly _hitZombies = new Set<ZombieMove>();
@@ -41,9 +42,10 @@ export class Bullet extends Component {
         }
     }
 
-    init(targetNode: Node, damage: number) {
+    init(targetNode: Node, damage: number, attackerNode?: Node) {
         this._targetNode = targetNode;
         this._targetZombie = targetNode.getComponent(ZombieMove);
+        this._attackerNode = attackerNode ?? null;
         this._damage = damage;
         this._lifetime = 0;
         this._hitZombies.clear();
@@ -118,14 +120,14 @@ export class Bullet extends Component {
             const d = Vec3.distance(this.node.worldPosition, this._zombiePos);
             if (d < HIT_RADIUS) {
                 this._hitZombies.add(zombie);
-                zombie.takeDamage(this._damage);
+                zombie.takeDamage(this._damage, this._attackerNode ?? undefined);
             }
         }
     }
 
     private dealDamageToTarget() {
         if (this._targetZombie?.isValid && !this._targetZombie.isDead) {
-            this._targetZombie.takeDamage(this._damage);
+            this._targetZombie.takeDamage(this._damage, this._attackerNode ?? undefined);
         }
     }
 
