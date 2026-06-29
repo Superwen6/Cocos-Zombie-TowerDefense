@@ -1,4 +1,4 @@
-import { _decorator, CCFloat, CCInteger, Component, Node, randomRange, Sprite, SpriteFrame, Vec3, warn } from 'cc';
+import { _decorator, CCFloat, CCInteger, Component, Node, randomRange, Sprite, SpriteFrame, Vec3, warn, log } from 'cc';
 import { BaseSystem } from './BaseSystem';
 import { PlayerData } from './PlayerData';
 import { PlayerState } from './PlayerState';
@@ -134,6 +134,9 @@ export class ZombieMove extends Component {
     /** 首次攻击僵尸的炮塔（锁定后忽略其他炮塔攻击，防止多炮塔来回折返） */
     private _hatedTurret: Node | null = null;
 
+    /** 是否被玩家主动攻击过（true=玩家嘲讽霸体，无视炮塔；false=仅视觉发现，可被炮塔打断） */
+    private _playerTaunted = false;
+
     // 白天游荡索敌计时器
     private _wanderScanTimer = 0;
 
@@ -198,6 +201,7 @@ export class ZombieMove extends Component {
         this.syncHpFromMaxHp();
         this._buildingTarget = null;
         this._hatedTurret = null;
+        this._playerTaunted = false;
         this._wanderScanTimer = 0;
         this._memoryTimer = 0;
         this._hasWanderTarget = false;
@@ -267,6 +271,7 @@ export class ZombieMove extends Component {
     private returnToDefaultTarget() {
         this._hatedTurret = null;
         this._buildingTarget = null;
+        this._playerTaunted = false;
         this._memoryTimer = 0;
         if (this.isDayWanderer) {
             this._aiState = 'WANDER';
@@ -288,8 +293,8 @@ export class ZombieMove extends Component {
         const turretNode = this.getTurretOwner(attackerNode);
 
         if (turretNode) {
-            // 玩家嘲讽霸体：处于追击/攻击玩家状态时，绝对无视炮塔攻击
-            if (this._aiState === 'CHASE_PLAYER' || this._aiState === 'ATTACK_PLAYER') {
+            // 玩家嘲讽霸体：仅被玩家主动攻击过后才无视炮塔（视觉发现玩家不可免疫）
+            if (this._playerTaunted) {
                 // 无视炮塔
             }
             // 已锁定某座炮塔 → 忽略其他炮塔的攻击，防止多炮塔来回折返
@@ -304,10 +309,11 @@ export class ZombieMove extends Component {
                 this._memoryTimer = 0;
             }
         } else {
-            // 玩家攻击（最高优先级）：立即清空炮塔仇恨，死磕玩家
+            // 玩家攻击（最高优先级）：立即清空炮塔仇恨，标记嘲讽霸体，死磕玩家
             const playerNode = this.getPlayerNode();
             if (playerNode && this.isPlayerAlive()) {
                 this._hatedTurret = null;
+                this._playerTaunted = true;
                 this._lastKnownPlayerPos.set(playerNode.worldPosition);
                 this._memoryTimer = MEMORY_DURATION;
                 this._aiState = 'CHASE_PLAYER';
@@ -339,8 +345,10 @@ export class ZombieMove extends Component {
         const selfPos = this.node.worldPosition;
         let nearest: Node | null = null;
         let nearestDist = this.alertRadius;
+        let foundCount = 0;
 
         this.findNonDefensiveBuildings(this.node.scene ?? this.node, (node) => {
+            foundCount++;
             const d = Vec3.distance(selfPos, node.worldPosition);
             if (d < nearestDist) {
                 const lineClear = CollisionWorld.instance?.isLineOfSightClear(
@@ -354,9 +362,12 @@ export class ZombieMove extends Component {
         });
 
         if (nearest) {
+            log(`[ZombieMove][scanForBuildings] 游荡僵尸找到目标: ${nearest.name}, distance=${nearestDist.toFixed(1)}`);
             this._buildingTarget = nearest;
             this._aiState = 'CHASE_BUILDING';
             this._memoryTimer = 0;
+        } else {
+            log(`[ZombieMove][scanForBuildings] 游荡僵尸未找到可攻击目标，found=${foundCount}`);
         }
     }
 
@@ -540,12 +551,13 @@ export class ZombieMove extends Component {
             return;
         }
 
-        // ===== 夜间僵尸：看到玩家就追击 =====
+        // ===== 夜间僵尸：看到玩家就追击（视觉发现，非玩家攻击，优先级低于炮塔） =====
         if (lineClear && distToPlayer <= this.alertRadius) {
             this._lastKnownPlayerPos.set(playerNode.worldPosition);
             this._memoryTimer = MEMORY_DURATION;
             this._buildingTarget = null;
             this._hatedTurret = null;
+            this._playerTaunted = false;  // 视觉发现 ≠ 玩家攻击嘲讽
 
             if (distToPlayer <= this.attackRange + 5 && this._attackCooldown <= 0) {
                 this._aiState = 'ATTACK_PLAYER';
@@ -881,6 +893,7 @@ export class ZombieMove extends Component {
         this._hasWanderTarget = false;
         this._buildingTarget = null;
         this._hatedTurret = null;
+        this._playerTaunted = false;
 
         if (this._collider) {
             CollisionWorld.instance?.unregister(this._collider);
