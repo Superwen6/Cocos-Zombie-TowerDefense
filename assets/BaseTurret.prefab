@@ -1005,7 +1005,7 @@
     "muzzleNode": {
       "__id__": 14
     },
-    "muzzleOffset": 40,
+    "muzzleOffset": 20,
     "barrelDefaultAngle": -90,
     "rotationSpeed": 50,
     "colliderHalfW": 30,
