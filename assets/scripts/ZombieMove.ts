@@ -330,12 +330,19 @@ export class ZombieMove extends Component {
         }
     }
 
-    /** 递归查找场景中所有可攻击建筑：炮塔、发电机、集装箱、基地 */
+    /** 递归查找场景中所有已建成的可攻击建筑：炮塔、发电机、集装箱、基地 */
     private findTargetableBuildings(root: Node, callback: (node: Node) => void) {
-        // 检查当前节点是否为可攻击建筑
-        if (root.getComponent('Turret')
-            || root.getComponent('PlantGenerator')
-            || root.getComponent('Container')) {
+        // 只扫描已建成的建筑
+        const turret = root.getComponent('Turret') as any;
+        if (turret && turret.enabled) {
+            callback(root);
+        }
+        const plant = root.getComponent('PlantGenerator') as any;
+        if (plant && plant.isPlaced) {
+            callback(root);
+        }
+        const container = root.getComponent('Container') as any;
+        if (container && container.enabled) {
             callback(root);
         }
         // 基地节点
@@ -429,8 +436,8 @@ export class ZombieMove extends Component {
                 this._buildingTarget = null;
                 return;
             }
-            const turretPos = this._buildingTarget.worldPosition;
-            if (Vec3.distance(selfPos, turretPos) > this.attackRange + 5) {
+            const turretDist = Vec3.distance(selfPos, this.getEffectiveTargetPos(this._tempPos));
+            if (turretDist > this.attackRange + 5) {
                 this._aiState = 'CHASE_TURRET';
                 return;
             }
@@ -443,8 +450,8 @@ export class ZombieMove extends Component {
                 this._buildingTarget = null;
                 return;
             }
-            const turretPos = this._buildingTarget.worldPosition;
-            if (Vec3.distance(selfPos, turretPos) <= this.attackRange + 5 && this._attackCooldown <= 0) {
+            const turretDist = Vec3.distance(selfPos, this.getEffectiveTargetPos(this._tempPos));
+            if (turretDist <= this.attackRange + 5 && this._attackCooldown <= 0) {
                 this._aiState = 'ATTACK_TURRET';
                 this._attackCooldown = 0.3;
                 return;
@@ -460,8 +467,8 @@ export class ZombieMove extends Component {
                 this._buildingTarget = null;
                 return;
             }
-            const bPos = this._buildingTarget.worldPosition;
-            if (Vec3.distance(selfPos, bPos) > this.attackRange + 5) {
+            const bDist = Vec3.distance(selfPos, this.getEffectiveTargetPos(this._tempPos));
+            if (bDist > this.attackRange + 5) {
                 this._aiState = 'CHASE_BUILDING';
                 return;
             }
@@ -475,8 +482,8 @@ export class ZombieMove extends Component {
                 this._buildingTarget = null;
                 return;
             }
-            const bPos = this._buildingTarget.worldPosition;
-            if (Vec3.distance(selfPos, bPos) <= this.attackRange + 5 && this._attackCooldown <= 0) {
+            const bDist = Vec3.distance(selfPos, this.getEffectiveTargetPos(this._tempPos));
+            if (bDist <= this.attackRange + 5 && this._attackCooldown <= 0) {
                 this._aiState = 'ATTACK_BUILDING';
                 this._attackCooldown = 0.3;
                 return;
@@ -726,6 +733,26 @@ export class ZombieMove extends Component {
         return this.getPlayerNode();
     }
 
+    /** 计算建筑节点 rect 最近点（用于绕过碰撞体判断攻击距离） */
+    private getClosestPointOnBuildingRect(node: Node, out: Vec3): Vec3 {
+        const selfPos = this.node.worldPosition;
+        const targetPos = node.worldPosition;
+        const uiTransform = node.getComponent('UITransform') as any;
+        const halfW = uiTransform ? uiTransform.width * 0.5 : 20;
+        const halfH = uiTransform ? uiTransform.height * 0.5 : 20;
+
+        const left = targetPos.x - halfW;
+        const right = targetPos.x + halfW;
+        const bottom = targetPos.y - halfH;
+        const top = targetPos.y + halfH;
+
+        const closestX = Math.max(left, Math.min(selfPos.x, right));
+        const closestY = Math.max(bottom, Math.min(selfPos.y, top));
+
+        out.set(closestX, closestY, 0);
+        return out;
+    }
+
     private getEffectiveTargetPos(out: Vec3): Vec3 {
         if (this._aiState === 'CHASE_BASE' || this._aiState === 'ATTACK_BASE') {
             return this.getClosestPointOnBaseRect(out);
@@ -733,8 +760,9 @@ export class ZombieMove extends Component {
         if (this._aiState === 'CHASE_TURRET' || this._aiState === 'ATTACK_TURRET'
             || this._aiState === 'CHASE_BUILDING' || this._aiState === 'ATTACK_BUILDING') {
             if (this._buildingTarget && this._buildingTarget.isValid) {
-                out.set(this._buildingTarget.worldPosition);
-            } else if (this._baseNode) {
+                return this.getClosestPointOnBuildingRect(this._buildingTarget, out);
+            }
+            if (this._baseNode) {
                 out.set(this._baseNode.worldPosition);
             }
             return out;

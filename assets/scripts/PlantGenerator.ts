@@ -107,6 +107,7 @@ export class PlantGenerator extends Component {
     onDestroy() {
         if (this._isPlaced) {
             PlantGenerator.placedMap.delete(this.plantId);
+            PlantGenerator.invokePlacedCallbacks();
         }
     }
 
