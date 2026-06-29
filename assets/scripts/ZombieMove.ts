@@ -132,7 +132,7 @@ export class ZombieMove extends Component {
     private _buildingTarget: Node | null = null;
 
     /** 首次攻击僵尸的炮塔（锁定后忽略其他炮塔攻击，防止多炮塔来回折返） */
-    private _turretTarget: Node | null = null;
+    private _hatedTurret: Node | null = null;
 
     // 白天游荡索敌计时器
     private _wanderScanTimer = 0;
@@ -197,7 +197,7 @@ export class ZombieMove extends Component {
         this.isDayWanderer = asDayWanderer;
         this.syncHpFromMaxHp();
         this._buildingTarget = null;
-        this._turretTarget = null;
+        this._hatedTurret = null;
         this._wanderScanTimer = 0;
         this._memoryTimer = 0;
         this._hasWanderTarget = false;
@@ -263,6 +263,19 @@ export class ZombieMove extends Component {
 
     // ========== 受击系统 ==========
 
+    /** 回到预定目标：游荡僵尸→WANDER（会自动扫建筑），夜间僵尸→CHASE_BASE */
+    private returnToDefaultTarget() {
+        this._hatedTurret = null;
+        this._buildingTarget = null;
+        this._memoryTimer = 0;
+        if (this.isDayWanderer) {
+            this._aiState = 'WANDER';
+            this.pickNewWanderTarget();
+        } else {
+            this._aiState = 'CHASE_BASE';
+        }
+    }
+
     takeDamage(amount: number, attackerNode?: Node) {
         if (this.isDead || this.hp <= 0 || amount <= 0) {
             return;
@@ -275,22 +288,26 @@ export class ZombieMove extends Component {
         const turretNode = this.getTurretOwner(attackerNode);
 
         if (turretNode) {
+            // 玩家嘲讽霸体：处于追击/攻击玩家状态时，绝对无视炮塔攻击
+            if (this._aiState === 'CHASE_PLAYER' || this._aiState === 'ATTACK_PLAYER') {
+                // 无视炮塔
+            }
             // 已锁定某座炮塔 → 忽略其他炮塔的攻击，防止多炮塔来回折返
-            if (this._turretTarget && this._turretTarget.isValid && turretNode !== this._turretTarget) {
+            else if (this._hatedTurret && this._hatedTurret.isValid && turretNode !== this._hatedTurret) {
                 // 忽略其他炮塔，死磕当前目标
             }
             // 首次被炮塔攻击，或之前锁定的炮塔已销毁 → 锁定新炮塔
             else {
-                this._turretTarget = turretNode;
+                this._hatedTurret = turretNode;
                 this._buildingTarget = turretNode;
                 this._aiState = 'CHASE_TURRET';
                 this._memoryTimer = 0;
             }
         } else {
-            // 玩家攻击（或未知来源/近战）：死磕玩家模式，清除炮塔锁定
+            // 玩家攻击（最高优先级）：立即清空炮塔仇恨，死磕玩家
             const playerNode = this.getPlayerNode();
             if (playerNode && this.isPlayerAlive()) {
-                this._turretTarget = null;
+                this._hatedTurret = null;
                 this._lastKnownPlayerPos.set(playerNode.worldPosition);
                 this._memoryTimer = MEMORY_DURATION;
                 this._aiState = 'CHASE_PLAYER';
@@ -317,13 +334,13 @@ export class ZombieMove extends Component {
 
     // ========== 白天游荡索敌 ==========
 
-    /** 白天游荡者：扫描范围内最近的建筑，锁定并追击 */
+    /** 白天游荡者：扫描范围内最近的非防御性建筑（发电机/集装箱），锁定并追击 */
     private scanForBuildings() {
         const selfPos = this.node.worldPosition;
         let nearest: Node | null = null;
         let nearestDist = this.alertRadius;
 
-        this.findTargetableBuildings(this.node.scene ?? this.node, (node) => {
+        this.findNonDefensiveBuildings(this.node.scene ?? this.node, (node) => {
             const d = Vec3.distance(selfPos, node.worldPosition);
             if (d < nearestDist) {
                 const lineClear = CollisionWorld.instance?.isLineOfSightClear(
@@ -340,6 +357,21 @@ export class ZombieMove extends Component {
             this._buildingTarget = nearest;
             this._aiState = 'CHASE_BUILDING';
             this._memoryTimer = 0;
+        }
+    }
+
+    /** 递归查找场景中已建成的非防御性建筑：发电机、集装箱（游荡僵尸预定目标） */
+    private findNonDefensiveBuildings(root: Node, callback: (node: Node) => void) {
+        const plant = root.getComponent(PlantGenerator);
+        if (plant && plant.isPlaced) {
+            callback(root);
+        }
+        const container = root.getComponent(Container);
+        if (container && container.enabled) {
+            callback(root);
+        }
+        for (const child of root.children) {
+            this.findNonDefensiveBuildings(child, callback);
         }
     }
 
@@ -380,10 +412,7 @@ export class ZombieMove extends Component {
             if (this._aiState !== 'CHASE_BASE' && this._aiState !== 'ATTACK_BASE'
                 && this._aiState !== 'WANDER' && this._aiState !== 'CHASE_BUILDING'
                 && this._aiState !== 'ATTACK_BUILDING') {
-                this._aiState = this.isDayWanderer ? 'WANDER' : 'CHASE_BASE';
-                this._memoryTimer = 0;
-                this._buildingTarget = null;
-                this._turretTarget = null;
+                this.returnToDefaultTarget();
             }
             return;
         }
@@ -395,12 +424,9 @@ export class ZombieMove extends Component {
 
         // ===== 死磕玩家状态：LEASH_RADIUS 退出 =====
         if (this._aiState === 'CHASE_PLAYER' || this._aiState === 'ATTACK_PLAYER') {
-            // 玩家超出拉扯范围 → 放弃追击
+            // 玩家超出拉扯范围 → 放弃追击，回到预定目标
             if (distToPlayer > LEASH_RADIUS) {
-                this._aiState = this.isDayWanderer ? 'WANDER' : 'CHASE_BASE';
-                this._memoryTimer = 0;
-                this._buildingTarget = null;
-                this._turretTarget = null;
+                this.returnToDefaultTarget();
                 return;
             }
 
@@ -436,10 +462,7 @@ export class ZombieMove extends Component {
         // ===== MEMORY_TRACK =====
         if (this._aiState === 'MEMORY_TRACK') {
             if (distToPlayer > LEASH_RADIUS || this._memoryTimer <= 0) {
-                this._aiState = this.isDayWanderer ? 'WANDER' : 'CHASE_BASE';
-                this._memoryTimer = 0;
-                this._buildingTarget = null;
-                this._turretTarget = null;
+                this.returnToDefaultTarget();
                 return;
             }
             if (lineClear && distToPlayer <= this.alertRadius) {
@@ -453,9 +476,7 @@ export class ZombieMove extends Component {
         // ===== 炮塔仇恨状态 =====
         if (this._aiState === 'ATTACK_TURRET') {
             if (!this._buildingTarget || !this._buildingTarget.isValid) {
-                this._aiState = this.isDayWanderer ? 'WANDER' : 'CHASE_BASE';
-                this._buildingTarget = null;
-                this._turretTarget = null;
+                this.returnToDefaultTarget();
                 return;
             }
             const turretDist = Vec3.distance(selfPos, this.getEffectiveTargetPos(this._tempPos));
@@ -468,9 +489,7 @@ export class ZombieMove extends Component {
         }
         if (this._aiState === 'CHASE_TURRET') {
             if (!this._buildingTarget || !this._buildingTarget.isValid) {
-                this._aiState = this.isDayWanderer ? 'WANDER' : 'CHASE_BASE';
-                this._buildingTarget = null;
-                this._turretTarget = null;
+                this.returnToDefaultTarget();
                 return;
             }
             const turretDist = Vec3.distance(selfPos, this.getEffectiveTargetPos(this._tempPos));
@@ -485,9 +504,7 @@ export class ZombieMove extends Component {
         // ===== 建筑攻击状态（白天游荡索敌） =====
         if (this._aiState === 'ATTACK_BUILDING') {
             if (!this._buildingTarget || !this._buildingTarget.isValid) {
-                this._aiState = 'WANDER';
-                this._hasWanderTarget = false;
-                this._buildingTarget = null;
+                this.returnToDefaultTarget();
                 return;
             }
             const bDist = Vec3.distance(selfPos, this.getEffectiveTargetPos(this._tempPos));
@@ -500,9 +517,7 @@ export class ZombieMove extends Component {
         }
         if (this._aiState === 'CHASE_BUILDING') {
             if (!this._buildingTarget || !this._buildingTarget.isValid) {
-                this._aiState = 'WANDER';
-                this._hasWanderTarget = false;
-                this._buildingTarget = null;
+                this.returnToDefaultTarget();
                 return;
             }
             const bDist = Vec3.distance(selfPos, this.getEffectiveTargetPos(this._tempPos));
@@ -530,7 +545,7 @@ export class ZombieMove extends Component {
             this._lastKnownPlayerPos.set(playerNode.worldPosition);
             this._memoryTimer = MEMORY_DURATION;
             this._buildingTarget = null;
-            this._turretTarget = null;
+            this._hatedTurret = null;
 
             if (distToPlayer <= this.attackRange + 5 && this._attackCooldown <= 0) {
                 this._aiState = 'ATTACK_PLAYER';
@@ -865,7 +880,7 @@ export class ZombieMove extends Component {
         this._memoryTimer = 0;
         this._hasWanderTarget = false;
         this._buildingTarget = null;
-        this._turretTarget = null;
+        this._hatedTurret = null;
 
         if (this._collider) {
             CollisionWorld.instance?.unregister(this._collider);
