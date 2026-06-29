@@ -275,15 +275,11 @@ export class ZombieMove extends Component {
         const turretNode = this.getTurretOwner(attackerNode);
 
         if (turretNode) {
-            // 玩家攻击具有最高优先级，已追击玩家时不响应炮塔
-            if (this._aiState === 'CHASE_PLAYER' || this._aiState === 'ATTACK_PLAYER') {
-                // 不响应炮塔攻击
-            }
             // 已锁定某座炮塔 → 忽略其他炮塔的攻击，防止多炮塔来回折返
-            else if (this._turretTarget && this._turretTarget.isValid && turretNode !== this._turretTarget) {
+            if (this._turretTarget && this._turretTarget.isValid && turretNode !== this._turretTarget) {
                 // 忽略其他炮塔，死磕当前目标
             }
-            // 首次被炮塔攻击，或之前锁定的炮塔已销毁
+            // 首次被炮塔攻击，或之前锁定的炮塔已销毁 → 锁定新炮塔
             else {
                 this._turretTarget = turretNode;
                 this._buildingTarget = turretNode;
@@ -422,6 +418,11 @@ export class ZombieMove extends Component {
                 this._aiState = 'ATTACK_PLAYER';
                 this._attackCooldown = 0.3;
                 return;
+            }
+
+            // 玩家可见时持续刷新记忆计时器，防止计时器归零后隔墙追击
+            if (lineClear) {
+                this._memoryTimer = MEMORY_DURATION;
             }
 
             // 失去视线 → 记忆追踪
