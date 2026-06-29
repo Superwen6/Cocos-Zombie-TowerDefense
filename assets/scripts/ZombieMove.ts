@@ -3,6 +3,9 @@ import { BaseSystem } from './BaseSystem';
 import { PlayerData } from './PlayerData';
 import { PlayerState } from './PlayerState';
 import { CollisionWorld, Collider2D, ColliderGroup } from './CollisionWorld';
+import { PlantGenerator } from './PlantGenerator';
+import { Container } from './Container';
+import { Turret } from './Turret';
 
 const { ccclass, property } = _decorator;
 
@@ -333,15 +336,15 @@ export class ZombieMove extends Component {
     /** 递归查找场景中所有已建成的可攻击建筑：炮塔、发电机、集装箱、基地 */
     private findTargetableBuildings(root: Node, callback: (node: Node) => void) {
         // 只扫描已建成的建筑
-        const turret = root.getComponent('Turret') as any;
+        const turret = root.getComponent(Turret);
         if (turret && turret.enabled) {
             callback(root);
         }
-        const plant = root.getComponent('PlantGenerator') as any;
+        const plant = root.getComponent(PlantGenerator);
         if (plant && plant.isPlaced) {
             callback(root);
         }
-        const container = root.getComponent('Container') as any;
+        const container = root.getComponent(Container);
         if (container && container.enabled) {
             callback(root);
         }
@@ -1014,7 +1017,7 @@ export class ZombieMove extends Component {
 
         const newMirror = directionX > 0 ? -1 : 1;
 
-        if (this._aiState !== 'CHASE_BASE' && this._aiState !== 'CHASE_PLAYER'
+        if (this._aiState !== 'WANDER' && this._aiState !== 'CHASE_BASE' && this._aiState !== 'CHASE_PLAYER'
             && this._aiState !== 'MEMORY_TRACK' && this._aiState !== 'CHASE_TURRET'
             && this._aiState !== 'CHASE_BUILDING') {
             return;
