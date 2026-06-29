@@ -131,6 +131,9 @@ export class ZombieMove extends Component {
     // 建筑/炮塔目标
     private _buildingTarget: Node | null = null;
 
+    /** 首次攻击僵尸的炮塔（锁定后忽略其他炮塔攻击，防止多炮塔来回折返） */
+    private _turretTarget: Node | null = null;
+
     // 白天游荡索敌计时器
     private _wanderScanTimer = 0;
 
@@ -194,6 +197,7 @@ export class ZombieMove extends Component {
         this.isDayWanderer = asDayWanderer;
         this.syncHpFromMaxHp();
         this._buildingTarget = null;
+        this._turretTarget = null;
         this._wanderScanTimer = 0;
         this._memoryTimer = 0;
         this._hasWanderTarget = false;
@@ -271,16 +275,26 @@ export class ZombieMove extends Component {
         const turretNode = this.getTurretOwner(attackerNode);
 
         if (turretNode) {
-            // 炮塔攻击：仅在未追击玩家时切换为追击炮塔
-            if (this._aiState !== 'CHASE_PLAYER' && this._aiState !== 'ATTACK_PLAYER') {
+            // 玩家攻击具有最高优先级，已追击玩家时不响应炮塔
+            if (this._aiState === 'CHASE_PLAYER' || this._aiState === 'ATTACK_PLAYER') {
+                // 不响应炮塔攻击
+            }
+            // 已锁定某座炮塔 → 忽略其他炮塔的攻击，防止多炮塔来回折返
+            else if (this._turretTarget && this._turretTarget.isValid && turretNode !== this._turretTarget) {
+                // 忽略其他炮塔，死磕当前目标
+            }
+            // 首次被炮塔攻击，或之前锁定的炮塔已销毁
+            else {
+                this._turretTarget = turretNode;
                 this._buildingTarget = turretNode;
                 this._aiState = 'CHASE_TURRET';
                 this._memoryTimer = 0;
             }
         } else {
-            // 玩家攻击（或未知来源/近战）：死磕玩家模式
+            // 玩家攻击（或未知来源/近战）：死磕玩家模式，清除炮塔锁定
             const playerNode = this.getPlayerNode();
             if (playerNode && this.isPlayerAlive()) {
+                this._turretTarget = null;
                 this._lastKnownPlayerPos.set(playerNode.worldPosition);
                 this._memoryTimer = MEMORY_DURATION;
                 this._aiState = 'CHASE_PLAYER';
@@ -373,6 +387,7 @@ export class ZombieMove extends Component {
                 this._aiState = this.isDayWanderer ? 'WANDER' : 'CHASE_BASE';
                 this._memoryTimer = 0;
                 this._buildingTarget = null;
+                this._turretTarget = null;
             }
             return;
         }
@@ -389,6 +404,7 @@ export class ZombieMove extends Component {
                 this._aiState = this.isDayWanderer ? 'WANDER' : 'CHASE_BASE';
                 this._memoryTimer = 0;
                 this._buildingTarget = null;
+                this._turretTarget = null;
                 return;
             }
 
@@ -422,6 +438,7 @@ export class ZombieMove extends Component {
                 this._aiState = this.isDayWanderer ? 'WANDER' : 'CHASE_BASE';
                 this._memoryTimer = 0;
                 this._buildingTarget = null;
+                this._turretTarget = null;
                 return;
             }
             if (lineClear && distToPlayer <= this.alertRadius) {
@@ -437,6 +454,7 @@ export class ZombieMove extends Component {
             if (!this._buildingTarget || !this._buildingTarget.isValid) {
                 this._aiState = this.isDayWanderer ? 'WANDER' : 'CHASE_BASE';
                 this._buildingTarget = null;
+                this._turretTarget = null;
                 return;
             }
             const turretDist = Vec3.distance(selfPos, this.getEffectiveTargetPos(this._tempPos));
@@ -451,6 +469,7 @@ export class ZombieMove extends Component {
             if (!this._buildingTarget || !this._buildingTarget.isValid) {
                 this._aiState = this.isDayWanderer ? 'WANDER' : 'CHASE_BASE';
                 this._buildingTarget = null;
+                this._turretTarget = null;
                 return;
             }
             const turretDist = Vec3.distance(selfPos, this.getEffectiveTargetPos(this._tempPos));
@@ -510,6 +529,7 @@ export class ZombieMove extends Component {
             this._lastKnownPlayerPos.set(playerNode.worldPosition);
             this._memoryTimer = MEMORY_DURATION;
             this._buildingTarget = null;
+            this._turretTarget = null;
 
             if (distToPlayer <= this.attackRange + 5 && this._attackCooldown <= 0) {
                 this._aiState = 'ATTACK_PLAYER';
@@ -844,6 +864,7 @@ export class ZombieMove extends Component {
         this._memoryTimer = 0;
         this._hasWanderTarget = false;
         this._buildingTarget = null;
+        this._turretTarget = null;
 
         if (this._collider) {
             CollisionWorld.instance?.unregister(this._collider);
