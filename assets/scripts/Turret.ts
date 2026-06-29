@@ -129,6 +129,8 @@ export class Turret extends Component {
             CollisionWorld.instance?.unregister(this._collider);
             this._collider = null;
         }
+        // 炮塔被摧毁或拆除后立即刷新电力UI
+        BaseSystem.instance?.updatePowerStatus();
     }
 
     /** 拆除前从 CollisionWorld 注销碰撞体（DemolishManager 调用） */
