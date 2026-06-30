@@ -67,6 +67,9 @@ export class ZombieMove extends Component {
     @property({ type: CCFloat, tooltip: '感知玩家距离（像素）', min: 100, max: 500 })
     alertRadius = 300;
 
+    @property({ type: CCFloat, tooltip: '游荡僵尸扫描建筑半径（像素），通常比alertRadius大', min: 200, max: 3000 })
+    buildingScanRadius = 1200;
+
     /** 白天外围游荡僵尸：不冲基地，仅巡逻 */
     isDayWanderer = false;
 
@@ -344,12 +347,14 @@ export class ZombieMove extends Component {
     private scanForBuildings() {
         const selfPos = this.node.worldPosition;
         let nearest: Node | null = null;
-        let nearestDist = this.alertRadius;
+        let nearestDist = this.buildingScanRadius;
         let foundCount = 0;
+        let minDistAll = Number.MAX_VALUE;
 
         this.findNonDefensiveBuildings(this.node.scene ?? this.node, (node) => {
             foundCount++;
             const d = Vec3.distance(selfPos, node.worldPosition);
+            if (d < minDistAll) minDistAll = d;
             if (d < nearestDist) {
                 const lineClear = CollisionWorld.instance?.isLineOfSightClear(
                     selfPos, node.worldPosition, [ColliderGroup.Wall],
@@ -367,7 +372,7 @@ export class ZombieMove extends Component {
             this._aiState = 'CHASE_BUILDING';
             this._memoryTimer = 0;
         } else {
-            log(`[ZombieMove][scanForBuildings] 游荡僵尸未找到可攻击目标，found=${foundCount}`);
+            log(`[ZombieMove][scanForBuildings] 游荡僵尸未找到可攻击目标, found=${foundCount}, closest=${minDistAll === Number.MAX_VALUE ? 'N/A' : minDistAll.toFixed(1)}, scanRadius=${this.buildingScanRadius}`);
         }
     }
 
