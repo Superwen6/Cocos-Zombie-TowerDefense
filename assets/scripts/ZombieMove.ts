@@ -140,9 +140,6 @@ export class ZombieMove extends Component {
     /** 是否被玩家主动攻击过（true=玩家嘲讽霸体，无视炮塔；false=仅视觉发现，可被炮塔打断） */
     private _playerTaunted = false;
 
-    /** 墙体阻挡时感知到的最近建筑位置，用于偏向游荡方向 */
-    private _sensedBuildingPos: Vec3 | null = null;
-
     // 白天游荡索敌计时器
     private _wanderScanTimer = 0;
 
@@ -208,7 +205,6 @@ export class ZombieMove extends Component {
         this._buildingTarget = null;
         this._hatedTurret = null;
         this._playerTaunted = false;
-        this._sensedBuildingPos = null;
         this._wanderScanTimer = 0;
         this._memoryTimer = 0;
         this._hasWanderTarget = false;
@@ -279,7 +275,6 @@ export class ZombieMove extends Component {
         this._hatedTurret = null;
         this._buildingTarget = null;
         this._playerTaunted = false;
-        this._sensedBuildingPos = null;
         this._memoryTimer = 0;
         if (this.isDayWanderer) {
             this._aiState = 'WANDER';
@@ -353,44 +348,26 @@ export class ZombieMove extends Component {
         const selfPos = this.node.worldPosition;
         let nearest: Node | null = null;
         let nearestDist = this.buildingScanRadius;
-        let blockedNearest: Node | null = null;
-        let blockedNearestDist = Number.MAX_VALUE;
         let foundCount = 0;
+        let minDistAll = Number.MAX_VALUE;
 
         this.findNonDefensiveBuildings(this.node.scene ?? this.node, (node) => {
             foundCount++;
             const d = Vec3.distance(selfPos, node.worldPosition);
+            if (d < minDistAll) minDistAll = d;
             if (d < nearestDist) {
-                const blocker = CollisionWorld.instance?.debugLineOfSight(
-                    selfPos, node.worldPosition, [ColliderGroup.Wall],
-                ) ?? null;
-                if (!blocker) {
-                    nearestDist = d;
-                    nearest = node;
-                } else {
-                    log(`[ZombieMove][scanForBuildings] ${node.name} 视线受阻, blocker="${blocker}", distance=${d.toFixed(1)}`);
-                    if (d < blockedNearestDist) {
-                        blockedNearestDist = d;
-                        blockedNearest = node;
-                    }
-                }
+                nearestDist = d;
+                nearest = node;
             }
         });
 
         if (nearest) {
             log(`[ZombieMove][scanForBuildings] 游荡僵尸找到目标: ${nearest.name}, distance=${nearestDist.toFixed(1)}`);
             this._buildingTarget = nearest;
-            this._sensedBuildingPos = null;
             this._aiState = 'CHASE_BUILDING';
             this._memoryTimer = 0;
         } else {
-            if (blockedNearest) {
-                // 墙体阻挡，记录位置用于偏向游荡，让僵尸绕路靠近
-                this._sensedBuildingPos = blockedNearest.worldPosition.clone();
-                log(`[ZombieMove][scanForBuildings] 墙体阻挡，偏向游荡: ${blockedNearest.name}, distance=${blockedNearestDist.toFixed(1)}`);
-            } else {
-                this._sensedBuildingPos = null;
-            }
+            log(`[ZombieMove][scanForBuildings] 游荡僵尸未找到可攻击目标, found=${foundCount}, closest=${minDistAll === Number.MAX_VALUE ? 'N/A' : minDistAll.toFixed(1)}, scanRadius=${this.buildingScanRadius}`);
         }
     }
 
@@ -919,7 +896,6 @@ export class ZombieMove extends Component {
         this._buildingTarget = null;
         this._hatedTurret = null;
         this._playerTaunted = false;
-        this._sensedBuildingPos = null;
 
         if (this._collider) {
             CollisionWorld.instance?.unregister(this._collider);
@@ -1011,28 +987,6 @@ export class ZombieMove extends Component {
 
     private pickNewWanderTarget() {
         const origin = this.getWanderOriginWorld();
-
-        // 如果墙体阻挡感知到建筑，偏向建筑方向游荡，让僵尸绕路靠近
-        if (this._sensedBuildingPos) {
-            const dx = this._sensedBuildingPos.x - origin.x;
-            const dy = this._sensedBuildingPos.y - origin.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist > 1) {
-                // 偏向建筑方向 70%，随机偏移 30%
-                const nx = dx / dist;
-                const ny = dy / dist;
-                const angle = Math.atan2(ny, nx) + randomRange(-0.8, 0.8);
-                const radius = Math.min(dist * 0.6, randomRange(WANDER_PATROL_RADIUS_MIN, WANDER_PATROL_RADIUS_MAX));
-                this._wanderTarget.set(
-                    origin.x + Math.cos(angle) * radius,
-                    origin.y + Math.sin(angle) * radius,
-                    0,
-                );
-                this._hasWanderTarget = true;
-                return;
-            }
-        }
-
         const angle = Math.random() * Math.PI * 2;
         const radius = randomRange(WANDER_PATROL_RADIUS_MIN, WANDER_PATROL_RADIUS_MAX);
         this._wanderTarget.set(
