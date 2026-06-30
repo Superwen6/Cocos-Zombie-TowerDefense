@@ -244,8 +244,14 @@ export class TurretPlacementManager extends Component {
         this.currentCost = { ...cost };
         this.activePanel = null;
 
+        // 提前保存本地坐标（后续 finalizePlacement 不再访问可能已销毁的 _plantTargetNode）
+        if (targetNode && targetNode.isValid) {
+            this._buildLocalPos.set(targetNode.position);
+        }
+
         // 优先使用缓存位置；缓存不存在时从节点获取（需节点有效且有父节点）
         let plantPos = this._plantPosCache.get(plantId) ?? null;
+        const fromCache = plantPos !== null;
         if (!plantPos && targetNode && targetNode.isValid && targetNode.parent) {
             plantPos = targetNode.worldPosition.clone();
             this._plantPosCache.set(plantId, plantPos);
@@ -254,6 +260,7 @@ export class TurretPlacementManager extends Component {
             warn(`[TurretPlacementManager] 发电机 ID=${plantId} 无法获取放置位置，targetNode 已失效且无缓存`);
             return;
         }
+        log(`[TurretPlacementManager] 发电机 ID=${plantId} 放置位置: (${plantPos.x.toFixed(1)}, ${plantPos.y.toFixed(1)}), fromCache=${fromCache}`);
 
         // 在目标节点位置创建虚影
         this.createGhostNodeWithPrefab(ghostPrefab);
@@ -371,6 +378,10 @@ export class TurretPlacementManager extends Component {
 
     private onMouseMove(event: EventMouse) {
         if (!this._isPlacing || !this.ghostNode) return;
+
+        // 发电机固定位置放置：虚影不跟随鼠标
+        if (this.buildType === 'plant') return;
+
         const worldPos = this.screenToWorld(event.getLocationX(), event.getLocationY());
         if (!worldPos) return;
 
@@ -457,10 +468,7 @@ export class TurretPlacementManager extends Component {
 
     private finalizePlacement() {
         if (this.buildType === 'plant') {
-            // 固定节点放置：保存目标节点在父节点下的本地坐标
-            if (this._plantTargetNode) {
-                this._buildLocalPos.set(this._plantTargetNode.position);
-            }
+            // _buildLocalPos 已在 startPlantPlacementByNode 中保存，无需再访问可能已销毁的 _plantTargetNode
         } else {
             // 炮塔/集装箱放置：保存虚影在父节点下的本地坐标（不随 Canvas 移动而漂移）
             if (this.ghostNode) {
@@ -629,12 +637,13 @@ export class TurretPlacementManager extends Component {
         let buildingNode: Node | null = null;
 
         if (this.buildType === 'plant') {
-            if (this._plantTargetNode) {
+            if (this._plantTargetNode && this._plantTargetNode.isValid) {
                 this._plantTargetNode.active = true;
                 // 使用本地坐标定位（以 GameWorld 为基准）
                 this._plantTargetNode.setPosition(this._buildLocalPos);
                 const plant = this._plantTargetNode.getComponent(PlantGenerator);
                 if (plant) {
+                    plant.hp = plant.maxHp;
                     plant.markPlaced();
                     BaseSystem.instance?.updatePowerStatus();
                 }

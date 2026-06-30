@@ -64,7 +64,13 @@ export class PlantGenerator extends Component {
         if (this.hp <= 0 || amount <= 0) return;
         this.hp = Math.max(0, this.hp - amount);
         if (this.hp <= 0) {
-            this.node.destroy();
+            // 发电机被摧毁：停用节点而非销毁，以支持重建
+            this.node.active = false;
+            if (this._isPlaced) {
+                this._isPlaced = false;
+                PlantGenerator.placedMap.delete(this.plantId);
+                PlantGenerator.invokePlacedCallbacks();
+            }
         }
     }
 
@@ -106,6 +112,7 @@ export class PlantGenerator extends Component {
 
     onDestroy() {
         if (this._isPlaced) {
+            this._isPlaced = false;
             PlantGenerator.placedMap.delete(this.plantId);
             PlantGenerator.invokePlacedCallbacks();
         }

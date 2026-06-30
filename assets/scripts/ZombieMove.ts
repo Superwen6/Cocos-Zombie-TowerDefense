@@ -396,6 +396,7 @@ export class ZombieMove extends Component {
 
     /** 递归查找场景中已建成的非防御性建筑：发电机、集装箱（游荡僵尸预定目标） */
     private findNonDefensiveBuildings(root: Node, callback: (node: Node) => void) {
+        if (!root || !root.isValid) return;
         const plant = root.getComponent(PlantGenerator);
         if (plant && plant.isPlaced) {
             callback(root);
@@ -411,6 +412,7 @@ export class ZombieMove extends Component {
 
     /** 递归查找场景中所有已建成的可攻击建筑：炮塔、发电机、集装箱、基地 */
     private findTargetableBuildings(root: Node, callback: (node: Node) => void) {
+        if (!root || !root.isValid) return;
         // 只扫描已建成的建筑
         const turret = root.getComponent(Turret);
         if (turret && turret.enabled) {
@@ -537,7 +539,7 @@ export class ZombieMove extends Component {
 
         // ===== 建筑攻击状态（白天游荡索敌） =====
         if (this._aiState === 'ATTACK_BUILDING') {
-            if (!this._buildingTarget || !this._buildingTarget.isValid) {
+            if (!this._buildingTarget || !this._buildingTarget.isValid || !this._buildingTarget.active) {
                 this.returnToDefaultTarget();
                 return;
             }
@@ -550,7 +552,7 @@ export class ZombieMove extends Component {
             return;
         }
         if (this._aiState === 'CHASE_BUILDING') {
-            if (!this._buildingTarget || !this._buildingTarget.isValid) {
+            if (!this._buildingTarget || !this._buildingTarget.isValid || !this._buildingTarget.active) {
                 this.returnToDefaultTarget();
                 return;
             }

@@ -328,8 +328,10 @@ export class CollisionWorld extends Component {
     private debugCheckHit(x: number, y: number, halfW: number, halfH: number, groups: ColliderGroup[]): string | null {
         for (const c of this._colliders) {
             if (!c.node || !c.node.isValid) continue;
-            if (!willBlock(groups, c.group)) continue;
-            if (rectsOverlap(x, y, halfW, halfH, c.x, c.y, c.halfW, c.halfH)) {
+            if (!groups.includes(c.group)) continue;
+            const ox = c.node.worldPosition.x;
+            const oy = c.node.worldPosition.y;
+            if (rectsOverlap(x, y, halfW, halfH, ox, oy, c.halfW, c.halfH)) {
                 return c.node.name;
             }
         }
