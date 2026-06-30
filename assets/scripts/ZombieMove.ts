@@ -367,11 +367,12 @@ export class ZombieMove extends Component {
                 if (!blocker) {
                     nearestDist = d;
                     nearest = node;
-                } else if (d < blockedNearestDist) {
-                    // 记录墙体阻挡的最近建筑，用于偏向游荡方向
-                    blockedNearestDist = d;
-                    blockedNearest = node;
-                    log(`[ZombieMove][scanForBuildings] ${node.name} 视线被阻挡, blocker="${blocker}", distance=${d.toFixed(1)}`);
+                } else {
+                    log(`[ZombieMove][scanForBuildings] ${node.name} 视线受阻, blocker="${blocker}", distance=${d.toFixed(1)}`);
+                    if (d < blockedNearestDist) {
+                        blockedNearestDist = d;
+                        blockedNearest = node;
+                    }
                 }
             }
         });

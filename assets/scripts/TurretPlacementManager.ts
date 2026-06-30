@@ -244,14 +244,15 @@ export class TurretPlacementManager extends Component {
         this.currentCost = { ...cost };
         this.activePanel = null;
 
-        // 缓存目标位置，节点销毁后仍可用于重建
-        const plantPos = (targetNode && targetNode.isValid) ? targetNode.worldPosition.clone() : this._plantPosCache.get(plantId);
+        // 优先使用缓存位置；缓存不存在时从节点获取（需节点有效且有父节点）
+        let plantPos = this._plantPosCache.get(plantId) ?? null;
+        if (!plantPos && targetNode && targetNode.isValid && targetNode.parent) {
+            plantPos = targetNode.worldPosition.clone();
+            this._plantPosCache.set(plantId, plantPos);
+        }
         if (!plantPos) {
             warn(`[TurretPlacementManager] 发电机 ID=${plantId} 无法获取放置位置，targetNode 已失效且无缓存`);
             return;
-        }
-        if (targetNode && targetNode.isValid) {
-            this._plantPosCache.set(plantId, targetNode.worldPosition.clone());
         }
 
         // 在目标节点位置创建虚影
