@@ -1,7 +1,7 @@
 import {
     _decorator, Color, Component, Camera, Collider2D, EventKeyboard, EventMouse,
     instantiate, input, Input, KeyCode, Layers, Node, Prefab, Sprite,
-    RenderRoot2D, UIOpacity, Vec3, director, warn,
+    RenderRoot2D, UIOpacity, Vec3, director, log, warn,
 } from 'cc';
 import { GameHUDUI } from './GameHUDUI';
 import { PlayerData } from './PlayerData';
