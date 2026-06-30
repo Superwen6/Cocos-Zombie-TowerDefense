@@ -62,6 +62,8 @@ export class TurretPlacementManager extends Component {
     private _plantTargetNode: Node | null = null;
     /** plant 模式缓存的 plantId */
     private _plantId = 0;
+    /** 发电机目标位置缓存（plantId → 世界坐标），节点销毁后仍可重建 */
+    private _plantPosCache = new Map<number, Vec3>();
     /** 是否当前虚影位置有效（可放置） */
     private _placementValid = false;
 
@@ -242,10 +244,20 @@ export class TurretPlacementManager extends Component {
         this.currentCost = { ...cost };
         this.activePanel = null;
 
+        // 缓存目标位置，节点销毁后仍可用于重建
+        const plantPos = (targetNode && targetNode.isValid) ? targetNode.worldPosition.clone() : this._plantPosCache.get(plantId);
+        if (!plantPos) {
+            warn(`[TurretPlacementManager] 发电机 ID=${plantId} 无法获取放置位置，targetNode 已失效且无缓存`);
+            return;
+        }
+        if (targetNode && targetNode.isValid) {
+            this._plantPosCache.set(plantId, targetNode.worldPosition.clone());
+        }
+
         // 在目标节点位置创建虚影
         this.createGhostNodeWithPrefab(ghostPrefab);
         if (this.ghostNode) {
-            this.ghostNode.setWorldPosition(targetNode.worldPosition);
+            this.ghostNode.setWorldPosition(plantPos);
             // 应用发电机预制体上配置的虚影透明度
             const plantComp = this.ghostNode.getComponent(PlantGenerator);
             if (plantComp) {
