@@ -62,8 +62,6 @@ export class TurretPlacementManager extends Component {
     private _plantTargetNode: Node | null = null;
     /** plant 模式缓存的 plantId */
     private _plantId = 0;
-    /** 发电机目标位置缓存（plantId → 世界坐标），节点销毁后仍可重建 */
-    private _plantPosCache = new Map<number, Vec3>();
     /** 是否当前虚影位置有效（可放置） */
     private _placementValid = false;
 
@@ -249,18 +247,16 @@ export class TurretPlacementManager extends Component {
             this._buildLocalPos.set(targetNode.position);
         }
 
-        // 优先使用缓存位置；缓存不存在时从节点获取（需节点有效且有父节点）
-        let plantPos = this._plantPosCache.get(plantId) ?? null;
-        const fromCache = plantPos !== null;
-        if (!plantPos && targetNode && targetNode.isValid && targetNode.parent) {
+        // 始终从节点获取当前世界位置（节点仅停用未销毁，worldPosition 始终有效）
+        let plantPos: Vec3 | null = null;
+        if (targetNode && targetNode.isValid) {
             plantPos = targetNode.worldPosition.clone();
-            this._plantPosCache.set(plantId, plantPos);
         }
         if (!plantPos) {
-            warn(`[TurretPlacementManager] 发电机 ID=${plantId} 无法获取放置位置，targetNode 已失效且无缓存`);
+            warn(`[TurretPlacementManager] 发电机 ID=${plantId} 无法获取放置位置，targetNode 已失效`);
             return;
         }
-        log(`[TurretPlacementManager] 发电机 ID=${plantId} 放置位置: (${plantPos.x.toFixed(1)}, ${plantPos.y.toFixed(1)}), fromCache=${fromCache}`);
+        log(`[TurretPlacementManager] 发电机 ID=${plantId} 放置位置: (${plantPos.x.toFixed(1)}, ${plantPos.y.toFixed(1)})`);
 
         // 在目标节点位置创建虚影
         this.createGhostNodeWithPrefab(ghostPrefab);
