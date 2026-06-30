@@ -356,13 +356,8 @@ export class ZombieMove extends Component {
             const d = Vec3.distance(selfPos, node.worldPosition);
             if (d < minDistAll) minDistAll = d;
             if (d < nearestDist) {
-                const lineClear = CollisionWorld.instance?.isLineOfSightClear(
-                    selfPos, node.worldPosition, [ColliderGroup.Wall],
-                );
-                if (lineClear) {
-                    nearestDist = d;
-                    nearest = node;
-                }
+                nearestDist = d;
+                nearest = node;
             }
         });
 
