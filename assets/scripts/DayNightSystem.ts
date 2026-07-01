@@ -111,6 +111,36 @@ export class DayNightSystem extends Component {
         return Math.max(0, duration - this._elapsed);
     }
 
+    /** 获取当前"白天/夜晚"大阶段的剩余时间，格式化为 分:秒 */
+    getRemainingTimeString(): string {
+        let totalSeconds: number;
+        switch (this._phase) {
+            case DayNightPhase.DAY:
+                totalSeconds = (this.dayDuration + this.transitionTime) - this._elapsed;
+                break;
+            case DayNightPhase.DUSK:
+                totalSeconds = (this.transitionTime + this.nightDuration) - this._elapsed;
+                break;
+            case DayNightPhase.NIGHT:
+                totalSeconds = (this.nightDuration + this.transitionTime) - this._elapsed;
+                break;
+            case DayNightPhase.DAWN:
+                totalSeconds = (this.transitionTime + this.dayDuration) - this._elapsed;
+                break;
+            default:
+                totalSeconds = 0;
+        }
+        totalSeconds = Math.max(0, totalSeconds);
+        const mins = Math.floor(totalSeconds / 60);
+        const secs = Math.floor(totalSeconds % 60);
+        return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    /** 当前是否处于"白天"大阶段（DAY 或 DAWN） */
+    get isDayPhase(): boolean {
+        return this._phase === DayNightPhase.DAY || this._phase === DayNightPhase.DAWN;
+    }
+
     onLoad() {
         DayNightSystem._instance = this;
         this._phase = DayNightPhase.DAY;
