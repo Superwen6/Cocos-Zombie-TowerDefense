@@ -48,9 +48,6 @@ export class EnemyManager extends Component {
     @property({ type: Node, tooltip: '基地节点（纯 2D 世界坐标）' })
     baseNode: Node | null = null;
 
-    @property({ tooltip: '僵尸移动速度（像素/秒），会写入 ZombieMove' })
-    zombieSpeed = 120;
-
     @property({ type: Node, tooltip: '僵尸父节点（EnemyRoot），由编辑器绑定' })
     enemyRoot: Node | null = null;
 
@@ -177,7 +174,7 @@ export class EnemyManager extends Component {
 
         const zombieMove = enemy.getComponent(ZombieMove);
         if (zombieMove) {
-            zombieMove.init(this.baseNode ?? enemy, this.zombieSpeed, false);
+            zombieMove.init(this.baseNode ?? enemy);
         }
     }
 
@@ -202,7 +199,7 @@ export class EnemyManager extends Component {
 
         const zombieMove = enemy.getComponent(ZombieMove);
         if (zombieMove) {
-            zombieMove.init(this.baseNode ?? enemy, this.zombieSpeed, true);
+            zombieMove.init(this.baseNode ?? enemy, undefined, true);
         }
     }
 
