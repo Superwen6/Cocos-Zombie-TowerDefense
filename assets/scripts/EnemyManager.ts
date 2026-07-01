@@ -1,5 +1,6 @@
 import {
     _decorator,
+    CCFloat,
     Component,
     find,
     instantiate,
@@ -36,8 +37,14 @@ export class EnemyManager extends Component {
     @property({ tooltip: '胖子僵尸刷出概率（0~1）' })
     fatZombieChance = 0.20;
 
-    @property({ tooltip: '黑夜持续刷怪间隔（秒）' })
-    spawnInterval = 2;
+    @property({ type: CCFloat, tooltip: '第一天刷怪间隔（秒），天数越高间隔越短' })
+    spawnStartInterval = 2.0;
+
+    @property({ type: CCFloat, tooltip: '达到 maxDay 时的刷怪间隔（秒）' })
+    spawnEndInterval = 0.01;
+
+    @property({ type: CCFloat, tooltip: '难度递增曲线指数：1=线性，>1=前期慢后期快，<1=前期快后期慢' })
+    spawnCurveExponent = 1.0;
 
     @property({ tooltip: '白天游荡僵尸刷新间隔（秒）' })
     dayWanderInterval = 8;
@@ -54,7 +61,8 @@ export class EnemyManager extends Component {
     @property({ type: Node, tooltip: '出生/游荡圆心，一般为基地或屏幕中心' })
     spawnOrigin: Node | null = null;
 
-    private maxZombiesOnScreen = 200;
+    @property({ tooltip: '屏幕同时存在的最大僵尸数' })
+    maxZombiesOnScreen = 200;
     private _nightSpawning = false;
     private _dayWanderSpawning = false;
 
@@ -109,12 +117,29 @@ export class EnemyManager extends Component {
     private startNightSpawning() {
         if (this._nightSpawning) return;
         this._nightSpawning = true;
-        this.schedule(this.spawnZombie, this.spawnInterval);
+        const interval = this.getDynamicSpawnInterval();
+        this.schedule(this.spawnZombie, interval);
     }
 
     private stopNightSpawning() {
         this._nightSpawning = false;
         this.unschedule(this.spawnZombie);
+    }
+
+    /** 根据当前天数动态计算刷怪间隔 */
+    private getDynamicSpawnInterval(): number {
+        const dayNight = DayNightSystem.instance;
+        if (!dayNight) return this.spawnStartInterval;
+
+        const currentDay = dayNight.currentDay;
+        const maxDay = dayNight.maxDays;
+        if (maxDay <= 1) return this.spawnStartInterval;
+
+        const progress = (currentDay - 1) / (maxDay - 1);
+        const interval = this.spawnStartInterval
+            - (this.spawnStartInterval - this.spawnEndInterval)
+            * Math.pow(progress, this.spawnCurveExponent);
+        return Math.max(this.spawnEndInterval, interval);
     }
 
     private startDayWanderSpawning() {
