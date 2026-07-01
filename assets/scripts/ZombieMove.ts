@@ -348,13 +348,9 @@ export class ZombieMove extends Component {
         const selfPos = this.node.worldPosition;
         let nearest: Node | null = null;
         let nearestDist = this.buildingScanRadius;
-        let foundCount = 0;
-        let minDistAll = Number.MAX_VALUE;
 
         this.findNonDefensiveBuildings(this.node.scene ?? this.node, (node) => {
-            foundCount++;
             const d = Vec3.distance(selfPos, node.worldPosition);
-            if (d < minDistAll) minDistAll = d;
             if (d < nearestDist) {
                 nearestDist = d;
                 nearest = node;
@@ -366,8 +362,6 @@ export class ZombieMove extends Component {
             this._buildingTarget = nearest;
             this._aiState = 'CHASE_BUILDING';
             this._memoryTimer = 0;
-        } else {
-            log(`[ZombieMove][scanForBuildings] 游荡僵尸未找到可攻击目标, found=${foundCount}, closest=${minDistAll === Number.MAX_VALUE ? 'N/A' : minDistAll.toFixed(1)}, scanRadius=${this.buildingScanRadius}`);
         }
     }
 
