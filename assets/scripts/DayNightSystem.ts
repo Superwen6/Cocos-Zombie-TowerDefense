@@ -116,16 +116,20 @@ export class DayNightSystem extends Component {
         let totalSeconds: number;
         switch (this._phase) {
             case DayNightPhase.DAY:
+                // 白天剩余 = 剩余白天 + 黎明过渡
                 totalSeconds = (this.dayDuration + this.transitionTime) - this._elapsed;
                 break;
             case DayNightPhase.DUSK:
+                // 黄昏剩余 = 剩余黄昏 + 夜晚
                 totalSeconds = (this.transitionTime + this.nightDuration) - this._elapsed;
                 break;
             case DayNightPhase.NIGHT:
-                totalSeconds = (this.nightDuration + this.transitionTime) - this._elapsed;
+                // 夜晚剩余 = 剩余夜晚
+                totalSeconds = this.nightDuration - this._elapsed;
                 break;
             case DayNightPhase.DAWN:
-                totalSeconds = (this.transitionTime + this.dayDuration) - this._elapsed;
+                // 黎明剩余 = 剩余黎明
+                totalSeconds = this.transitionTime - this._elapsed;
                 break;
             default:
                 totalSeconds = 0;
