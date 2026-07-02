@@ -111,38 +111,23 @@ export class DayNightSystem extends Component {
         return Math.max(0, duration - this._elapsed);
     }
 
-    /** 获取当前"白天/夜晚"大阶段的剩余时间，格式化为 分:秒 */
+    /** 获取当前阶段剩余时间，格式化为 分:秒 */
     getRemainingTimeString(): string {
-        let totalSeconds: number;
-        switch (this._phase) {
-            case DayNightPhase.DAY:
-                // 白天剩余 = 剩余白天 + 黎明过渡
-                totalSeconds = (this.dayDuration + this.transitionTime) - this._elapsed;
-                break;
-            case DayNightPhase.DUSK:
-                // 黄昏剩余 = 剩余黄昏 + 夜晚
-                totalSeconds = (this.transitionTime + this.nightDuration) - this._elapsed;
-                break;
-            case DayNightPhase.NIGHT:
-                // 夜晚剩余 = 剩余夜晚
-                totalSeconds = this.nightDuration - this._elapsed;
-                break;
-            case DayNightPhase.DAWN:
-                // 黎明剩余 = 剩余黎明
-                totalSeconds = this.transitionTime - this._elapsed;
-                break;
-            default:
-                totalSeconds = 0;
-        }
-        totalSeconds = Math.max(0, totalSeconds);
+        const totalSeconds = Math.max(0, this.remainingTime);
         const mins = Math.floor(totalSeconds / 60);
         const secs = Math.floor(totalSeconds % 60);
         return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     }
 
-    /** 当前是否处于"白天"大阶段（DAY 或 DAWN） */
-    get isDayPhase(): boolean {
-        return this._phase === DayNightPhase.DAY || this._phase === DayNightPhase.DAWN;
+    /** 获取当前阶段的中文名称 */
+    getPhaseName(): string {
+        switch (this._phase) {
+            case DayNightPhase.DAY:   return '白天';
+            case DayNightPhase.DUSK:  return '黄昏';
+            case DayNightPhase.NIGHT: return '夜晚';
+            case DayNightPhase.DAWN:  return '黎明';
+            default:                  return '';
+        }
     }
 
     onLoad() {

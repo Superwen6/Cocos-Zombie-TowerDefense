@@ -22,12 +22,8 @@ export class TimeInfoUI extends Component {
         if (!ds || !this.timeLabel) return;
 
         const day = ds.currentDay;
+        const phaseName = ds.getPhaseName();
         const timeStr = ds.getRemainingTimeString();
-
-        if (ds.isDayPhase) {
-            this.timeLabel.string = `第 ${day} 天 | 黎明+白天 ${timeStr}`;
-        } else {
-            this.timeLabel.string = `第 ${day} 天 | 黄昏+夜晚 ${timeStr}`;
-        }
+        this.timeLabel.string = `第 ${day} 天 | ${phaseName} ${timeStr}`;
     }
 }
