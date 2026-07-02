@@ -289,7 +289,7 @@
     "moveSpeed": 120,
     "attackRange": 40,
     "alertRadius": 300,
-    "buildingScanRadius": 1200,
+    "buildingScanRadius": 250,
     "colliderHalfW": 8,
     "colliderHalfH": 8,
     "baseNode": null,

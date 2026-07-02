@@ -549,8 +549,8 @@
     "__prefab": {
       "__id__": 25
     },
-    "colliderHalfW": 30,
-    "colliderHalfH": 30,
+    "colliderHalfW": 12,
+    "colliderHalfH": 19,
     "semiTransparentOpacity": 100,
     "triggerDistance": 80,
     "_id": ""

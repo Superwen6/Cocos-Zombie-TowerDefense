@@ -289,9 +289,10 @@
     },
     "maxHp": 150,
     "damage": 2,
-    "moveSpeed": 80,
+    "moveSpeed": 50,
     "attackRange": 40,
     "alertRadius": 300,
+    "buildingScanRadius": 250,
     "colliderHalfW": 15,
     "colliderHalfH": 15,
     "baseNode": null,
@@ -306,7 +307,7 @@
         "__expectedType__": "cc.SpriteFrame"
       },
       {
-        "__uuid__": "7a577079-63af-4532-87a8-477cf42c092b@8df7d",
+        "__uuid__": "7a577079-63af-4532-87a8-477cf42c092b@7ff99",
         "__expectedType__": "cc.SpriteFrame"
       },
       {
