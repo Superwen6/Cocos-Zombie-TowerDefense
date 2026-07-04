@@ -54,7 +54,7 @@ export class PlantPanelUI extends Component {
 
     /** 刷新按钮状态：
      * - 显示条件：基地等级 >= plantId（已解锁的发电机按钮都显示）
-     * - 可交互条件：基地等级 === plantId 且该发电机未放置
+     * - 可交互条件：基地等级 >= plantId 且该发电机未放置
      */
     refreshButtonStates() {
         const baseSystem = BaseSystem.instance;
@@ -70,8 +70,8 @@ export class PlantPanelUI extends Component {
             node.active = shouldShow;
             
             if (btn) {
-                // 按钮可交互：基地等级 === plantId 且未放置
-                const canInteract = currentLevel === plantId && !PlantGenerator.isPlantPlaced(plantId);
+                // 按钮可交互：基地等级 >= plantId 且未放置
+                const canInteract = currentLevel >= plantId && !PlantGenerator.isPlantPlaced(plantId);
                 btn.interactable = canInteract;
             }
         }
@@ -110,9 +110,9 @@ export class PlantPanelUI extends Component {
         const cost: TurretPlacementCost = manager.getCostsFromPrefab(prefab);
         const plantId = index + 1;
 
-        // 等级锁定：只有基地等级等于 plantId 时才能建造
+        // 等级锁定：基地等级必须 >= plantId 才能建造
         const baseSystem = BaseSystem.instance;
-        if (!baseSystem || baseSystem.currentLevel !== plantId) {
+        if (!baseSystem || baseSystem.currentLevel < plantId) {
             warn(`[PlantPanelUI] 当前基地等级不足，无法建造发电机 ID=${plantId}`);
             return;
         }
