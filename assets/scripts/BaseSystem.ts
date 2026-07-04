@@ -133,6 +133,9 @@ export class BaseSystem extends Component {
         this.refreshBaseAppearance();
         this.updatePowerStatus();
 
+        // 发电机放置/摧毁时立即刷新电力状态
+        PlantGenerator.onPlacedCallbacks.push(this.updatePowerStatus.bind(this));
+
         // 初始化基地血条为战斗模式（_started 默认为 false，不调用 finishBuild 则血条不显示）
         const baseNode = find('GameWorld/Base');
         if (baseNode) {
