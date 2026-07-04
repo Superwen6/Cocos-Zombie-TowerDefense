@@ -37,11 +37,17 @@ export class ResourceSpawner extends Component {
     @property({ type: CCFloat, tooltip: '资源稀缺度：木头权重（越小越稀有）' })
     scarcityWood = 4;
 
-    @property({ tooltip: '最小生成半径（避免资源刷在基地脚下）' })
-    minSpawnRadius = 150;
+    @property({ type: CCFloat, tooltip: '地图最小 X 坐标' })
+    mapMinX = -2310;
 
-    @property({ tooltip: '最大生成半径（控制资源散布范围）' })
-    maxSpawnRadius = 900;
+    @property({ type: CCFloat, tooltip: '地图最大 X 坐标' })
+    mapMaxX = 3760;
+
+    @property({ type: CCFloat, tooltip: '地图最小 Y 坐标' })
+    mapMinY = -2710;
+
+    @property({ type: CCFloat, tooltip: '地图最大 Y 坐标' })
+    mapMaxY = 3350;
 
     start() {
         console.log("[DEBUG] ResourceSpawner 启动，等待 DayNightSystem 触发资源生成...");
@@ -69,19 +75,15 @@ export class ResourceSpawner extends Component {
 
         log(`[ResourceSpawner] Day 资源生成：请求 ${this.spawnCount}，当前地图 ${currentCount}/${this.mapResourceLimit}，实际生成 ${actualSpawnCount}`);
 
-        const origin = this.baseNode?.worldPosition || Vec3.ZERO;
-
         for (let i = 0; i < actualSpawnCount; i++) {
             const prefab = this.pickRandomPrefab();
             if (prefab) {
                 const node = instantiate(prefab);
                 node.setParent(root);
                 
-                // 在基地周围 minSpawnRadius-maxSpawnRadius 范围内随机偏移
-                const angle = Math.random() * Math.PI * 2;
-                const radius = this.minSpawnRadius + Math.random() * (this.maxSpawnRadius - this.minSpawnRadius);
-                let spawnX = origin.x + Math.cos(angle) * radius;
-                let spawnY = origin.y + Math.sin(angle) * radius;
+                // 在地图矩形范围内随机生成位置
+                let spawnX = this.mapMinX + Math.random() * (this.mapMaxX - this.mapMinX);
+                let spawnY = this.mapMinY + Math.random() * (this.mapMaxY - this.mapMinY);
 
                 // 碰撞检测：避免资源重叠
                 if (CollisionWorld.instance) {
