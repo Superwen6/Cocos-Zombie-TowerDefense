@@ -1,4 +1,4 @@
-import { _decorator, Camera, CCFloat, Component, EventMouse, input, Input, Node, screen, Vec3 } from 'cc';
+import { _decorator, Camera, Component, EventMouse, input, Input, Node, Vec3 } from 'cc';
 const { ccclass, property } = _decorator;
 
 @ccclass('CameraFollow')
@@ -20,18 +20,6 @@ export class CameraFollow extends Component {
 
     @property({ tooltip: '缩放平滑速度（越大越快到位）' })
     zoomSmooth = 8;
-
-    @property({ type: CCFloat, tooltip: '地图最小 X 坐标' })
-    mapMinX = -2310;
-
-    @property({ type: CCFloat, tooltip: '地图最大 X 坐标' })
-    mapMaxX = 3760;
-
-    @property({ type: CCFloat, tooltip: '地图最小 Y 坐标' })
-    mapMinY = -2710;
-
-    @property({ type: CCFloat, tooltip: '地图最大 Y 坐标' })
-    mapMaxY = 3350;
 
     private _currentPos = new Vec3();
     private _targetPos = new Vec3();
@@ -90,38 +78,6 @@ export class CameraFollow extends Component {
         this._currentPos.y += (this._targetPos.y - this._currentPos.y) * lerpFactor;
         this._currentPos.z = targetZ;
 
-        // 限制相机可见区域不超出地图边界
-        this._currentPos = this.clampCameraPos(this._currentPos);
-
         this.node.setWorldPosition(this._currentPos);
-    }
-
-    /** 根据当前 orthoHeight 和屏幕宽高比，限制相机位置使其可见区域不超出地图 */
-    private clampCameraPos(pos: Vec3): Vec3 {
-        if (!this._camera) return pos;
-
-        const orthoHeight = this._camera.orthoHeight;
-        const aspect = screen.windowSize.width / screen.windowSize.height;
-        const halfW = orthoHeight * aspect;
-        const halfH = orthoHeight;
-
-        const mapW = this.mapMaxX - this.mapMinX;
-        const mapH = this.mapMaxY - this.mapMinY;
-
-        const result = new Vec3(pos);
-
-        if (mapW > halfW * 2) {
-            result.x = Math.max(this.mapMinX + halfW, Math.min(this.mapMaxX - halfW, result.x));
-        } else {
-            result.x = (this.mapMinX + this.mapMaxX) / 2;
-        }
-
-        if (mapH > halfH * 2) {
-            result.y = Math.max(this.mapMinY + halfH, Math.min(this.mapMaxY - halfH, result.y));
-        } else {
-            result.y = (this.mapMinY + this.mapMaxY) / 2;
-        }
-
-        return result;
     }
 }
