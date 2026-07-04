@@ -3,6 +3,7 @@ import {
     Animation,
     Camera,
     Canvas,
+    CCFloat,
     Component,
     EventKeyboard,
     EventTouch,
@@ -69,6 +70,18 @@ export class PlayerController extends Component {
 
     @property({ tooltip: '碰撞框半高（碰撞体总高度 = 此值 × 2）' })
     colliderHalfH = 15;
+
+    @property({ type: CCFloat, tooltip: '地图最小 X 坐标' })
+    mapMinX = -2310;
+
+    @property({ type: CCFloat, tooltip: '地图最大 X 坐标' })
+    mapMaxX = 3760;
+
+    @property({ type: CCFloat, tooltip: '地图最小 Y 坐标' })
+    mapMinY = -2710;
+
+    @property({ type: CCFloat, tooltip: '地图最大 Y 坐标' })
+    mapMaxY = 3350;
 
     /** 从 PlayerState 读取攻击/维修范围（可在属性检查器中调整） */
     private get hitRange(): number {
@@ -277,7 +290,24 @@ export class PlayerController extends Component {
         this._tempPos.set(toX, toY, pos.z);
         this.node.setWorldPosition(this._tempPos);
 
+        // 限制玩家不超出地图边界
+        this.clampToMapBounds();
+
         this.playWalkAnimation(this._moveDir.x, this._moveDir.y);
+    }
+
+    /** 限制玩家位置不超出地图边界 */
+    private clampToMapBounds() {
+        const wp = this.node.worldPosition;
+        const clampedX = Math.max(this.mapMinX, Math.min(this.mapMaxX, wp.x));
+        const clampedY = Math.max(this.mapMinY, Math.min(this.mapMaxY, wp.y));
+        if (clampedX !== wp.x || clampedY !== wp.y) {
+            this.node.setWorldPosition(clampedX, clampedY, wp.z);
+            if (this._collider) {
+                this._collider.x = clampedX;
+                this._collider.y = clampedY;
+            }
+        }
     }
 
     private playWalkAnimation(dx: number, dy: number) {
