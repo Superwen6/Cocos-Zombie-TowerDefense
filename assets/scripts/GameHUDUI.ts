@@ -2,6 +2,7 @@ import { _decorator, Component, Label, Sprite, Color } from 'cc';
 import { PlayerData } from './PlayerData';
 import { PlayerState } from './PlayerState';
 import { BaseSystem } from './BaseSystem';
+import { GlobalContainerStorage } from './GlobalContainerStorage';
 
 const { ccclass, property } = _decorator;
 
@@ -86,25 +87,28 @@ export class GameHUDUI extends Component {
 
         if (this.ironText) {
             if (data) {
-                this.ironText.string = `铁矿: ${data.ironCount}`;
+                const storage = GlobalContainerStorage.instance;
+                this.ironText.string = `铁矿: ${data.ironCount}/${storage ? storage.storedIron : 0}`;
             } else {
-                this.ironText.string = '铁矿: --';
+                this.ironText.string = '铁矿: --/--';
             }
         }
 
         if (this.copperText) {
             if (data) {
-                this.copperText.string = `铜矿: ${data.copperCount}`;
+                const storage = GlobalContainerStorage.instance;
+                this.copperText.string = `铜矿: ${data.copperCount}/${storage ? storage.storedCopper : 0}`;
             } else {
-                this.copperText.string = '铜矿: --';
+                this.copperText.string = '铜矿: --/--';
             }
         }
 
         if (this.woodText) {
             if (data) {
-                this.woodText.string = `木头: ${data.woodCount}`;
+                const storage = GlobalContainerStorage.instance;
+                this.woodText.string = `木头: ${data.woodCount}/${storage ? storage.storedWood : 0}`;
             } else {
-                this.woodText.string = '木头: --';
+                this.woodText.string = '木头: --/--';
             }
         }
 
