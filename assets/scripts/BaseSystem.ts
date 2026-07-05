@@ -276,26 +276,35 @@ export class BaseSystem extends Component {
     }
 
     /** 启动基地升级建造进度（扣除资源，查找子节点 HealthBar，开始倒计时） */
+    /** 最近一次升级失败的提示信息，供 UI 面板读取显示 */
+    upgradeWarning = '';
+
     startUpgrade(): boolean {
+        this.upgradeWarning = '';
+
         if (this._isUpgrading) {
-            warn('[BaseSystem] 基地正在升级建造中，无法重复操作');
+            this.upgradeWarning = '基地正在升级建造中，无法重复操作';
+            warn(`[BaseSystem] ${this.upgradeWarning}`);
             return false;
         }
 
         const tier = this.getNextUpgradeTier();
         if (!tier) {
-            warn('[BaseSystem] 基地已满级，无法继续升级');
+            this.upgradeWarning = '基地已满级，无法继续升级';
+            warn(`[BaseSystem] ${this.upgradeWarning}`);
             return false;
         }
 
         if (!this.checkUpgradePlantRequirement()) {
             const requiredId = this.getRequiredPlantIdForNextLevel();
-            warn(`[BaseSystem] 需要先建造发电机 ID=${requiredId} 才能升级到 Lv.${this.currentLevel + 1}`);
+            this.upgradeWarning = `需要先建造发电机 ID=${requiredId} 才能升级到 Lv.${this.currentLevel + 1}`;
+            warn(`[BaseSystem] ${this.upgradeWarning}`);
             return false;
         }
 
         if (!PlayerData.instance?.spendUpgradeCost(tier.wood, tier.copper, tier.iron, tier.money)) {
-            warn('[BaseSystem] 材料或金钱不足，升级失败');
+            this.upgradeWarning = '材料或金钱不足，升级失败';
+            warn(`[BaseSystem] ${this.upgradeWarning}`);
             return false;
         }
 

@@ -2,6 +2,7 @@ import { _decorator, Button, Component, Node, Prefab, warn } from 'cc';
 import { TurretPlacementManager, TurretPlacementCost } from './TurretPlacementManager';
 import { PlayerData } from './PlayerData';
 import { BaseSystem } from './BaseSystem';
+import { BuildPanelUI } from './BuildPanelUI';
 
 const { ccclass, property } = _decorator;
 
@@ -57,6 +58,10 @@ export class UpgradePanelUI extends Component {
         // 检查电力
         if (BaseSystem.instance?.isPowerOutage) {
             warn('[UpgradePanelUI] 电力不足，无法建造集装箱');
+            const buildPanel = this.getComponent(BuildPanelUI);
+            if (buildPanel) {
+                buildPanel.showWarning('电力不足，无法建造集装箱');
+            }
             return;
         }
 

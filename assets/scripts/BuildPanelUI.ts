@@ -31,7 +31,11 @@ export class BuildPanelUI extends Component {
     @property({ type: Node, tooltip: '面板视觉主体，控制整块面板的显示/隐藏' })
     panelRootNode: Node | null = null;
 
+    @property({ type: Label, tooltip: '升级警告提示 Label（显示2秒后自动隐藏）' })
+    warningLabel: Label | null = null;
+
     private _refreshTimer = 0;
+    private _warningTimer = 0;
 
     start() {
         this.bindButton(this.upgradeButton, this.onUpgradeClick, 'upgradeButton');
@@ -39,6 +43,9 @@ export class BuildPanelUI extends Component {
         this.bindButton(this.closePanelButton, this.hidePanel, 'closePanelButton');
 
         this.hidePanel();
+        if (this.warningLabel) {
+            this.warningLabel.node.active = false;
+        }
     }
 
     onDestroy() {
@@ -48,6 +55,17 @@ export class BuildPanelUI extends Component {
     }
 
     update(dt: number) {
+        // 警告计时器倒计时
+        if (this._warningTimer > 0) {
+            this._warningTimer -= dt;
+            if (this._warningTimer <= 0) {
+                this._warningTimer = 0;
+                if (this.warningLabel) {
+                    this.warningLabel.node.active = false;
+                }
+            }
+        }
+
         if (!this.panelRootNode?.active) {
             return;
         }
@@ -117,10 +135,19 @@ export class BuildPanelUI extends Component {
 
         const success = base.startUpgrade();
         if (success) {
-            // 升级建造开始：关闭面板
             this.hidePanel();
+        } else if (base.upgradeWarning) {
+            this.showWarning(base.upgradeWarning);
         }
         this.refreshUpgradeUI();
+    }
+
+    /** 公共方法：显示警告信息，2 秒后自动隐藏 */
+    public showWarning(message: string) {
+        if (!this.warningLabel) return;
+        this.warningLabel.string = message;
+        this.warningLabel.node.active = true;
+        this._warningTimer = 2;
     }
 
     /** 公共刷新方法：更新等级文本 + 资源颜色反馈 */
@@ -156,28 +183,24 @@ export class BuildPanelUI extends Component {
     /** 拼装升级消耗与玩家拥有量对比字符串 */
     private buildCostText(base: BaseSystem | null, data: PlayerData | null): string {
         if (!base) {
-            return '升级需要:\n(基地系统未就绪)';
+            return '升级需要: (基地系统未就绪)';
         }
 
         if (!data) {
-            return '升级需要:\n(资源数据未就绪)';
+            return '升级需要: (资源数据未就绪)';
         }
 
         if (base.isMaxLevel) {
-            return '升级需要:\n已满级 MAX';
+            return '升级需要: 已满级 MAX';
         }
 
         const tier = base.getNextUpgradeTier();
         if (!tier) {
-            return '升级需要:\n无下一级配置';
+            return '升级需要: 无下一级配置';
         }
 
         return (
-            '升级需要:\n' +
-            `木: ${data.woodCount}/${tier.wood}\n` +
-            `铜: ${data.copperCount}/${tier.copper}\n` +
-            `铁: ${data.ironCount}/${tier.iron}\n` +
-            `美金: ${data.money}/${tier.money}`
+            `升级需要: 木:${data.woodCount}/${tier.wood} 铜:${data.copperCount}/${tier.copper} 铁:${data.ironCount}/${tier.iron} 美金:${data.money}/${tier.money}`
         );
     }
 
