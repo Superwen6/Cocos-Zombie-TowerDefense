@@ -305,12 +305,13 @@ export class ZombieMove extends Component {
                 // 忽略其他炮塔，死磕当前目标
             }
             // 首次被炮塔攻击，或之前锁定的炮塔已销毁 → 锁定新炮塔
-            else {
+            else if (!this._hatedTurret || !this._hatedTurret.isValid) {
                 this._hatedTurret = turretNode;
                 this._buildingTarget = turretNode;
                 this._aiState = 'CHASE_TURRET';
                 this._memoryTimer = 0;
             }
+            // 同一炮塔的子弹，已在攻击中，不改变状态
         } else {
             // 玩家攻击（最高优先级）：立即清空炮塔仇恨，标记嘲讽霸体，死磕玩家
             const playerNode = this.getPlayerNode();

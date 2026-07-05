@@ -391,18 +391,6 @@
     "__prefab": {
       "__id__": 15
     },
-    "woodPrefab": {
-      "__uuid__": "8f7cea54-ad1c-4f9a-9595-4ce3ce2c5ea9",
-      "__expectedType__": "cc.Prefab"
-    },
-    "copperPrefab": {
-      "__uuid__": "fb5b0fa0-9d1d-486d-baa1-172913277145",
-      "__expectedType__": "cc.Prefab"
-    },
-    "ironPrefab": {
-      "__uuid__": "a506f69e-3fa0-4188-bb67-daad8cb6a48e",
-      "__expectedType__": "cc.Prefab"
-    },
     "woodDropChance": 0.08,
     "copperDropChance": 0.04,
     "ironDropChance": 0.02,

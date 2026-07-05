@@ -49,7 +49,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": 88.336,
+      "y": 0,
       "z": 0
     },
     "_lrot": {
@@ -992,7 +992,7 @@
     "costMoney": 0,
     "powerCost": 1,
     "maxHp": 150,
-    "damage": 100,
+    "damage": 2,
     "attackInterval": 1,
     "attackRange": 400,
     "bulletPrefab": {
@@ -1008,8 +1008,8 @@
     "muzzleOffset": 40,
     "barrelDefaultAngle": 180,
     "rotationSpeed": 40,
-    "colliderHalfW": 35,
-    "colliderHalfH": 35,
+    "colliderHalfW": 30,
+    "colliderHalfH": 30,
     "enableDualShot": false,
     "dualShotSpread": 15,
     "_id": ""

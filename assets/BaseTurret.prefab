@@ -1008,8 +1008,8 @@
     "muzzleOffset": 20,
     "barrelDefaultAngle": -90,
     "rotationSpeed": 50,
-    "colliderHalfW": 30,
-    "colliderHalfH": 30,
+    "colliderHalfW": 20,
+    "colliderHalfH": 20,
     "enableDualShot": false,
     "dualShotSpread": 15,
     "_id": ""

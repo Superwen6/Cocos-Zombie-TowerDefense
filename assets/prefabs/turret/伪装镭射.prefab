@@ -49,7 +49,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": 88.336,
+      "y": 0,
       "z": 0
     },
     "_lrot": {
@@ -1008,8 +1008,8 @@
     "muzzleOffset": 40,
     "barrelDefaultAngle": 180,
     "rotationSpeed": 90,
-    "colliderHalfW": 35,
-    "colliderHalfH": 35,
+    "colliderHalfW": 40,
+    "colliderHalfH": 40,
     "enableDualShot": false,
     "dualShotSpread": 15,
     "_id": ""
