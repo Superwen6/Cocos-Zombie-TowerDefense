@@ -28,6 +28,9 @@ export class ResourceSpawner extends Component {
     @property({ type: Node, tooltip: '基地节点' })
     baseNode: Node | null = null;
 
+    @property({ type: Node, tooltip: '坐标系参考节点（地图边界均相对于此节点）' })
+    coordinateReference: Node | null = null;
+
     @property({ type: CCFloat, tooltip: '资源稀缺度：铁矿权重（越小越稀有）' })
     scarcityIron = 1;
 
@@ -37,16 +40,16 @@ export class ResourceSpawner extends Component {
     @property({ type: CCFloat, tooltip: '资源稀缺度：木头权重（越小越稀有）' })
     scarcityWood = 4;
 
-    @property({ type: CCFloat, tooltip: '地图最小 X 坐标' })
+    @property({ type: CCFloat, tooltip: '地图最小 X 坐标（相对于 CoordinateReference）' })
     mapMinX = -2310;
 
-    @property({ type: CCFloat, tooltip: '地图最大 X 坐标' })
+    @property({ type: CCFloat, tooltip: '地图最大 X 坐标（相对于 CoordinateReference）' })
     mapMaxX = 3760;
 
-    @property({ type: CCFloat, tooltip: '地图最小 Y 坐标' })
+    @property({ type: CCFloat, tooltip: '地图最小 Y 坐标（相对于 CoordinateReference）' })
     mapMinY = -2710;
 
-    @property({ type: CCFloat, tooltip: '地图最大 Y 坐标' })
+    @property({ type: CCFloat, tooltip: '地图最大 Y 坐标（相对于 CoordinateReference）' })
     mapMaxY = 3350;
 
     start() {
@@ -75,26 +78,38 @@ export class ResourceSpawner extends Component {
 
         log(`[ResourceSpawner] Day 资源生成：请求 ${this.spawnCount}，当前地图 ${currentCount}/${this.mapResourceLimit}，实际生成 ${actualSpawnCount}`);
 
+        // 获取坐标系参考原点（世界坐标），若未赋值则自动查找
+        const coordRef = this.coordinateReference ?? find('GameWorld/CoordinateReference');
+        const refWorldPos = coordRef?.worldPosition ?? Vec3.ZERO;
+        const refX = refWorldPos.x;
+        const refY = refWorldPos.y;
+
         for (let i = 0; i < actualSpawnCount; i++) {
             const prefab = this.pickRandomPrefab();
             if (prefab) {
                 const node = instantiate(prefab);
                 node.setParent(root);
                 
-                // 在地图矩形范围内随机生成位置
+                // 在地图矩形范围内随机生成位置（相对于 CoordinateReference 的本地坐标）
                 let spawnX = this.mapMinX + Math.random() * (this.mapMaxX - this.mapMinX);
                 let spawnY = this.mapMinY + Math.random() * (this.mapMaxY - this.mapMinY);
 
-                // 碰撞检测：避免资源重叠
+                // 碰撞检测使用世界坐标
                 if (CollisionWorld.instance) {
                     const resolved = CollisionWorld.instance.resolvePlacement(
-                        20, 20, ColliderGroup.Resource, spawnX, spawnY,
+                        20, 20, ColliderGroup.Resource, refX + spawnX, refY + spawnY,
                     );
-                    spawnX = resolved.x;
-                    spawnY = resolved.y;
+                    // 转换回本地坐标
+                    spawnX = resolved.x - refX;
+                    spawnY = resolved.y - refY;
                 }
 
-                node.setWorldPosition(new Vec3(spawnX, spawnY, 0));
+                // 确保碰撞解析后仍在边界内
+                spawnX = Math.max(this.mapMinX, Math.min(this.mapMaxX, spawnX));
+                spawnY = Math.max(this.mapMinY, Math.min(this.mapMaxY, spawnY));
+
+                // 设置世界坐标
+                node.setWorldPosition(new Vec3(refX + spawnX, refY + spawnY, 0));
             }
         }
     }
