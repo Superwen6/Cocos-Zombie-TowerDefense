@@ -19,9 +19,11 @@ export class Bullet extends Component {
     private _attackerNode: Node | null = null;
     private _damage = 0;
     private _lifetime = 0;
+    private _homing = true;
     private readonly _hitZombies = new Set<ZombieMove>();
     private readonly _tempVec = new Vec3();
     private readonly _zombiePos = new Vec3();
+    private readonly _initialDir = new Vec3();
 
     static attachToWorld(
         bulletNode: Node,
@@ -42,13 +44,27 @@ export class Bullet extends Component {
         }
     }
 
-    init(targetNode: Node, damage: number, attackerNode?: Node) {
+    init(targetNode: Node, damage: number, attackerNode?: Node, homing = true) {
         this._targetNode = targetNode;
         this._targetZombie = targetNode.getComponent(ZombieMove);
         this._attackerNode = attackerNode ?? null;
         this._damage = damage;
         this._lifetime = 0;
+        this._homing = homing;
         this._hitZombies.clear();
+
+        // 非跟踪模式：记录初始发射方向
+        if (!this._homing) {
+            targetNode.getWorldPosition(this._tempVec);
+            const bulletWP = this.node.worldPosition;
+            this._initialDir.set(
+                this._tempVec.x - bulletWP.x,
+                this._tempVec.y - bulletWP.y,
+                0,
+            );
+            this._initialDir.normalize();
+        }
+
         // 延迟一帧恢复缩放，避免显示预制体默认角度
         setTimeout(() => {
             if (this.node?.isValid) {
@@ -71,10 +87,22 @@ export class Bullet extends Component {
             return;
         }
 
-        this._targetNode.getWorldPosition(this._tempVec);
         const bulletWP = this.node.worldPosition.clone();
-        const dir = this._tempVec.clone().subtract(bulletWP);
-        const dist = dir.length();
+        let dir: Vec3;
+        let dist: number;
+
+        if (this._homing) {
+            // 跟踪模式：每帧重新计算指向目标的方向
+            this._targetNode.getWorldPosition(this._tempVec);
+            dir = this._tempVec.clone().subtract(bulletWP);
+            dist = dir.length();
+            dir.normalize();
+        } else {
+            // 非跟踪模式：沿初始方向直线飞行，但仍检测是否接近目标
+            dir = this._initialDir.clone();
+            this._targetNode.getWorldPosition(this._tempVec);
+            dist = Vec3.distance(bulletWP, this._tempVec);
+        }
 
         if (dist < HIT_RADIUS) {
             this.dealDamageToTarget();
@@ -82,7 +110,6 @@ export class Bullet extends Component {
             return;
         }
 
-        dir.normalize();
         const step = this.speed * dt;
         const nextX = bulletWP.x + dir.x * step;
         const nextY = bulletWP.y + dir.y * step;
@@ -97,7 +124,7 @@ export class Bullet extends Component {
 
         this.node.setWorldPosition(nextX, nextY, 0);
 
-        // 弹头始终指向目标：精灵贴图默认朝上，需要旋转 -90° 对齐 x 轴正方向
+        // 弹头始终指向飞行方向：精灵贴图默认朝上，需要旋转 -90° 对齐 x 轴正方向
         const angle = Math.atan2(dir.y, dir.x) * 180 / Math.PI - 90;
         this.node.eulerAngles = new Vec3(0, 0, angle);
 

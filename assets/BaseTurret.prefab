@@ -993,7 +993,7 @@
     "powerCost": 1,
     "maxHp": 150,
     "damage": 20,
-    "attackInterval": 2,
+    "attackInterval": 0.5,
     "attackRange": 500,
     "bulletPrefab": {
       "__uuid__": "7fee7fe9-1e7d-4bb7-ace5-cb38a14d1f4d",
@@ -1012,6 +1012,7 @@
     "colliderHalfH": 20,
     "enableDualShot": false,
     "dualShotSpread": 15,
+    "homingBullet": false,
     "_id": ""
   },
   {

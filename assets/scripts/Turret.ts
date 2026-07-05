@@ -81,6 +81,9 @@ export class Turret extends Component {
     @property({ type: CCFloat, tooltip: '双发子弹的平行间距（像素）' })
     dualShotSpread = 15;
 
+    @property({ type: Boolean, tooltip: '子弹是否跟踪敌人（取消勾选后子弹沿初始方向直线飞行）' })
+    homingBullet = true;
+
     private hp = 150;
     private fireTimer = 0;
     private lockedTarget: ZombieMove | null = null;
@@ -317,7 +320,7 @@ export class Turret extends Component {
 
         const bullet = bulletNode.getComponent(Bullet);
         if (bullet) {
-            bullet.init(target.node, this.damage, this.node);
+            bullet.init(target.node, this.damage, this.node, this.homingBullet);
         } else {
             warn('[Turret] 子弹预制体上未找到 Bullet 组件');
             bulletNode.destroy();
