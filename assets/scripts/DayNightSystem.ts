@@ -1,5 +1,6 @@
 import {
     _decorator,
+    CCFloat,
     Color,
     Component,
     EventTarget,
@@ -34,8 +35,6 @@ export interface DayNightPhaseChangedDetail {
     currentDay: number;
 }
 
-const NIGHT_MASK_RGB = { r: 30, g: 30, b: 50 };
-
 /**
  * 昼夜交替系统（四阶段模式）。
  * 完整周期：白天(dayDuration) → 渐变(transitionTime) → 黑夜(nightDuration) → 渐变(transitionTime) → 新的一天
@@ -53,6 +52,9 @@ export class DayNightSystem extends Component {
 
     @property({ tooltip: '昼夜切换时遮罩渐变时长（秒）' })
     transitionTime = 10;
+
+    @property({ type: CCFloat, tooltip: '夜晚遮罩最大透明度（0~1，建议0.85左右，保留可见度）', range: [0, 1, 0.01], slide: true })
+    maxNightAlpha = 0.85;
 
     @property({ tooltip: '阶段切换时打印日志' })
     enableLog = true;
@@ -323,53 +325,37 @@ export class DayNightSystem extends Component {
         if (!this._maskOpacity) {
             this._maskOpacity = this.darkMask.node.addComponent(UIOpacity);
         }
-        // 初始为完全透明（白天开始）
+        // 遮罩固定为黑色，仅通过 UIOpacity 控制透明度
+        this.darkMask.color = Color.BLACK;
         this._maskOpacity.opacity = 0;
-        this.darkMask.color = Color.WHITE;
     }
 
-    /** 每帧根据当前阶段和平滑计算遮罩 alpha */
+    /** 每帧根据当前阶段计算遮罩透明度（纯 Alpha 方案，无颜色插值） */
     private updateMaskSmoothly() {
         if (!this.darkMask || !this._maskOpacity) return;
 
+        const maxOpacity = this.maxNightAlpha * 255;
         let targetAlpha: number;
-        let t: number; // 0~1 进度
 
         switch (this._phase) {
             case DayNightPhase.DAY:
-                // 固定白天：完全透明
+                // 白天：完全透明
                 targetAlpha = 0;
-                this.darkMask.color = Color.WHITE;
                 break;
 
             case DayNightPhase.DUSK:
-                // 白天 → 黑夜：alpha 从 0 渐变到 180
-                t = this._elapsed / this.transitionTime;
-                targetAlpha = 180 * t;
-                this.darkMask.color = new Color(
-                    255 + (NIGHT_MASK_RGB.r - 255) * t,
-                    255 + (NIGHT_MASK_RGB.g - 255) * t,
-                    255 + (NIGHT_MASK_RGB.b - 255) * t,
-                    255
-                );
+                // 白天 → 黑夜：0 → maxNightAlpha
+                targetAlpha = maxOpacity * (this._elapsed / this.transitionTime);
                 break;
 
             case DayNightPhase.NIGHT:
-                // 固定黑夜：保持最大透明度
-                targetAlpha = 180;
-                this.darkMask.color = new Color(NIGHT_MASK_RGB.r, NIGHT_MASK_RGB.g, NIGHT_MASK_RGB.b, 255);
+                // 黑夜：保持 maxNightAlpha
+                targetAlpha = maxOpacity;
                 break;
 
             case DayNightPhase.DAWN:
-                // 黑夜 → 白天：alpha 从 180 渐变到 0
-                t = this._elapsed / this.transitionTime;
-                targetAlpha = 180 * (1 - t);
-                this.darkMask.color = new Color(
-                    NIGHT_MASK_RGB.r + (255 - NIGHT_MASK_RGB.r) * t,
-                    NIGHT_MASK_RGB.g + (255 - NIGHT_MASK_RGB.g) * t,
-                    NIGHT_MASK_RGB.b + (255 - NIGHT_MASK_RGB.b) * t,
-                    255
-                );
+                // 黑夜 → 白天：maxNightAlpha → 0
+                targetAlpha = maxOpacity * (1 - this._elapsed / this.transitionTime);
                 break;
 
             default:
