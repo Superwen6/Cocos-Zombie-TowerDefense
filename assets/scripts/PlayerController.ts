@@ -3,6 +3,7 @@ import {
     Animation,
     Camera,
     Canvas,
+    CCFloat,
     Component,
     EventKeyboard,
     EventTouch,
@@ -69,6 +70,21 @@ export class PlayerController extends Component {
 
     @property({ tooltip: '碰撞框半高（碰撞体总高度 = 此值 × 2）' })
     colliderHalfH = 15;
+
+    @property({ type: Node, tooltip: '坐标系参考节点（与ResourceSpawner一致）' })
+    coordinateReference: Node | null = null;
+
+    @property({ type: CCFloat, tooltip: '地图最小 X 坐标（相对于 CoordinateReference）' })
+    mapMinX = -2310;
+
+    @property({ type: CCFloat, tooltip: '地图最大 X 坐标（相对于 CoordinateReference）' })
+    mapMaxX = 3760;
+
+    @property({ type: CCFloat, tooltip: '地图最小 Y 坐标（相对于 CoordinateReference）' })
+    mapMinY = -2710;
+
+    @property({ type: CCFloat, tooltip: '地图最大 Y 坐标（相对于 CoordinateReference）' })
+    mapMaxY = 3350;
 
     /** 从 PlayerState 读取攻击/维修范围（可在属性检查器中调整） */
     private get hitRange(): number {
@@ -273,6 +289,12 @@ export class PlayerController extends Component {
             this._collider.x = toX;
             this._collider.y = toY;
         }
+
+        // 边界限制（以 CoordinateReference 为基准，考虑 GameWorld 偏移）
+        const coordRef = this.coordinateReference ?? find('GameWorld/CoordinateReference');
+        const refWorldPos = coordRef?.worldPosition ?? Vec3.ZERO;
+        toX = Math.max(refWorldPos.x + this.mapMinX, Math.min(refWorldPos.x + this.mapMaxX, toX));
+        toY = Math.max(refWorldPos.y + this.mapMinY, Math.min(refWorldPos.y + this.mapMaxY, toY));
 
         this._tempPos.set(toX, toY, pos.z);
         this.node.setWorldPosition(this._tempPos);
