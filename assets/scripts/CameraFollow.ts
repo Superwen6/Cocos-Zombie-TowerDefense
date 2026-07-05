@@ -1,4 +1,4 @@
-import { _decorator, Camera, Component, EventMouse, input, Input, Node, Vec3 } from 'cc';
+import { _decorator, Camera, CCFloat, Component, EventMouse, find, input, Input, Node, screen, Vec3 } from 'cc';
 const { ccclass, property } = _decorator;
 
 @ccclass('CameraFollow')
@@ -20,6 +20,21 @@ export class CameraFollow extends Component {
 
     @property({ tooltip: '缩放平滑速度（越大越快到位）' })
     zoomSmooth = 8;
+
+    @property({ type: Node, tooltip: '坐标系参考节点（与ResourceSpawner一致）' })
+    coordinateReference: Node | null = null;
+
+    @property({ type: CCFloat, tooltip: '地图最小 X 坐标（相对于 CoordinateReference）' })
+    mapMinX = -2310;
+
+    @property({ type: CCFloat, tooltip: '地图最大 X 坐标（相对于 CoordinateReference）' })
+    mapMaxX = 3760;
+
+    @property({ type: CCFloat, tooltip: '地图最小 Y 坐标（相对于 CoordinateReference）' })
+    mapMinY = -2710;
+
+    @property({ type: CCFloat, tooltip: '地图最大 Y 坐标（相对于 CoordinateReference）' })
+    mapMaxY = 3350;
 
     private _currentPos = new Vec3();
     private _targetPos = new Vec3();
@@ -78,6 +93,43 @@ export class CameraFollow extends Component {
         this._currentPos.y += (this._targetPos.y - this._currentPos.y) * lerpFactor;
         this._currentPos.z = targetZ;
 
+        // 边界限制：确保相机视野不超出地图范围
+        this._clampCameraToMap();
+
         this.node.setWorldPosition(this._currentPos);
+    }
+
+    /** 将相机位置 clamp 到地图边界内，防止显示黑色工作区 */
+    private _clampCameraToMap() {
+        if (!this._camera) return;
+
+        const coordRef = this.coordinateReference ?? find('GameWorld/CoordinateReference');
+        const refPos = coordRef?.worldPosition ?? Vec3.ZERO;
+        const minWorldX = refPos.x + this.mapMinX;
+        const maxWorldX = refPos.x + this.mapMaxX;
+        const minWorldY = refPos.y + this.mapMinY;
+        const maxWorldY = refPos.y + this.mapMaxY;
+
+        const orthoHeight = this._camera.orthoHeight;
+        const windowSize = screen.windowSize;
+        const aspectRatio = windowSize.width / windowSize.height;
+        const halfViewW = orthoHeight * aspectRatio;
+        const halfViewH = orthoHeight;
+
+        const mapW = maxWorldX - minWorldX;
+        const mapH = maxWorldY - minWorldY;
+
+        // 视口大于地图 → 居中；否则 → clamp 边缘
+        if (halfViewW * 2 >= mapW) {
+            this._currentPos.x = (minWorldX + maxWorldX) / 2;
+        } else {
+            this._currentPos.x = Math.max(minWorldX + halfViewW, Math.min(maxWorldX - halfViewW, this._currentPos.x));
+        }
+
+        if (halfViewH * 2 >= mapH) {
+            this._currentPos.y = (minWorldY + maxWorldY) / 2;
+        } else {
+            this._currentPos.y = Math.max(minWorldY + halfViewH, Math.min(maxWorldY - halfViewH, this._currentPos.y));
+        }
     }
 }
