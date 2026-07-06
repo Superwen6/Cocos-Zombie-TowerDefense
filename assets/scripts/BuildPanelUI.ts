@@ -1,4 +1,4 @@
-import { _decorator, Button, Color, Component, Label, SpriteFrame, warn } from 'cc';
+import { _decorator, Button, Color, Component, Label, Sprite, SpriteFrame, warn } from 'cc';
 import { BaseSystem } from './BaseSystem';
 import { PlayerData } from './PlayerData';
 import { TurretPlacementManager, TurretPlacementCost } from './TurretPlacementManager';
