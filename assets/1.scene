@@ -20684,9 +20684,6 @@
     "closePanelButton": {
       "__id__": 506
     },
-    "panelRootNode": {
-      "__id__": 499
-    },
     "warningLabel": {
       "__id__": 743
     },
@@ -21090,9 +21087,6 @@
     },
     "closePanelButton": {
       "__id__": 506
-    },
-    "panelRootNode": {
-      "__id__": 499
     },
     "warningLabel": null,
     "_id": "8d1UkZMKBM64+oyLE3jnsz"
