@@ -3,6 +3,7 @@ import { PlayerData } from './PlayerData';
 import { PlayerState } from './PlayerState';
 import { BaseSystem } from './BaseSystem';
 import { GlobalContainerStorage } from './GlobalContainerStorage';
+import { BuildPanelUI } from './BuildPanelUI';
 
 const { ccclass, property } = _decorator;
 
@@ -73,6 +74,9 @@ export class GameHUDUI extends Component {
     private _refreshTimer = 0;
 
     start() {
+        // 确保打开面板按钮绑定（即使 UpgradePanel 未激活）
+        BuildPanelUI.ensureOpenPanelBinding();
+
         // 设置资源图标
         if (this.ironIcon && this.ironIconSprite) this.ironIcon.spriteFrame = this.ironIconSprite;
         if (this.copperIcon && this.copperIconSprite) this.copperIcon.spriteFrame = this.copperIconSprite;

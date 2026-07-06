@@ -10714,7 +10714,7 @@
         "__id__": 741
       }
     ],
-    "_active": true,
+    "_active": false,
     "_components": [
       {
         "__id__": 744
@@ -20943,7 +20943,7 @@
       "b": 255,
       "a": 255
     },
-    "_string": "升级",
+    "_string": "建造",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
     "_actualFontSize": 20,

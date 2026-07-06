@@ -1,4 +1,4 @@
-import { _decorator, Button, Color, Component, Label, Sprite, SpriteFrame, warn } from 'cc';
+import { _decorator, Button, Color, Component, find, Label, Sprite, SpriteFrame, warn } from 'cc';
 import { BaseSystem } from './BaseSystem';
 import { PlayerData } from './PlayerData';
 import { TurretPlacementManager, TurretPlacementCost } from './TurretPlacementManager';
@@ -64,13 +64,19 @@ export class BuildPanelUI extends Component {
     private _refreshTimer = 0;
     private _warningTimer = 0;
     private _panelVisible = false;
+    private static _openPanelBound = false;
+    private static _pendingOpen = false;
 
     start() {
         this.bindButton(this.upgradeButton, this.onUpgradeClick, 'upgradeButton');
-        this.bindButton(this.openPanelButton, this.showPanel, 'openPanelButton');
         this.bindButton(this.closePanelButton, this.hidePanel, 'closePanelButton');
 
-        this.hidePanel();
+        if (BuildPanelUI._pendingOpen) {
+            BuildPanelUI._pendingOpen = false;
+            this.showPanel();
+        } else {
+            this.hidePanel();
+        }
         if (this.warningLabel) {
             this.warningLabel.node.active = false;
         }
@@ -78,7 +84,6 @@ export class BuildPanelUI extends Component {
 
     onDestroy() {
         this.unbindButton(this.upgradeButton, this.onUpgradeClick);
-        this.unbindButton(this.openPanelButton, this.showPanel);
         this.unbindButton(this.closePanelButton, this.hidePanel);
     }
 
@@ -129,6 +134,41 @@ export class BuildPanelUI extends Component {
     /** 查询面板是否可见 */
     public isPanelVisible(): boolean {
         return this._panelVisible;
+    }
+
+    /**
+     * 确保打开面板按钮的点击事件已绑定。
+     * 支持 UpgradePanel 节点在编辑器中未勾选激活的场景。
+     * 从 GameHUDUI 等始终激活的组件的 start() 中调用。
+     */
+    public static ensureOpenPanelBinding() {
+        if (BuildPanelUI._openPanelBound) return;
+        BuildPanelUI._openPanelBound = true;
+
+        const upgradePanel = find('Canvas/UpgradePanel');
+        if (!upgradePanel) {
+            warn('[BuildPanelUI] 找不到 Canvas/UpgradePanel，打开面板按钮绑定失败');
+            return;
+        }
+        const buildPanel = upgradePanel.getComponent(BuildPanelUI);
+        if (!buildPanel) {
+            warn('[BuildPanelUI] UpgradePanel 上无 BuildPanelUI 组件');
+            return;
+        }
+        const btn = buildPanel.openPanelButton;
+        if (!btn) {
+            warn('[BuildPanelUI] openPanelButton 未绑定');
+            return;
+        }
+        btn.node.on(Button.EventType.CLICK, () => {
+            if (!upgradePanel.active) {
+                // 节点未激活 → 先激活，start() 会通过 _pendingOpen 显示面板
+                BuildPanelUI._pendingOpen = true;
+                upgradePanel.active = true;
+            } else {
+                buildPanel.showPanel();
+            }
+        }, buildPanel);
     }
 
     /**
