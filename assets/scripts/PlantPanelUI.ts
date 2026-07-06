@@ -3,6 +3,7 @@ import { TurretPlacementManager, TurretPlacementCost } from './TurretPlacementMa
 import { PlayerData } from './PlayerData';
 import { PlantGenerator } from './PlantGenerator';
 import { BaseSystem } from './BaseSystem';
+import { BuildPanelUI } from './BuildPanelUI';
 
 const { ccclass, property } = _decorator;
 
@@ -14,9 +15,6 @@ const { ccclass, property } = _decorator;
  */
 @ccclass('PlantPanelUI')
 export class PlantPanelUI extends Component {
-    @property({ type: Node, tooltip: 'UpgradePanel 面板根节点，点击按钮后关闭' })
-    panelRoot: Node | null = null;
-
     @property({
         type: [Node],
         tooltip: '发电机按钮节点数组 [0]光伏板 [1]光伏矩阵 [2]燃料电机 [3]能源核心',
@@ -134,10 +132,11 @@ export class PlantPanelUI extends Component {
         manager.startPlantPlacementByNode(targetNode, prefab, cost, plantId);
     }
 
-    /** 关闭 UpgradePanel */
+    /** 关闭 UpgradePanel（通过 BuildPanelUI.hidePanel 避免直接 deactivate 宿主节点） */
     hidePanel() {
-        if (this.panelRoot) {
-            this.panelRoot.active = false;
+        const buildPanel = this.getComponent(BuildPanelUI);
+        if (buildPanel) {
+            buildPanel.hidePanel();
         }
     }
 }

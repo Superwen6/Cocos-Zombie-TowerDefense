@@ -20561,9 +20561,6 @@
     },
     "_enabled": true,
     "__prefab": null,
-    "panelRoot": {
-      "__id__": 499
-    },
     "plantBtnNodes": [
       {
         "__id__": 556
@@ -20622,9 +20619,6 @@
     },
     "_enabled": true,
     "__prefab": null,
-    "panelRoot": {
-      "__id__": 499
-    },
     "containerPrefab": {
       "__uuid__": "73af04a0-e74a-426a-be39-9d3e1f51562c",
       "__expectedType__": "cc.Prefab"

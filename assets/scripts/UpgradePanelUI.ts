@@ -13,9 +13,6 @@ const { ccclass, property } = _decorator;
  */
 @ccclass('UpgradePanelUI')
 export class UpgradePanelUI extends Component {
-    @property({ type: Node, tooltip: 'UpgradePanel 面板根节点，点击按钮后关闭' })
-    panelRoot: Node | null = null;
-
     @property({ type: Prefab, tooltip: '集装箱预制体（container.prefab）' })
     containerPrefab: Prefab | null = null;
 
@@ -84,10 +81,11 @@ export class UpgradePanelUI extends Component {
         manager.startContainerPlacement(this.containerPrefab, cost);
     }
 
-    /** 关闭 UpgradePanel */
+    /** 关闭 UpgradePanel（通过 BuildPanelUI.hidePanel 避免直接 deactivate 宿主节点） */
     hidePanel() {
-        if (this.panelRoot) {
-            this.panelRoot.active = false;
+        const buildPanel = this.getComponent(BuildPanelUI);
+        if (buildPanel) {
+            buildPanel.hidePanel();
         }
     }
 }
