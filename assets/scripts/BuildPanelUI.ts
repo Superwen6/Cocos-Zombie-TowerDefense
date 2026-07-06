@@ -1,6 +1,9 @@
-import { _decorator, Button, Color, Component, Label, Node, Sprite, warn } from 'cc';
+import { _decorator, Button, Color, Component, Label, Layout, Node, Sprite, SpriteFrame, UITransform, warn } from 'cc';
 import { BaseSystem } from './BaseSystem';
 import { PlayerData } from './PlayerData';
+import { TurretPlacementManager, TurretPlacementCost } from './TurretPlacementManager';
+import { PlantPanelUI } from './PlantPanelUI';
+import { UpgradePanelUI } from './UpgradePanelUI';
 
 const { ccclass, property } = _decorator;
 
@@ -19,8 +22,35 @@ export class BuildPanelUI extends Component {
     @property({ type: Label, tooltip: '当前基地等级文本' })
     levelText: Label | null = null;
 
-    @property({ type: Label, tooltip: '升级消耗与拥有量对比文本' })
+    // ---- 保留旧属性用于兼容（已废弃，改用独立 cost label） ----
+    @property({ type: Label, tooltip: '升级消耗与拥有量对比文本（已废弃）' })
     resourceCostText: Label | null = null;
+
+    // ---- 新的独立资源消耗 Label ----
+    @property({ type: Label, tooltip: '木头消耗文本（ResourceCostText/CostWood/Value）' })
+    costWoodLabel: Label | null = null;
+
+    @property({ type: Label, tooltip: '铜矿消耗文本（ResourceCostText/CostCopper/Value）' })
+    costCopperLabel: Label | null = null;
+
+    @property({ type: Label, tooltip: '铁矿消耗文本（ResourceCostText/CostIron/Value）' })
+    costIronLabel: Label | null = null;
+
+    @property({ type: Label, tooltip: '美金消耗文本（ResourceCostText/CostMoney/Value）' })
+    costMoneyLabel: Label | null = null;
+
+    // ---- 图标 SpriteFrame ----
+    @property({ type: SpriteFrame, tooltip: '木头图标' })
+    woodIconSprite: SpriteFrame | null = null;
+
+    @property({ type: SpriteFrame, tooltip: '铜矿图标' })
+    copperIconSprite: SpriteFrame | null = null;
+
+    @property({ type: SpriteFrame, tooltip: '铁矿图标' })
+    ironIconSprite: SpriteFrame | null = null;
+
+    @property({ type: SpriteFrame, tooltip: '美金图标' })
+    moneyIconSprite: SpriteFrame | null = null;
 
     @property({ type: Button, tooltip: '屏幕下方：打开升级面板' })
     openPanelButton: Button | null = null;
@@ -36,6 +66,7 @@ export class BuildPanelUI extends Component {
 
     private _refreshTimer = 0;
     private _warningTimer = 0;
+    private _costDisplaysInitialized = false;
 
     start() {
         this.bindButton(this.upgradeButton, this.onUpgradeClick, 'upgradeButton');
@@ -46,6 +77,8 @@ export class BuildPanelUI extends Component {
         if (this.warningLabel) {
             this.warningLabel.node.active = false;
         }
+
+        this.setupCostDisplays();
     }
 
     onDestroy() {
@@ -150,7 +183,7 @@ export class BuildPanelUI extends Component {
         this._warningTimer = 2;
     }
 
-    /** 公共刷新方法：更新等级文本 + 资源颜色反馈 */
+    /** 公共刷新方法：更新等级文本 + 各资源消耗图标文本 + 颜色反馈 */
     refreshUpgradeUI() {
         const base = BaseSystem.instance;
         const data = PlayerData.instance;
@@ -166,11 +199,12 @@ export class BuildPanelUI extends Component {
             }
         }
 
-        // 资源文本 + 颜色反馈
-        if (this.resourceCostText) {
-            this.resourceCostText.string = this.buildCostText(base, data);
-            this.resourceCostText.color = this.getCostColor(base, data);
-        }
+        // 更新独立的资源消耗标签
+        this.refreshCostLabels(base, data);
+
+        // 更新植物和集装箱的消耗显示
+        this.refreshPlantCostDisplays(data);
+        this.refreshContainerCostDisplay(data);
 
         // 按钮交互状态
         if (this.upgradeButton) {
@@ -180,51 +214,192 @@ export class BuildPanelUI extends Component {
         }
     }
 
-    /** 拼装升级消耗与玩家拥有量对比字符串 */
-    private buildCostText(base: BaseSystem | null, data: PlayerData | null): string {
-        if (!base) {
-            return '升级需要: (基地系统未就绪)';
-        }
-
-        if (!data) {
-            return '升级需要: (资源数据未就绪)';
-        }
-
-        if (base.isMaxLevel) {
-            return '升级需要: 已满级 MAX';
+    /** 使用独立 Label 更新基地升级资源消耗 */
+    private refreshCostLabels(base: BaseSystem | null, data: PlayerData | null) {
+        if (!base || !data || base.isMaxLevel) {
+            this.setCostLabel(this.costWoodLabel, '0/0', false);
+            this.setCostLabel(this.costCopperLabel, '0/0', false);
+            this.setCostLabel(this.costIronLabel, '0/0', false);
+            this.setCostLabel(this.costMoneyLabel, '0/0', false);
+            return;
         }
 
         const tier = base.getNextUpgradeTier();
         if (!tier) {
-            return '升级需要: 无下一级配置';
+            this.setCostLabel(this.costWoodLabel, '0/0', false);
+            this.setCostLabel(this.costCopperLabel, '0/0', false);
+            this.setCostLabel(this.costIronLabel, '0/0', false);
+            this.setCostLabel(this.costMoneyLabel, '0/0', false);
+            return;
         }
 
-        return (
-            `升级需要: 木:${data.woodCount}/${tier.wood} 铜:${data.copperCount}/${tier.copper} 铁:${data.ironCount}/${tier.iron} 美金:${data.money}/${tier.money}`
-        );
+        this.setCostLabel(this.costWoodLabel, `${data.woodCount}/${tier.wood}`, data.woodCount >= tier.wood);
+        this.setCostLabel(this.costCopperLabel, `${data.copperCount}/${tier.copper}`, data.copperCount >= tier.copper);
+        this.setCostLabel(this.costIronLabel, `${data.ironCount}/${tier.iron}`, data.ironCount >= tier.iron);
+        this.setCostLabel(this.costMoneyLabel, `${data.money}/${tier.money}`, data.money >= tier.money);
     }
 
-    /** 根据资源是否充足返回颜色：全部充足 → 白色，任一不足 → 红色 */
-    private getCostColor(base: BaseSystem | null, data: PlayerData | null): Color {
-        if (!base || !data || base.isMaxLevel) {
-            return new Color(255, 255, 255, 255);
-        }
-
-        const tier = base.getNextUpgradeTier();
-        if (!tier) {
-            return new Color(255, 255, 255, 255);
-        }
-
-        const canAfford =
-            data.woodCount >= tier.wood &&
-            data.copperCount >= tier.copper &&
-            data.ironCount >= tier.iron &&
-            data.money >= tier.money;
-
-        return canAfford
+    private setCostLabel(label: Label | null, text: string, affordable: boolean) {
+        if (!label) return;
+        label.string = text;
+        label.color = affordable
             ? new Color(255, 255, 255, 255)
             : new Color(255, 0, 0, 255);
     }
+
+    // ==================== 植物 & 集装箱 CostDisplay 初始化 ====================
+
+    /** 为每个植物的 CostDisplay 和集装箱的 CostDisplay 创建 Icon+Value 子节点 */
+    private setupCostDisplays() {
+        if (this._costDisplaysInitialized) return;
+        this._costDisplaysInitialized = true;
+
+        const panelRoot = this.panelRootNode;
+        if (!panelRoot) return;
+
+        // 植物 CostDisplay
+        const plantNames = ['Firstplant', 'Secondplant', 'Thirdplant', 'Fourthplant'];
+        for (const plantName of plantNames) {
+            const plantNode = panelRoot.getChildByName(plantName);
+            if (!plantNode) continue;
+            const costDisplay = plantNode.getChildByName('CostDisplay');
+            if (!costDisplay) continue;
+            this.ensureCostDisplayChildren(costDisplay, ['wood', 'iron', 'copper']);
+        }
+
+        // 集装箱 CostDisplay
+        const containerNode = panelRoot.getChildByName('container');
+        if (containerNode) {
+            const costDisplay = containerNode.getChildByName('CostDisplay');
+            if (costDisplay) {
+                this.ensureCostDisplayChildren(costDisplay, ['wood', 'iron', 'copper']);
+            }
+        }
+    }
+
+    /** 为 CostDisplay 容器创建 CostWood/CostIron/CostCopper 子节点，每个含 Icon(Sprite) + Value(Label) */
+    private ensureCostDisplayChildren(parent: Node, resourceTypes: string[]) {
+        // 已初始化则跳过
+        if (parent.getChildByName('CostWood')) return;
+
+        for (const resType of resourceTypes) {
+            const capitalizedName = resType.charAt(0).toUpperCase() + resType.slice(1);
+            const costNode = new Node(`Cost${capitalizedName}`);
+            const uiTransform = costNode.addComponent(UITransform);
+            const layout = costNode.addComponent(Layout);
+            layout.type = Layout.Type.HORIZONTAL;
+            parent.addChild(costNode);
+
+            // Icon
+            const icon = new Node('Icon');
+            const iconTransform = icon.addComponent(UITransform);
+            iconTransform.setContentSize(24, 24);
+            const sprite = icon.addComponent(Sprite);
+            this.setSpriteFrameByType(sprite, resType);
+            costNode.addChild(icon);
+
+            // Value
+            const value = new Node('Value');
+            value.addComponent(UITransform);
+            const label = value.addComponent(Label);
+            label.fontSize = 20;
+            label.string = '0/0';
+            costNode.addChild(value);
+        }
+    }
+
+    /** 根据资源类型设置 SpriteFrame */
+    private setSpriteFrameByType(sprite: Sprite, resType: string) {
+        switch (resType) {
+            case 'wood':
+                if (this.woodIconSprite) sprite.spriteFrame = this.woodIconSprite;
+                break;
+            case 'copper':
+                if (this.copperIconSprite) sprite.spriteFrame = this.copperIconSprite;
+                break;
+            case 'iron':
+                if (this.ironIconSprite) sprite.spriteFrame = this.ironIconSprite;
+                break;
+            case 'money':
+                if (this.moneyIconSprite) sprite.spriteFrame = this.moneyIconSprite;
+                break;
+        }
+    }
+
+    // ==================== 植物 & 集装箱 CostDisplay 刷新 ====================
+
+    /** 刷新所有植物的消耗显示 */
+    private refreshPlantCostDisplays(data: PlayerData | null) {
+        const panelRoot = this.panelRootNode;
+        if (!panelRoot) return;
+
+        const plantPanel = this.getComponent(PlantPanelUI);
+        if (!plantPanel) return;
+
+        const plantNames = ['Firstplant', 'Secondplant', 'Thirdplant', 'Fourthplant'];
+        for (let i = 0; i < plantNames.length; i++) {
+            const plantNode = panelRoot.getChildByName(plantNames[i]);
+            if (!plantNode) continue;
+            const costDisplay = plantNode.getChildByName('CostDisplay');
+            if (!costDisplay) continue;
+
+            const prefab = plantPanel.plantPrefabs?.[i];
+            if (prefab) {
+                const manager = TurretPlacementManager.instance;
+                const cost = manager ? manager.getCostsFromPrefab(prefab) : null;
+                this.updateCostDisplayChildren(costDisplay, cost, data);
+            }
+        }
+    }
+
+    /** 刷新集装箱的消耗显示 */
+    private refreshContainerCostDisplay(data: PlayerData | null) {
+        const panelRoot = this.panelRootNode;
+        if (!panelRoot) return;
+
+        const containerNode = panelRoot.getChildByName('container');
+        if (!containerNode) return;
+        const costDisplay = containerNode.getChildByName('CostDisplay');
+        if (!costDisplay) return;
+
+        const upgradePanel = this.getComponent(UpgradePanelUI);
+        if (!upgradePanel) return;
+
+        const prefab = upgradePanel.containerPrefab;
+        if (prefab) {
+            const manager = TurretPlacementManager.instance;
+            const cost = manager ? manager.getCostsFromPrefab(prefab) : null;
+            this.updateCostDisplayChildren(costDisplay, cost, data);
+        }
+    }
+
+    /** 更新 CostDisplay 下各个 CostWood/CostIron/CostCopper 的 Value Label */
+    private updateCostDisplayChildren(costDisplay: Node, cost: TurretPlacementCost | null, data: PlayerData | null) {
+        if (!cost || !data) {
+            this.setCostChildValue(costDisplay, 'CostWood', '?/?');
+            this.setCostChildValue(costDisplay, 'CostIron', '?/?');
+            this.setCostChildValue(costDisplay, 'CostCopper', '?/?');
+            return;
+        }
+
+        this.setCostChildValue(costDisplay, 'CostWood', `${cost.wood}`);
+        this.setCostChildValue(costDisplay, 'CostIron', `${cost.iron}`);
+        this.setCostChildValue(costDisplay, 'CostCopper', `${cost.copper}`);
+    }
+
+    /** 设置 CostDisplay 下某个子节点的 Value Label */
+    private setCostChildValue(costDisplay: Node, childName: string, text: string) {
+        const costNode = costDisplay.getChildByName(childName);
+        if (!costNode) return;
+        const valueNode = costNode.getChildByName('Value');
+        if (!valueNode) return;
+        const label = valueNode.getComponent(Label);
+        if (label) {
+            label.string = text;
+        }
+    }
+
+    // ==================== 按钮绑定 ====================
 
     private bindButton(
         button: Button | null,
