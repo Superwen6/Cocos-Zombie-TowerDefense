@@ -58,14 +58,12 @@ export class BuildPanelUI extends Component {
     @property({ type: Button, tooltip: '面板右上角：关闭 X' })
     closePanelButton: Button | null = null;
 
-    @property({ type: Node, tooltip: '面板视觉主体，控制整块面板的显示/隐藏' })
-    panelRootNode: Node | null = null;
-
     @property({ type: Label, tooltip: '升级警告提示 Label（显示2秒后自动隐藏）' })
     warningLabel: Label | null = null;
 
     private _refreshTimer = 0;
     private _warningTimer = 0;
+    private _panelVisible = false;
 
     start() {
         this.bindButton(this.upgradeButton, this.onUpgradeClick, 'upgradeButton');
@@ -96,7 +94,7 @@ export class BuildPanelUI extends Component {
             }
         }
 
-        if (!this.panelRootNode?.active) {
+        if (!this._panelVisible) {
             return;
         }
 
@@ -109,16 +107,8 @@ export class BuildPanelUI extends Component {
 
     /** 显示升级面板 */
     showPanel() {
-        if (!this.panelRootNode) {
-            warn('[BuildPanelUI] 未绑定 panelRootNode，无法显示面板');
-            return;
-        }
-
-        if (this.panelRootNode === this.node) {
-            this.setHostPanelVisible(true);
-        } else {
-            this.panelRootNode.active = true;
-        }
+        this._panelVisible = true;
+        this.setHostPanelVisible(true);
 
         this._refreshTimer = 0;
         this.refreshUpgradeUI();
@@ -126,20 +116,12 @@ export class BuildPanelUI extends Component {
 
     /** 隐藏升级面板 */
     hidePanel() {
-        if (!this.panelRootNode) {
-            warn('[BuildPanelUI] 未绑定 panelRootNode，无法隐藏面板');
-            return;
-        }
-
-        if (this.panelRootNode === this.node) {
-            this.setHostPanelVisible(false);
-        } else {
-            this.panelRootNode.active = false;
-        }
+        this._panelVisible = false;
+        this.setHostPanelVisible(false);
     }
 
     /**
-     * panelRootNode 指向 UpgradePanel 自身时：只隐藏子节点与背景，不 deactivate 宿主。
+     * 隐藏/显示面板：只隐藏子节点与背景 Sprite，不 deactivate 宿主节点。
      */
     private setHostPanelVisible(visible: boolean) {
         const sprite = this.node.getComponent(Sprite);
@@ -248,15 +230,12 @@ export class BuildPanelUI extends Component {
 
     /** 刷新所有植物的消耗显示 */
     private refreshPlantCostDisplays(data: PlayerData | null) {
-        const panelRoot = this.panelRootNode;
-        if (!panelRoot) return;
-
         const plantPanel = this.getComponent(PlantPanelUI);
         if (!plantPanel) return;
 
         const plantNames = ['Firstplant', 'Secondplant', 'Thirdplant', 'Fourthplant'];
         for (let i = 0; i < plantNames.length; i++) {
-            const plantNode = panelRoot.getChildByName(plantNames[i]);
+            const plantNode = this.node.getChildByName(plantNames[i]);
             if (!plantNode) continue;
             const costDisplay = plantNode.getChildByName('CostDisplay');
             if (!costDisplay) continue;
@@ -272,10 +251,7 @@ export class BuildPanelUI extends Component {
 
     /** 刷新集装箱的消耗显示 */
     private refreshContainerCostDisplay(data: PlayerData | null) {
-        const panelRoot = this.panelRootNode;
-        if (!panelRoot) return;
-
-        const containerNode = panelRoot.getChildByName('container');
+        const containerNode = this.node.getChildByName('container');
         if (!containerNode) return;
         const costDisplay = containerNode.getChildByName('CostDisplay');
         if (!costDisplay) return;
