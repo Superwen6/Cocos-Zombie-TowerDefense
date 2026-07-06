@@ -1,4 +1,4 @@
-import { _decorator, Component, Label, Sprite, Color } from 'cc';
+import { _decorator, Component, Label, Sprite, SpriteFrame, Color } from 'cc';
 import { PlayerData } from './PlayerData';
 import { PlayerState } from './PlayerState';
 import { BaseSystem } from './BaseSystem';
@@ -14,8 +14,8 @@ const POWER_YELLOW = new Color(255, 220, 60, 255);
 const POWER_RED = new Color(255, 60, 60, 255);
 
 /**
- * 常驻 HUD：实时显示玩家血量、疲劳与美金。
- * 挂在 Canvas 下常驻 HUD 根节点上。
+ * 常驻 HUD：实时显示玩家血量、疲劳与资源。
+ * 资源显示为 [图标] 背包/仓库 格式。
  */
 @ccclass('GameHUDUI')
 export class GameHUDUI extends Component {
@@ -28,6 +28,33 @@ export class GameHUDUI extends Component {
     @property({ type: Label, tooltip: '金钱文本' })
     moneyText: Label | null = null;
 
+    // ---- 资源图标 Sprite ----
+    @property({ type: Sprite, tooltip: '铁矿图标 Sprite' })
+    ironIcon: Sprite | null = null;
+
+    @property({ type: Sprite, tooltip: '铜矿图标 Sprite' })
+    copperIcon: Sprite | null = null;
+
+    @property({ type: Sprite, tooltip: '木头图标 Sprite' })
+    woodIcon: Sprite | null = null;
+
+    @property({ type: Sprite, tooltip: '金钱图标 Sprite' })
+    moneyIcon: Sprite | null = null;
+
+    // ---- 资源图标 SpriteFrame ----
+    @property({ type: SpriteFrame, tooltip: '铁矿图标素材' })
+    ironIconSprite: SpriteFrame | null = null;
+
+    @property({ type: SpriteFrame, tooltip: '铜矿图标素材' })
+    copperIconSprite: SpriteFrame | null = null;
+
+    @property({ type: SpriteFrame, tooltip: '木头图标素材' })
+    woodIconSprite: SpriteFrame | null = null;
+
+    @property({ type: SpriteFrame, tooltip: '金钱图标素材' })
+    moneyIconSprite: SpriteFrame | null = null;
+
+    // ---- 资源文本 Label ----
     @property({ type: Label, tooltip: '铁矿文本' })
     ironText: Label | null = null;
 
@@ -46,6 +73,12 @@ export class GameHUDUI extends Component {
     private _refreshTimer = 0;
 
     start() {
+        // 设置资源图标
+        if (this.ironIcon && this.ironIconSprite) this.ironIcon.spriteFrame = this.ironIconSprite;
+        if (this.copperIcon && this.copperIconSprite) this.copperIcon.spriteFrame = this.copperIconSprite;
+        if (this.woodIcon && this.woodIconSprite) this.woodIcon.spriteFrame = this.woodIconSprite;
+        if (this.moneyIcon && this.moneyIconSprite) this.moneyIcon.spriteFrame = this.moneyIconSprite;
+
         this.refreshHUD();
     }
 
@@ -79,36 +112,36 @@ export class GameHUDUI extends Component {
 
         if (this.moneyText) {
             if (data) {
-                this.moneyText.string = `资产: $${data.money}`;
+                this.moneyText.string = `$${data.money}`;
             } else {
-                this.moneyText.string = '资产: $--';
+                this.moneyText.string = '$--';
             }
         }
 
         if (this.ironText) {
             if (data) {
                 const storage = GlobalContainerStorage.instance;
-                this.ironText.string = `铁矿: ${data.ironCount}/${storage ? storage.storedIron : 0}`;
+                this.ironText.string = `${data.ironCount}/${storage ? storage.storedIron : 0}`;
             } else {
-                this.ironText.string = '铁矿: --/--';
+                this.ironText.string = '--/--';
             }
         }
 
         if (this.copperText) {
             if (data) {
                 const storage = GlobalContainerStorage.instance;
-                this.copperText.string = `铜矿: ${data.copperCount}/${storage ? storage.storedCopper : 0}`;
+                this.copperText.string = `${data.copperCount}/${storage ? storage.storedCopper : 0}`;
             } else {
-                this.copperText.string = '铜矿: --/--';
+                this.copperText.string = '--/--';
             }
         }
 
         if (this.woodText) {
             if (data) {
                 const storage = GlobalContainerStorage.instance;
-                this.woodText.string = `木头: ${data.woodCount}/${storage ? storage.storedWood : 0}`;
+                this.woodText.string = `${data.woodCount}/${storage ? storage.storedWood : 0}`;
             } else {
-                this.woodText.string = '木头: --/--';
+                this.woodText.string = '--/--';
             }
         }
 
