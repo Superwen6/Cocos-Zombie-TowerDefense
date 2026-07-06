@@ -277,34 +277,41 @@ export class BuildPanelUI extends Component {
         }
     }
 
-    /** 为 CostDisplay 容器创建 CostWood/CostIron/CostCopper 子节点，每个含 Icon(Sprite) + Value(Label) */
+    /** 为 CostDisplay 容器确保 CostWood/CostIron/CostCopper 子节点存在，每个含 Icon(Sprite) + Value(Label) */
     private ensureCostDisplayChildren(parent: Node, resourceTypes: string[]) {
-        // 已初始化则跳过
-        if (parent.getChildByName('CostWood')) return;
-
         for (const resType of resourceTypes) {
             const capitalizedName = resType.charAt(0).toUpperCase() + resType.slice(1);
-            const costNode = new Node(`Cost${capitalizedName}`);
-            const uiTransform = costNode.addComponent(UITransform);
-            const layout = costNode.addComponent(Layout);
-            layout.type = Layout.Type.HORIZONTAL;
-            parent.addChild(costNode);
+            let costNode = parent.getChildByName(`Cost${capitalizedName}`);
 
-            // Icon
-            const icon = new Node('Icon');
-            const iconTransform = icon.addComponent(UITransform);
-            iconTransform.setContentSize(24, 24);
-            const sprite = icon.addComponent(Sprite);
-            this.setSpriteFrameByType(sprite, resType);
-            costNode.addChild(icon);
+            if (!costNode) {
+                costNode = new Node(`Cost${capitalizedName}`);
+                const uiTransform = costNode.addComponent(UITransform);
+                const layout = costNode.addComponent(Layout);
+                layout.type = Layout.Type.HORIZONTAL;
+                parent.addChild(costNode);
+            }
 
-            // Value
-            const value = new Node('Value');
-            value.addComponent(UITransform);
-            const label = value.addComponent(Label);
-            label.fontSize = 20;
-            label.string = '0/0';
-            costNode.addChild(value);
+            // 确保 Icon 子节点存在
+            let icon = costNode.getChildByName('Icon');
+            if (!icon) {
+                icon = new Node('Icon');
+                const iconTransform = icon.addComponent(UITransform);
+                iconTransform.setContentSize(24, 24);
+                const sprite = icon.addComponent(Sprite);
+                this.setSpriteFrameByType(sprite, resType);
+                costNode.addChild(icon);
+            }
+
+            // 确保 Value 子节点存在
+            let value = costNode.getChildByName('Value');
+            if (!value) {
+                value = new Node('Value');
+                value.addComponent(UITransform);
+                const label = value.addComponent(Label);
+                label.fontSize = 20;
+                label.string = '0/0';
+                costNode.addChild(value);
+            }
         }
     }
 
@@ -373,22 +380,22 @@ export class BuildPanelUI extends Component {
         }
     }
 
-    /** 更新 CostDisplay 下各个 CostWood/CostIron/CostCopper 的 Value Label */
+    /** 更新 CostDisplay 下各个 CostWood/CostIron/CostCopper 的 Value Label，格式与 ResourceCostText 一致 */
     private updateCostDisplayChildren(costDisplay: Node, cost: TurretPlacementCost | null, data: PlayerData | null) {
         if (!cost || !data) {
-            this.setCostChildValue(costDisplay, 'CostWood', '?/?');
-            this.setCostChildValue(costDisplay, 'CostIron', '?/?');
-            this.setCostChildValue(costDisplay, 'CostCopper', '?/?');
+            this.setCostChildValue(costDisplay, 'CostWood', '?/?', false);
+            this.setCostChildValue(costDisplay, 'CostIron', '?/?', false);
+            this.setCostChildValue(costDisplay, 'CostCopper', '?/?', false);
             return;
         }
 
-        this.setCostChildValue(costDisplay, 'CostWood', `${cost.wood}`);
-        this.setCostChildValue(costDisplay, 'CostIron', `${cost.iron}`);
-        this.setCostChildValue(costDisplay, 'CostCopper', `${cost.copper}`);
+        this.setCostChildValue(costDisplay, 'CostWood', `${data.woodCount}/${cost.wood}`, data.woodCount >= cost.wood);
+        this.setCostChildValue(costDisplay, 'CostIron', `${data.ironCount}/${cost.iron}`, data.ironCount >= cost.iron);
+        this.setCostChildValue(costDisplay, 'CostCopper', `${data.copperCount}/${cost.copper}`, data.copperCount >= cost.copper);
     }
 
-    /** 设置 CostDisplay 下某个子节点的 Value Label */
-    private setCostChildValue(costDisplay: Node, childName: string, text: string) {
+    /** 设置 CostDisplay 下某个子节点的 Value Label，含颜色反馈 */
+    private setCostChildValue(costDisplay: Node, childName: string, text: string, affordable: boolean = true) {
         const costNode = costDisplay.getChildByName(childName);
         if (!costNode) return;
         const valueNode = costNode.getChildByName('Value');
@@ -396,6 +403,9 @@ export class BuildPanelUI extends Component {
         const label = valueNode.getComponent(Label);
         if (label) {
             label.string = text;
+            label.color = affordable
+                ? new Color(255, 255, 255, 255)
+                : new Color(255, 0, 0, 255);
         }
     }
 
