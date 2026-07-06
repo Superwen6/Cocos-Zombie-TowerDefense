@@ -112,12 +112,23 @@ export class BuildPanelUI extends Component {
 
         this._refreshTimer = 0;
         this.refreshUpgradeUI();
+
+        // 面板打开时刷新发电机按钮状态（active 与交互状态）
+        const plantPanel = this.getComponent(PlantPanelUI);
+        if (plantPanel) {
+            plantPanel.refreshButtonStates();
+        }
     }
 
     /** 隐藏升级面板 */
     hidePanel() {
         this._panelVisible = false;
         this.setHostPanelVisible(false);
+    }
+
+    /** 查询面板是否可见 */
+    public isPanelVisible(): boolean {
+        return this._panelVisible;
     }
 
     /**

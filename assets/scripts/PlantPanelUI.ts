@@ -57,15 +57,19 @@ export class PlantPanelUI extends Component {
     refreshButtonStates() {
         const baseSystem = BaseSystem.instance;
         const currentLevel = baseSystem ? baseSystem.currentLevel : 1;
+        const buildPanel = this.getComponent(BuildPanelUI);
+        const panelVisible = buildPanel ? buildPanel.isPanelVisible() : false;
         for (let i = 0; i < this.plantBtnNodes.length; i++) {
             const node = this.plantBtnNodes[i];
             if (!node) continue;
             const plantId = i + 1;
             const btn = node.getComponent(Button);
             
-            // 按钮显示：基地等级 >= plantId
+            // 按钮显示：基地等级 >= plantId，且面板可见时才激活
             const shouldShow = currentLevel >= plantId;
-            node.active = shouldShow;
+            if (panelVisible) {
+                node.active = shouldShow;
+            }
             
             if (btn) {
                 // 按钮可交互：基地等级 >= plantId 且未放置
