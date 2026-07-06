@@ -1,4 +1,4 @@
-import { _decorator, Button, Color, Component, Label, Layout, Node, Sprite, SpriteFrame, UITransform, warn } from 'cc';
+import { _decorator, Button, Color, Component, Label, SpriteFrame, warn } from 'cc';
 import { BaseSystem } from './BaseSystem';
 import { PlayerData } from './PlayerData';
 import { TurretPlacementManager, TurretPlacementCost } from './TurretPlacementManager';
@@ -66,7 +66,6 @@ export class BuildPanelUI extends Component {
 
     private _refreshTimer = 0;
     private _warningTimer = 0;
-    private _costDisplaysInitialized = false;
 
     start() {
         this.bindButton(this.upgradeButton, this.onUpgradeClick, 'upgradeButton');
@@ -77,8 +76,6 @@ export class BuildPanelUI extends Component {
         if (this.warningLabel) {
             this.warningLabel.node.active = false;
         }
-
-        this.setupCostDisplays();
     }
 
     onDestroy() {
@@ -245,92 +242,6 @@ export class BuildPanelUI extends Component {
         label.color = affordable
             ? new Color(255, 255, 255, 255)
             : new Color(255, 0, 0, 255);
-    }
-
-    // ==================== 植物 & 集装箱 CostDisplay 初始化 ====================
-
-    /** 为每个植物的 CostDisplay 和集装箱的 CostDisplay 创建 Icon+Value 子节点 */
-    private setupCostDisplays() {
-        if (this._costDisplaysInitialized) return;
-        this._costDisplaysInitialized = true;
-
-        const panelRoot = this.panelRootNode;
-        if (!panelRoot) return;
-
-        // 植物 CostDisplay
-        const plantNames = ['Firstplant', 'Secondplant', 'Thirdplant', 'Fourthplant'];
-        for (const plantName of plantNames) {
-            const plantNode = panelRoot.getChildByName(plantName);
-            if (!plantNode) continue;
-            const costDisplay = plantNode.getChildByName('CostDisplay');
-            if (!costDisplay) continue;
-            this.ensureCostDisplayChildren(costDisplay, ['wood', 'iron', 'copper']);
-        }
-
-        // 集装箱 CostDisplay
-        const containerNode = panelRoot.getChildByName('container');
-        if (containerNode) {
-            const costDisplay = containerNode.getChildByName('CostDisplay');
-            if (costDisplay) {
-                this.ensureCostDisplayChildren(costDisplay, ['wood', 'iron', 'copper']);
-            }
-        }
-    }
-
-    /** 为 CostDisplay 容器确保 CostWood/CostIron/CostCopper 子节点存在，每个含 Icon(Sprite) + Value(Label) */
-    private ensureCostDisplayChildren(parent: Node, resourceTypes: string[]) {
-        for (const resType of resourceTypes) {
-            const capitalizedName = resType.charAt(0).toUpperCase() + resType.slice(1);
-            let costNode = parent.getChildByName(`Cost${capitalizedName}`);
-
-            if (!costNode) {
-                costNode = new Node(`Cost${capitalizedName}`);
-                const uiTransform = costNode.addComponent(UITransform);
-                const layout = costNode.addComponent(Layout);
-                layout.type = Layout.Type.HORIZONTAL;
-                parent.addChild(costNode);
-            }
-
-            // 确保 Icon 子节点存在
-            let icon = costNode.getChildByName('Icon');
-            if (!icon) {
-                icon = new Node('Icon');
-                const iconTransform = icon.addComponent(UITransform);
-                iconTransform.setContentSize(24, 24);
-                const sprite = icon.addComponent(Sprite);
-                this.setSpriteFrameByType(sprite, resType);
-                costNode.addChild(icon);
-            }
-
-            // 确保 Value 子节点存在
-            let value = costNode.getChildByName('Value');
-            if (!value) {
-                value = new Node('Value');
-                value.addComponent(UITransform);
-                const label = value.addComponent(Label);
-                label.fontSize = 20;
-                label.string = '0/0';
-                costNode.addChild(value);
-            }
-        }
-    }
-
-    /** 根据资源类型设置 SpriteFrame */
-    private setSpriteFrameByType(sprite: Sprite, resType: string) {
-        switch (resType) {
-            case 'wood':
-                if (this.woodIconSprite) sprite.spriteFrame = this.woodIconSprite;
-                break;
-            case 'copper':
-                if (this.copperIconSprite) sprite.spriteFrame = this.copperIconSprite;
-                break;
-            case 'iron':
-                if (this.ironIconSprite) sprite.spriteFrame = this.ironIconSprite;
-                break;
-            case 'money':
-                if (this.moneyIconSprite) sprite.spriteFrame = this.moneyIconSprite;
-                break;
-        }
     }
 
     // ==================== 植物 & 集装箱 CostDisplay 刷新 ====================
