@@ -10,6 +10,7 @@ const FATIGUE_GAIN_BASE = 5;
 const FATIGUE_GAIN_MIN = 0.5;
 const FATIGUE_RECOVERY_RATE = 8;
 const FATIGUE_MAX = 100;
+const FATIGUE_DT_MAX = 1 / 15; // dt 上限 ~0.067s，防止帧率骤降导致疲劳跳变
 const STATUS_LOG_INTERVAL = 1;
 
 enum FatigueMode {
@@ -342,14 +343,17 @@ export class PlayerState extends Component {
     }
 
     private updateFatigue(dt: number, distance: number, safeRadius: number) {
+        // 裁剪 dt 防止帧率骤降导致疲劳跳变
+        const clampedDt = Math.min(dt, FATIGUE_DT_MAX);
+
         if (distance > safeRadius) {
             const gainPerSecond = Math.max(
                 FATIGUE_GAIN_MIN,
                 FATIGUE_GAIN_BASE - this.fatigueReduction,
             );
-            this.fatigue += gainPerSecond * dt;
+            this.fatigue += gainPerSecond * clampedDt;
         } else {
-            this.fatigue = Math.max(0, this.fatigue - FATIGUE_RECOVERY_RATE * dt);
+            this.fatigue = Math.max(0, this.fatigue - FATIGUE_RECOVERY_RATE * clampedDt);
         }
     }
 }
