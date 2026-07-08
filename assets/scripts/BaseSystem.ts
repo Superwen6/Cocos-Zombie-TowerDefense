@@ -223,6 +223,15 @@ export class BaseSystem extends Component {
         return 0;
     }
 
+    /** 获取升级到下一级所需的耗电量 */
+    getNextLevelPowerCost(): number {
+        const index = this.currentLevel;
+        if (index >= 0 && index < this.levelPowerCosts.length) {
+            return this.levelPowerCosts[index];
+        }
+        return 0;
+    }
+
     getMaxBaseHpForLevel(level: number): number {
         const index = Math.min(this.maxLevel, Math.max(1, level)) - 1;
         if (index >= 0 && index < this.maxBaseHpByLevel.length) {

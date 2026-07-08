@@ -1,9 +1,11 @@
-import { _decorator, Button, Color, Component, find, Label, Sprite, SpriteFrame, warn } from 'cc';
+import { _decorator, Button, Color, Component, find, Label, Prefab, Sprite, SpriteFrame, instantiate, warn } from 'cc';
 import { BaseSystem } from './BaseSystem';
 import { PlayerData } from './PlayerData';
 import { TurretPlacementManager, TurretPlacementCost } from './TurretPlacementManager';
 import { PlantPanelUI } from './PlantPanelUI';
 import { UpgradePanelUI } from './UpgradePanelUI';
+import { PlantGenerator } from './PlantGenerator';
+import { Container } from './Container';
 
 const { ccclass, property } = _decorator;
 
@@ -38,6 +40,9 @@ export class BuildPanelUI extends Component {
 
     @property({ type: Label, tooltip: '美金消耗文本（ResourceCostText/CostMoney/Value）' })
     costMoneyLabel: Label | null = null;
+
+    @property({ type: Label, tooltip: '电力消耗文本（ResourceCostText/CostPower/Value）' })
+    costPowerLabel: Label | null = null;
 
     // ---- 图标 SpriteFrame ----
     @property({ type: SpriteFrame, tooltip: '木头图标' })
@@ -251,6 +256,7 @@ export class BuildPanelUI extends Component {
             this.setCostLabel(this.costCopperLabel, '0/0', false);
             this.setCostLabel(this.costIronLabel, '0/0', false);
             this.setCostLabel(this.costMoneyLabel, '0/0', false);
+            this.setCostLabel(this.costPowerLabel, '0', false);
             return;
         }
 
@@ -260,6 +266,7 @@ export class BuildPanelUI extends Component {
             this.setCostLabel(this.costCopperLabel, '0/0', false);
             this.setCostLabel(this.costIronLabel, '0/0', false);
             this.setCostLabel(this.costMoneyLabel, '0/0', false);
+            this.setCostLabel(this.costPowerLabel, '0', false);
             return;
         }
 
@@ -267,6 +274,11 @@ export class BuildPanelUI extends Component {
         this.setCostLabel(this.costCopperLabel, `${data.copperCount}/${tier.copper}`, data.copperCount >= tier.copper);
         this.setCostLabel(this.costIronLabel, `${data.ironCount}/${tier.iron}`, data.ironCount >= tier.iron);
         this.setCostLabel(this.costMoneyLabel, `${data.money}/${tier.money}`, data.money >= tier.money);
+
+        // 电力消耗：从 levelPowerCosts 读取，显示单数字，不足时变红
+        const powerCost = base.getNextLevelPowerCost();
+        const gen = base.totalPowerGen;
+        this.setCostLabel(this.costPowerLabel, `${powerCost}`, gen >= powerCost);
     }
 
     private setCostLabel(label: Label | null, text: string, affordable: boolean) {
@@ -295,7 +307,8 @@ export class BuildPanelUI extends Component {
             if (prefab) {
                 const manager = TurretPlacementManager.instance;
                 const cost = manager ? manager.getCostsFromPrefab(prefab) : null;
-                this.updateCostDisplayChildren(costDisplay, cost, data);
+                const powerGen = this.getPowerGenFromPrefab(prefab);
+                this.updateCostDisplayChildren(costDisplay, cost, data, powerGen, true);
             }
         }
     }
@@ -314,22 +327,53 @@ export class BuildPanelUI extends Component {
         if (prefab) {
             const manager = TurretPlacementManager.instance;
             const cost = manager ? manager.getCostsFromPrefab(prefab) : null;
-            this.updateCostDisplayChildren(costDisplay, cost, data);
+            const powerCost = this.getPowerCostFromPrefab(prefab);
+            this.updateCostDisplayChildren(costDisplay, cost, data, powerCost, false);
         }
     }
 
-    /** 更新 CostDisplay 下各个 CostWood/CostIron/CostCopper 的 Value Label，格式与 ResourceCostText 一致 */
-    private updateCostDisplayChildren(costDisplay: Node, cost: TurretPlacementCost | null, data: PlayerData | null) {
+    /** 从发电机预制体读取发电量 */
+    private getPowerGenFromPrefab(prefab: Prefab | null): number {
+        if (!prefab) return 0;
+        const tempNode = instantiate(prefab);
+        const plant = tempNode.getComponent(PlantGenerator);
+        const powerGen = plant ? plant.powerGenerate : 0;
+        tempNode.destroy();
+        return powerGen;
+    }
+
+    /** 从预制体读取耗电量（集装箱等） */
+    private getPowerCostFromPrefab(prefab: Prefab | null): number {
+        if (!prefab) return 0;
+        const tempNode = instantiate(prefab);
+        const container = tempNode.getComponent(Container);
+        const powerCost = container ? container.powerCost : 0;
+        tempNode.destroy();
+        return powerCost;
+    }
+
+    /** 更新 CostDisplay 下各个 CostWood/CostIron/CostCopper/CostPower 的 Value Label */
+    private updateCostDisplayChildren(costDisplay: Node, cost: TurretPlacementCost | null, data: PlayerData | null, powerValue: number = 0, isGenerator: boolean = false) {
         if (!cost || !data) {
             this.setCostChildValue(costDisplay, 'CostWood', '?/?', false);
             this.setCostChildValue(costDisplay, 'CostIron', '?/?', false);
             this.setCostChildValue(costDisplay, 'CostCopper', '?/?', false);
+            this.setCostChildValue(costDisplay, 'CostPower', '?/?', false);
             return;
         }
 
         this.setCostChildValue(costDisplay, 'CostWood', `${data.woodCount}/${cost.wood}`, data.woodCount >= cost.wood);
         this.setCostChildValue(costDisplay, 'CostIron', `${data.ironCount}/${cost.iron}`, data.ironCount >= cost.iron);
         this.setCostChildValue(costDisplay, 'CostCopper', `${data.copperCount}/${cost.copper}`, data.copperCount >= cost.copper);
+
+        if (isGenerator) {
+            // 发电机：显示发电量，始终白色
+            this.setCostChildValue(costDisplay, 'CostPower', `${powerValue}`, true);
+        } else {
+            // 集装箱：显示单数字耗电量，不足时变红
+            const gen = BaseSystem.instance ? BaseSystem.instance.totalPowerGen : 0;
+            this.setCostChildValue(costDisplay, 'CostPower', `${powerValue}`, gen >= powerValue);
+        }
     }
 
     /** 设置 CostDisplay 下某个子节点的 Value Label，含颜色反馈 */
