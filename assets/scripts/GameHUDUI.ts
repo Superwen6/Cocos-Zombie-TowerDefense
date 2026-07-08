@@ -63,6 +63,9 @@ export class GameHUDUI extends Component {
     @property({ type: ProgressBar, tooltip: '电力进度条' })
     powerProgress: ProgressBar | null = null;
 
+    @property({ type: Label, tooltip: '电力数值文本' })
+    powerText: Label | null = null;
+
     private _refreshTimer = 0;
 
     start() {
@@ -157,9 +160,18 @@ export class GameHUDUI extends Component {
         const cost = base ? base.totalPowerCost : 0;
 
         if (this.powerProgress) {
-            // 电力进度 = 总耗电量 / 总发电量，封顶 0~1
-            const ratio = gen > 0 ? Math.min(1, cost / gen) : (cost > 0 ? 1 : 0);
+            // 剩余电力比例 = 1 - 总耗电/总发电，封顶 0~1
+            const ratio = gen > 0 ? Math.max(0, Math.min(1, 1 - cost / gen)) : 0;
             this.powerProgress.progress = ratio;
+
+            // 直接设置 barSprite.fillRange，绕过 ProgressBar FILLED 模式更新延迟
+            if (this.powerProgress.barSprite) {
+                this.powerProgress.barSprite.fillRange = ratio;
+            }
+        }
+
+        if (this.powerText) {
+            this.powerText.string = `${Math.ceil(cost)} / ${Math.ceil(gen)}`;
         }
     }
 }
