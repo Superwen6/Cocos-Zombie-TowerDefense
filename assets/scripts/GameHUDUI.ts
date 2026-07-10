@@ -1,4 +1,4 @@
-import { _decorator, Component, Label, ProgressBar, Sprite, SpriteFrame } from 'cc';
+import { _decorator, Color, Component, Label, ProgressBar, Sprite, SpriteFrame } from 'cc';
 import { PlayerData } from './PlayerData';
 import { PlayerState } from './PlayerState';
 import { BaseSystem } from './BaseSystem';
@@ -90,6 +90,9 @@ export class GameHUDUI extends Component {
     ironInfoLabel: Label | null = null;
 
     private _refreshTimer = 0;
+    private _flashTimer = 0;
+    private _isFlashing = false;
+    private _flashRed = true;
 
     start() {
         // 确保打开面板按钮绑定（即使 UpgradePanel 未激活）
@@ -112,7 +115,7 @@ export class GameHUDUI extends Component {
         }
 
         // 每帧刷新时间和昼夜图标
-        this.updateTimeAndPhase();
+        this.updateTimeAndPhase(dt);
     }
 
     refreshHUD() {
@@ -227,8 +230,8 @@ export class GameHUDUI extends Component {
         }
     }
 
-    /** 每帧刷新时间和昼夜图标 */
-    private updateTimeAndPhase() {
+    /** 每帧刷新时间倒计时和昼夜图标 */
+    private updateTimeAndPhase(dt: number) {
         const dayNight = DayNightSystem.instance;
         if (!dayNight) return;
 
@@ -242,13 +245,36 @@ export class GameHUDUI extends Component {
             }
         }
 
-        // 更新时间文本
+        // 更新时间文本（倒计时格式）
         if (this.timeLabel) {
-            const elapsed = dayNight.elapsedTime;
-            const minutes = Math.floor(elapsed / 60);
-            const seconds = Math.floor(elapsed % 60);
+            const remaining = dayNight.remainingTime;
+            const minutes = Math.floor(remaining / 60);
+            const seconds = Math.floor(remaining % 60);
             const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
             this.timeLabel.string = `第 ${dayNight.currentDay} 天 | ${dayNight.getPhaseName()} ${timeStr}`;
+
+            // 黄昏/黎明红闪逻辑
+            const phase = dayNight.phase;
+            const shouldFlash = (phase === DayNightPhase.DUSK || phase === DayNightPhase.DAWN) && remaining <= 10;
+
+            if (shouldFlash) {
+                if (!this._isFlashing) {
+                    this._isFlashing = true;
+                    this._flashTimer = 0;
+                    this._flashRed = true;
+                }
+                this._flashTimer += dt;
+                if (this._flashTimer >= 0.4) {
+                    this._flashTimer = 0;
+                    this._flashRed = !this._flashRed;
+                    this.timeLabel.color = this._flashRed ? Color.RED : Color.WHITE;
+                }
+            } else {
+                if (this._isFlashing) {
+                    this._isFlashing = false;
+                    this.timeLabel.color = Color.WHITE;
+                }
+            }
         }
     }
 }

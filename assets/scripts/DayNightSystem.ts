@@ -37,7 +37,7 @@ export interface DayNightPhaseChangedDetail {
 
 /**
  * 昼夜交替系统（四阶段模式）。
- * 完整周期：白天(dayDuration) → 渐变(transitionTime) → 黑夜(nightDuration) → 渐变(transitionTime) → 新的一天
+ * 完整周期：白天(dayDuration - transitionTime) → 黄昏(transitionTime) → 夜晚(nightDuration - transitionTime) → 黎明(transitionTime) → 新的一天
  */
 @ccclass('DayNightSystem')
 export class DayNightSystem extends Component {
@@ -161,7 +161,7 @@ export class DayNightSystem extends Component {
 
         if (this.enableLog) {
             log(
-                `[DayNightSystem] 游戏开始 | Day ${this.currentDay}/${this.maxDays} | 白天${this.dayDuration}s → 渐变${this.transitionTime}s → 黑夜${this.nightDuration}s → 渐变${this.transitionTime}s`,
+                `[DayNightSystem] 游戏开始 | Day ${this.currentDay}/${this.maxDays} | 白天${this.dayDuration - this.transitionTime}s → 黄昏${this.transitionTime}s → 夜晚${this.nightDuration - this.transitionTime}s → 黎明${this.transitionTime}s`,
             );
         }
     }
@@ -239,9 +239,9 @@ export class DayNightSystem extends Component {
     private _getPhaseDuration(): number {
         switch (this._phase) {
             case DayNightPhase.DAY:
-                return this.dayDuration;
+                return this.dayDuration - this.transitionTime;
             case DayNightPhase.NIGHT:
-                return this.nightDuration;
+                return this.nightDuration - this.transitionTime;
             case DayNightPhase.DUSK:
             case DayNightPhase.DAWN:
                 return this.transitionTime;
