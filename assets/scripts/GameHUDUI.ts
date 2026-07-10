@@ -149,10 +149,10 @@ export class GameHUDUI extends Component {
             }
         }
 
+        // 左下角面板：背包数量 / 背包容量
         if (this.ironText) {
             if (data) {
-                const storage = GlobalContainerStorage.instance;
-                this.ironText.string = `${data.ironCount}/${storage ? storage.storedIron : 0}`;
+                this.ironText.string = `${data.ironCount}/${data.maxIron}`;
             } else {
                 this.ironText.string = '--/--';
             }
@@ -160,8 +160,7 @@ export class GameHUDUI extends Component {
 
         if (this.copperText) {
             if (data) {
-                const storage = GlobalContainerStorage.instance;
-                this.copperText.string = `${data.copperCount}/${storage ? storage.storedCopper : 0}`;
+                this.copperText.string = `${data.copperCount}/${data.maxCopper}`;
             } else {
                 this.copperText.string = '--/--';
             }
@@ -169,35 +168,35 @@ export class GameHUDUI extends Component {
 
         if (this.woodText) {
             if (data) {
-                const storage = GlobalContainerStorage.instance;
-                this.woodText.string = `${data.woodCount}/${storage ? storage.storedWood : 0}`;
+                this.woodText.string = `${data.woodCount}/${data.maxWood}`;
             } else {
                 this.woodText.string = '--/--';
             }
         }
 
+        // 顶部面板：仓库库存 / 仓库容量
         if (this.woodInfoLabel) {
-            if (data) {
-                const storage = GlobalContainerStorage.instance;
-                this.woodInfoLabel.string = `${data.woodCount} / ${storage ? storage.maxWood : 0}`;
+            const storage = GlobalContainerStorage.instance;
+            if (storage) {
+                this.woodInfoLabel.string = `${storage.storedWood} / ${storage.maxWood}`;
             } else {
                 this.woodInfoLabel.string = '-- / --';
             }
         }
 
         if (this.copperInfoLabel) {
-            if (data) {
-                const storage = GlobalContainerStorage.instance;
-                this.copperInfoLabel.string = `${data.copperCount} / ${storage ? storage.maxCopper : 0}`;
+            const storage = GlobalContainerStorage.instance;
+            if (storage) {
+                this.copperInfoLabel.string = `${storage.storedCopper} / ${storage.maxCopper}`;
             } else {
                 this.copperInfoLabel.string = '-- / --';
             }
         }
 
         if (this.ironInfoLabel) {
-            if (data) {
-                const storage = GlobalContainerStorage.instance;
-                this.ironInfoLabel.string = `${data.ironCount} / ${storage ? storage.maxIron : 0}`;
+            const storage = GlobalContainerStorage.instance;
+            if (storage) {
+                this.ironInfoLabel.string = `${storage.storedIron} / ${storage.maxIron}`;
             } else {
                 this.ironInfoLabel.string = '-- / --';
             }
