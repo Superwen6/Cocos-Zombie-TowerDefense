@@ -87,6 +87,11 @@ export class DayNightSystem extends Component {
         return this._phase;
     }
 
+    /** 获取当前阶段已流逝时间（秒） */
+    get elapsedTime(): number {
+        return this._elapsed;
+    }
+
     get isDay(): boolean {
         return this._phase === DayNightPhase.DAY;
     }

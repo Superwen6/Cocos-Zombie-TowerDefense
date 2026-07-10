@@ -4,6 +4,7 @@ import { PlayerState } from './PlayerState';
 import { BaseSystem } from './BaseSystem';
 import { GlobalContainerStorage } from './GlobalContainerStorage';
 import { BuildPanelUI } from './BuildPanelUI';
+import { DayNightSystem, DayNightPhase } from './DayNightSystem';
 
 const { ccclass, property } = _decorator;
 
@@ -66,6 +67,28 @@ export class GameHUDUI extends Component {
     @property({ type: Label, tooltip: '电力数值文本' })
     powerText: Label | null = null;
 
+    // ---- TopStatusPanel 新属性 ----
+    @property({ type: Sprite, tooltip: '昼夜图标（PhaseIcon）' })
+    phaseIcon: Sprite | null = null;
+
+    @property({ type: SpriteFrame, tooltip: '太阳图标素材' })
+    sunIconSprite: SpriteFrame | null = null;
+
+    @property({ type: SpriteFrame, tooltip: '月亮图标素材' })
+    moonIconSprite: SpriteFrame | null = null;
+
+    @property({ type: Label, tooltip: '时间文本（TimeLabel）' })
+    timeLabel: Label | null = null;
+
+    @property({ type: Label, tooltip: '木材仓库文本（WoodInfo/Value）' })
+    woodInfoLabel: Label | null = null;
+
+    @property({ type: Label, tooltip: '铜矿仓库文本（CopperInfo/Value）' })
+    copperInfoLabel: Label | null = null;
+
+    @property({ type: Label, tooltip: '铁矿仓库文本（IronInfo/Value）' })
+    ironInfoLabel: Label | null = null;
+
     private _refreshTimer = 0;
 
     start() {
@@ -87,6 +110,9 @@ export class GameHUDUI extends Component {
             this._refreshTimer = 0;
             this.refreshHUD();
         }
+
+        // 每帧刷新时间和昼夜图标
+        this.updateTimeAndPhase();
     }
 
     refreshHUD() {
@@ -150,6 +176,33 @@ export class GameHUDUI extends Component {
             }
         }
 
+        if (this.woodInfoLabel) {
+            if (data) {
+                const storage = GlobalContainerStorage.instance;
+                this.woodInfoLabel.string = `${data.woodCount} / ${storage ? storage.maxWood : 0}`;
+            } else {
+                this.woodInfoLabel.string = '-- / --';
+            }
+        }
+
+        if (this.copperInfoLabel) {
+            if (data) {
+                const storage = GlobalContainerStorage.instance;
+                this.copperInfoLabel.string = `${data.copperCount} / ${storage ? storage.maxCopper : 0}`;
+            } else {
+                this.copperInfoLabel.string = '-- / --';
+            }
+        }
+
+        if (this.ironInfoLabel) {
+            if (data) {
+                const storage = GlobalContainerStorage.instance;
+                this.ironInfoLabel.string = `${data.ironCount} / ${storage ? storage.maxIron : 0}`;
+            } else {
+                this.ironInfoLabel.string = '-- / --';
+            }
+        }
+
         this.updatePowerUI();
     }
 
@@ -172,6 +225,31 @@ export class GameHUDUI extends Component {
 
         if (this.powerText) {
             this.powerText.string = `${Math.ceil(cost)} / ${Math.ceil(gen)}`;
+        }
+    }
+
+    /** 每帧刷新时间和昼夜图标 */
+    private updateTimeAndPhase() {
+        const dayNight = DayNightSystem.instance;
+        if (!dayNight) return;
+
+        // 更新图标
+        if (this.phaseIcon) {
+            const phase = dayNight.phase;
+            if (phase === DayNightPhase.DAY || phase === DayNightPhase.DUSK) {
+                if (this.sunIconSprite) this.phaseIcon.spriteFrame = this.sunIconSprite;
+            } else {
+                if (this.moonIconSprite) this.phaseIcon.spriteFrame = this.moonIconSprite;
+            }
+        }
+
+        // 更新时间文本
+        if (this.timeLabel) {
+            const elapsed = dayNight.elapsedTime;
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = Math.floor(elapsed % 60);
+            const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            this.timeLabel.string = `第 ${dayNight.currentDay} 天 | ${dayNight.getPhaseName()} ${timeStr}`;
         }
     }
 }
