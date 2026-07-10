@@ -1,6 +1,8 @@
-import { _decorator, Button, Color, Component, Label, log, Node, UITransform, warn } from 'cc';
+import { _decorator, Button, Color, Component, instantiate, Label, log, Node, warn } from 'cc';
 import { PlayerData } from './PlayerData';
 import { TurretPlacementManager } from './TurretPlacementManager';
+import { BaseSystem } from './BaseSystem';
+import { Turret } from './Turret';
 
 const { ccclass, property } = _decorator;
 
@@ -19,11 +21,16 @@ export class TurretBuildPanelUI extends Component {
     @property(Node)
     btnBuildTurretNode: Node | null = null;
 
-    @property({ type: Label, tooltip: '物资消耗文本，在面板上创建任意位置的 Label 拖入即可' })
+    @property({ type: Label, tooltip: '物资消耗文本' })
     costLabel: Label | null = null;
 
-    /** 内部物资 Label 引用（兼容动态创建场景） */
-    private _costLabel: Label | null = null;
+    /** 各炮塔按钮下的 CostDisplay 节点（按顺序对应 TurretPlacementManager.turretPrefabs） */
+    @property({ type: [Node], tooltip: '各炮塔的 CostDisplay 节点（按顺序拖入 LV1~LV5 下的 CostDisplay）' })
+    turretCostDisplays: Node[] = [];
+
+    /** 各炮塔按钮下的 PowerCost 节点（按顺序对应 TurretPlacementManager.turretPrefabs） */
+    @property({ type: [Node], tooltip: '各炮塔的 CostPower 节点（按顺序拖入 LV1~LV5 下的 CostPower）' })
+    turretPowerCosts: Node[] = [];
 
     /** 从 TurretPlacementManager 读取实时消耗 */
     private getCosts() {
@@ -36,59 +43,14 @@ export class TurretBuildPanelUI extends Component {
     }
 
     onLoad() {
-        this.buildCostLabel();
         this.bindOpenButton();
         this.bindCloseButton();
         this.bindBuildButton();
     }
 
     start() {
-        // 延迟到 start 确保 TurretPlacementManager 和 PlayerData 已就绪
         this.updateCostDisplay();
-    }
-
-    /** 获取实际使用的 _costLabel */
-    private get activeCostLabel(): Label | null {
-        if (this._costLabel?.isValid) return this._costLabel;
-        if (this.costLabel?.isValid) return this.costLabel;
-        return null;
-    }
-
-    private set activeCostLabel(value: Label | null) {
-        this._costLabel = value;
-    }
-
-    // ---------- 自动构建 CostLabel 节点（回退方案） ----------
-
-    private buildCostLabel() {
-        if (this.costLabel?.isValid) {
-            log('[TurretBuildPanelUI] 已绑定 CostLabel，跳过动态创建');
-            return;
-        }
-
-        // CostLabel 应显示在炮塔面板上，而非 GameManagers
-        const parent = this.turretPanel ?? this.node;
-        log('[TurretBuildPanelUI] buildCostLabel | this.node=', this.node.name, '| turretPanel=', this.turretPanel?.name ?? 'null', '| 搜索父节点=', parent.name);
-
-        let costNode = parent.getChildByName('CostLabel');
-        log('[TurretBuildPanelUI] buildCostLabel | 在', parent.name, '下搜索 CostLabel，结果=', costNode ? '找到' : '未找到');
-
-        if (costNode) {
-            this._costLabel = costNode.getComponent(Label);
-            log('[TurretBuildPanelUI] buildCostLabel | Label组件=', this._costLabel ? '获取成功' : '获取失败(null)');
-            return;
-        }
-
-        // 动态创建节点
-        log('[TurretBuildPanelUI] buildCostLabel | 开始动态创建 CostLabel 在', parent.name);
-        costNode = new Node('CostLabel');
-        costNode.setParent(parent);
-        costNode.addComponent(UITransform).setContentSize(200, 40);
-        this._costLabel = costNode.addComponent(Label);
-        this._costLabel.fontSize = 18;
-        costNode.setPosition(0, -55, 0);
-
-        log('[TurretBuildPanelUI] CostLabel 已动态创建于', parent.name);
+        this.refreshTurretCostDisplays();
     }
 
     // ---------- 资源检测 ----------
@@ -106,21 +68,14 @@ export class TurretBuildPanelUI extends Component {
             && data.money >= cost.money;
     }
 
-    // ---------- 更新物资显示 ----------
+    // ---------- 更新物资显示（旧版单行） ----------
 
     private updateCostDisplay() {
-        const label = this.activeCostLabel;
-        if (!label) {
-            warn('[TurretBuildPanelUI] updateCostDisplay | _costLabel 为 null，跳过更新');
-            return;
-        }
+        if (!this.costLabel) return;
 
         const data = PlayerData.instance;
         const cost = this.getCosts();
 
-        log('[TurretBuildPanelUI] updateCostDisplay | cost=', JSON.stringify(cost), '| PlayerData=', data ? '就绪' : 'null');
-
-        // 即使 PlayerData 未就绪，也先显示消耗量
         const ironNow = data?.ironCount ?? 0;
         const woodNow = data?.woodCount ?? 0;
         const copperNow = data?.copperCount ?? 0;
@@ -131,19 +86,80 @@ export class TurretBuildPanelUI extends Component {
             && copperNow >= cost.copper
             && moneyNow >= cost.money;
 
-        // 格式：当前拥有 / 需要消耗
         const parts: string[] = [];
         if (cost.iron > 0) parts.push(`铁矿: ${ironNow}/${cost.iron}`);
         if (cost.wood > 0) parts.push(`木头: ${woodNow}/${cost.wood}`);
         if (cost.copper > 0) parts.push(`铜矿: ${copperNow}/${cost.copper}`);
         if (cost.money > 0) parts.push(`金币: ${moneyNow}/${cost.money}`);
 
-        label.string = parts.join('  |  ') || '免费建造';
-        label.color = canAfford
+        this.costLabel.string = parts.join('  |  ') || '免费建造';
+        this.costLabel.color = canAfford
             ? new Color(255, 255, 255, 255)
             : new Color(255, 0, 0, 255);
+    }
 
-        log('[TurretBuildPanelUI] updateCostDisplay | 最终显示文本=', label.string);
+    // ---------- 设置 CostDisplay 下某个 CostChild 的 Value Label ----------
+
+    private setCostChildValue(costDisplay: Node, childName: string, text: string, sufficient: boolean) {
+        const child = costDisplay.getChildByName(childName);
+        if (!child) return;
+        const valueNode = child.getChildByName('Value');
+        if (!valueNode) return;
+        const label = valueNode.getComponent(Label);
+        if (!label) return;
+        label.string = text;
+        label.color = sufficient ? Color.WHITE : Color.RED;
+    }
+
+    /** 刷新所有炮塔按钮的资源消耗和电力显示 */
+    private refreshTurretCostDisplays() {
+        const manager = TurretPlacementManager.instance;
+        if (!manager) return;
+
+        const data = PlayerData.instance;
+        const base = BaseSystem.instance;
+        const gen = base ? base.totalPowerGen : 0;
+
+        const prefabCount = manager.turretPrefabs.length;
+        const displayCount = Math.min(this.turretCostDisplays.length, prefabCount);
+
+        for (let i = 0; i < displayCount; i++) {
+            const prefab = manager.turretPrefabs[i];
+            const costDisplay = this.turretCostDisplays[i];
+            const powerCost = this.turretPowerCosts[i];
+
+            if (!costDisplay || !prefab) continue;
+
+            // 从预制体读取消耗
+            const tempNode = instantiate(prefab);
+            const turret = tempNode.getComponent(Turret);
+            const wood = turret ? (turret.costWood ?? 0) : 0;
+            const iron = turret ? (turret.costIron ?? 0) : 0;
+            const copper = turret ? (turret.costCopper ?? 0) : 0;
+            const power = turret ? (turret.powerCost ?? 0) : 0;
+            tempNode.destroy();
+
+            // 更新资源消耗
+            const woodNow = data?.woodCount ?? 0;
+            const ironNow = data?.ironCount ?? 0;
+            const copperNow = data?.copperCount ?? 0;
+
+            this.setCostChildValue(costDisplay, 'CostWood', `${woodNow}/${wood}`, woodNow >= wood);
+            this.setCostChildValue(costDisplay, 'CostIron', `${ironNow}/${iron}`, ironNow >= iron);
+            this.setCostChildValue(costDisplay, 'CostCopper', `${copperNow}/${copper}`, copperNow >= copper);
+
+            // 更新电力消耗
+            if (powerCost) {
+                const valueNode = powerCost.getChildByName('Value');
+                if (valueNode) {
+                    const label = valueNode.getComponent(Label);
+                    if (label) {
+                        label.string = `${power}`;
+                        label.color = gen >= power ? Color.WHITE : Color.RED;
+                    }
+                }
+            }
+        }
     }
 
     // ---------- 按钮绑定 ----------
@@ -163,8 +179,8 @@ export class TurretBuildPanelUI extends Component {
             if (this.turretPanel) {
                 this.turretPanel.active = true;
             }
-            // 打开面板时刷新物资显示
             this.updateCostDisplay();
+            this.refreshTurretCostDisplays();
         }, this);
     }
 
@@ -212,6 +228,7 @@ export class TurretBuildPanelUI extends Component {
             this.turretPanel.active = true;
         }
         this.updateCostDisplay();
+        this.refreshTurretCostDisplays();
     }
 
     hidePanel() {
@@ -221,7 +238,6 @@ export class TurretBuildPanelUI extends Component {
     }
 
     onBuildButtonClick() {
-        // 防御性校验：资源不足直接拦截
         if (!this.checkResources()) {
             const cost = this.getCosts();
             warn(`[TurretBuildPanelUI] 资源不足 | 铁矿:${cost.iron} 木头:${cost.wood} 铜矿:${cost.copper} 金币:${cost.money}`);
