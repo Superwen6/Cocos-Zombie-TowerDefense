@@ -144,9 +144,9 @@ export class TurretBuildPanelUI extends Component {
             const ironNow = data?.ironCount ?? 0;
             const copperNow = data?.copperCount ?? 0;
 
-            this.setCostChildValue(costDisplay, 'CostWood', `${woodNow}/${wood}`, woodNow >= wood);
-            this.setCostChildValue(costDisplay, 'CostIron', `${ironNow}/${iron}`, ironNow >= iron);
-            this.setCostChildValue(costDisplay, 'CostCopper', `${copperNow}/${copper}`, copperNow >= copper);
+            this.setCostChildValue(costDisplay, 'CostWood', `${wood}`, woodNow >= wood);
+            this.setCostChildValue(costDisplay, 'CostIron', `${iron}`, ironNow >= iron);
+            this.setCostChildValue(costDisplay, 'CostCopper', `${copper}`, copperNow >= copper);
 
             // 更新电力消耗
             if (powerCost) {
