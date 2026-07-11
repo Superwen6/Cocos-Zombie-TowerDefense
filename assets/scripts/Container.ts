@@ -103,12 +103,8 @@ export class Container extends Component {
     // ── 双击打开面板 ──
 
     private onTouchEnd(_event: EventTouch) {
-        console.log(`[Container] 触摸事件触发, 节点=${this.node.name}, hp=${this.hp}, isPlaced=${this._isPlaced}`);
         const now = Date.now();
-        const elapsed = now - this._lastClickTime;
-        console.log(`[Container] 距上次点击: ${elapsed}ms, 双击阈值: ${DOUBLE_CLICK_INTERVAL}ms`);
-        if (elapsed < DOUBLE_CLICK_INTERVAL) {
-            console.log('[Container] 检测到双击，尝试打开面板...');
+        if (now - this._lastClickTime < DOUBLE_CLICK_INTERVAL) {
             this.openPanel();
         }
         this._lastClickTime = now;
@@ -116,49 +112,24 @@ export class Container extends Component {
 
     /** 双击集装箱时打开交互面板（需玩家在附近） */
     private openPanel() {
-        if (!this._isPlaced) {
-            console.warn('[Container] openPanel 失败: 集装箱未放置');
-            return;
-        }
-        if (this.hp <= 0) {
-            console.warn('[Container] openPanel 失败: 集装箱已销毁 (hp=0)');
-            return;
-        }
+        if (!this._isPlaced || this.hp <= 0) return;
         const scene = this.node.scene;
-        if (!scene) {
-            console.warn('[Container] openPanel 失败: node.scene 为空');
-            return;
-        }
+        if (!scene) return;
 
         // 检查玩家是否在交互距离内
         const player = this.findPlayerNode(scene);
-        if (!player) {
-            console.warn('[Container] openPanel 失败: 找不到 Player 节点');
-            return;
-        }
+        if (!player) return;
         const dist = Vec3.distance(this.node.worldPosition, player.worldPosition);
-        console.log(`[Container] 玩家距离: ${dist.toFixed(1)}px, 交互距离: ${this.interactDistance}px`);
-        if (dist > this.interactDistance) {
-            console.warn(`[Container] openPanel 失败: 玩家距离太远 (${dist.toFixed(1)} > ${this.interactDistance})`);
-            return;
-        }
+        if (dist > this.interactDistance) return;
 
         const panelUI = scene.getComponentInChildren(ContainerPanelUI);
-        if (!panelUI) {
-            console.warn('[Container] openPanel 失败: 找不到 ContainerPanelUI 组件');
-            return;
-        }
-        console.log('[Container] 打开面板成功!');
+        if (!panelUI) return;
         panelUI.openPanelPublic(this);
     }
 
     /** 查找玩家节点（递归搜索整个场景） */
     private findPlayerNode(scene: Node): Node | null {
-        const result = this.findNodeByName(scene, 'Player');
-        if (result) {
-            console.log(`[Container] 找到 Player: ${this.getNodePath(result)}`);
-        }
-        return result;
+        return this.findNodeByName(scene, 'Player');
     }
 
     private findNodeByName(root: Node, name: string): Node | null {
@@ -168,15 +139,5 @@ export class Container extends Component {
             if (found) return found;
         }
         return null;
-    }
-
-    private getNodePath(node: Node): string {
-        const parts: string[] = [];
-        let current: Node | null = node;
-        while (current) {
-            parts.unshift(current.name);
-            current = current.parent;
-        }
-        return parts.join('/');
     }
 }
