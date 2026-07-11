@@ -1,5 +1,5 @@
 import {
-    _decorator, Button, Component, input, Input, EventKeyboard, KeyCode, Label, Node, Vec3,
+    _decorator, Button, Component, input, Input, EventKeyboard, KeyCode, Label, Node, Sprite, Vec3,
 } from 'cc';
 import { Container } from './Container';
 import { GlobalContainerStorage } from './GlobalContainerStorage';
@@ -9,6 +9,8 @@ const { ccclass, property } = _decorator;
 
 /** 交互检测距离（像素） */
 const INTERACT_DISTANCE = 80;
+
+type ResourceType = 'wood' | 'copper' | 'iron';
 
 /**
  * 集装箱交互面板 UI。
@@ -23,32 +25,43 @@ export class ContainerPanelUI extends Component {
     @property({ type: Label, tooltip: '提示文本（"按 E 互动"）' })
     hintLabel: Label | null = null;
 
-    @property({ type: Label, tooltip: '木材库存显示' })
+    // 资源图标（Sprite）
+    @property({ type: Sprite, tooltip: '木材图标' })
+    woodIcon: Sprite | null = null;
+
+    @property({ type: Sprite, tooltip: '铜矿图标' })
+    copperIcon: Sprite | null = null;
+
+    @property({ type: Sprite, tooltip: '铁矿图标' })
+    ironIcon: Sprite | null = null;
+
+    // 资源数量显示（Label，格式 "0 / 100"）
+    @property({ type: Label, tooltip: '木材数量显示' })
     woodLabel: Label | null = null;
 
-    @property({ type: Label, tooltip: '铜矿库存显示' })
+    @property({ type: Label, tooltip: '铜矿数量显示' })
     copperLabel: Label | null = null;
 
-    @property({ type: Label, tooltip: '铁矿库存显示' })
+    @property({ type: Label, tooltip: '铁矿数量显示' })
     ironLabel: Label | null = null;
 
-    // 存取按钮
-    @property({ type: Button, tooltip: '木材存入按钮（-）' })
+    // 存取按钮（1个）
+    @property({ type: Button, tooltip: '木材存入按钮（-1）' })
     woodDepositBtn: Button | null = null;
 
-    @property({ type: Button, tooltip: '木材取出按钮（+）' })
+    @property({ type: Button, tooltip: '木材取出按钮（+1）' })
     woodWithdrawBtn: Button | null = null;
 
-    @property({ type: Button, tooltip: '铜矿存入按钮（-）' })
+    @property({ type: Button, tooltip: '铜矿存入按钮（-1）' })
     copperDepositBtn: Button | null = null;
 
-    @property({ type: Button, tooltip: '铜矿取出按钮（+）' })
+    @property({ type: Button, tooltip: '铜矿取出按钮（+1）' })
     copperWithdrawBtn: Button | null = null;
 
-    @property({ type: Button, tooltip: '铁矿存入按钮（-）' })
+    @property({ type: Button, tooltip: '铁矿存入按钮（-1）' })
     ironDepositBtn: Button | null = null;
 
-    @property({ type: Button, tooltip: '铁矿取出按钮（+）' })
+    @property({ type: Button, tooltip: '铁矿取出按钮（+1）' })
     ironWithdrawBtn: Button | null = null;
 
     @property({ type: Button, tooltip: '关闭面板按钮' })
@@ -86,13 +99,17 @@ export class ContainerPanelUI extends Component {
     }
 
     private bindButtons() {
-        this.bindBtn(this.woodDepositBtn, () => this.deposit('wood'));
-        this.bindBtn(this.woodWithdrawBtn, () => this.withdraw('wood'));
-        this.bindBtn(this.copperDepositBtn, () => this.deposit('copper'));
-        this.bindBtn(this.copperWithdrawBtn, () => this.withdraw('copper'));
-        this.bindBtn(this.ironDepositBtn, () => this.deposit('iron'));
-        this.bindBtn(this.ironWithdrawBtn, () => this.withdraw('iron'));
+        // 1个存取按钮（代码绑定）
+        this.bindBtn(this.woodDepositBtn, () => this.depositBulk('wood', 1));
+        this.bindBtn(this.woodWithdrawBtn, () => this.withdrawBulk('wood', 1));
+        this.bindBtn(this.copperDepositBtn, () => this.depositBulk('copper', 1));
+        this.bindBtn(this.copperWithdrawBtn, () => this.withdrawBulk('copper', 1));
+        this.bindBtn(this.ironDepositBtn, () => this.depositBulk('iron', 1));
+        this.bindBtn(this.ironWithdrawBtn, () => this.withdrawBulk('iron', 1));
         this.bindBtn(this.closeBtn, () => this.closePanel());
+        // 注意：deposit-001 (5个)、deposit-002 (10个)、withdraw-001 (5个)、withdraw-002 (10个)
+        // 这些按钮需要在编辑器中手动绑定 Click Events 到对应的 onDepositXxx / onWithdrawXxx 方法，
+        // 并在 CustomEventData 中填入 "5" 或 "10"。
     }
 
     private bindBtn(btn: Button | null, handler: () => void) {
@@ -188,77 +205,160 @@ export class ContainerPanelUI extends Component {
         if (this.panelRoot) this.panelRoot.active = false;
     }
 
-    /** 刷新面板显示 */
+    /** 刷新面板显示（图标 + 数量/容量） */
     private refreshPanel() {
         const storage = GlobalContainerStorage.instance;
         if (!storage) return;
 
         if (this.woodLabel) {
-            this.woodLabel.string = `木材: ${storage.storedWood} / ${storage.maxWood}`;
+            this.woodLabel.string = `${storage.storedWood} / ${storage.maxWood}`;
         }
         if (this.copperLabel) {
-            this.copperLabel.string = `铜矿: ${storage.storedCopper} / ${storage.maxCopper}`;
+            this.copperLabel.string = `${storage.storedCopper} / ${storage.maxCopper}`;
         }
         if (this.ironLabel) {
-            this.ironLabel.string = `铁矿: ${storage.storedIron} / ${storage.maxIron}`;
+            this.ironLabel.string = `${storage.storedIron} / ${storage.maxIron}`;
         }
     }
 
-    /** 存入资源（从玩家背包转到仓库） */
-    private deposit(type: 'wood' | 'copper' | 'iron') {
+    // ==================== 批量存取核心逻辑 ====================
+
+    /**
+     * 批量存入资源（从玩家背包转到仓库）
+     * @param type 资源类型
+     * @param amount 期望存入数量
+     */
+    private depositBulk(type: ResourceType, amount: number) {
         const storage = GlobalContainerStorage.instance;
         const data = PlayerData.instance;
         if (!storage || !data) return;
 
-        switch (type) {
-            case 'wood':
-                if (data.woodCount <= 0) return;
-                if (storage.storedWood >= storage.maxWood) return;
-                data.woodCount--;
-                storage.storedWood++;
-                break;
-            case 'copper':
-                if (data.copperCount <= 0) return;
-                if (storage.storedCopper >= storage.maxCopper) return;
-                data.copperCount--;
-                storage.storedCopper++;
-                break;
-            case 'iron':
-                if (data.ironCount <= 0) return;
-                if (storage.storedIron >= storage.maxIron) return;
-                data.ironCount--;
-                storage.storedIron++;
-                break;
-        }
+        const playerCount = this.getPlayerCount(data, type);
+        const storageCount = this.getStorageCount(storage, type);
+        const storageMax = this.getStorageMax(storage, type);
+
+        if (playerCount <= 0) return;
+        if (storageCount >= storageMax) return;
+
+        // 实际存入量 = min(期望数量, 玩家持有量, 仓库剩余空间)
+        const actual = Math.min(amount, playerCount, storageMax - storageCount);
+
+        this.applyDeposit(data, storage, type, actual);
         this.refreshPanel();
     }
 
-    /** 取出资源（从仓库转到玩家背包，不超过携带上限） */
-    private withdraw(type: 'wood' | 'copper' | 'iron') {
+    /**
+     * 批量取出资源（从仓库转到玩家背包）
+     * @param type 资源类型
+     * @param amount 期望取出数量
+     */
+    private withdrawBulk(type: ResourceType, amount: number) {
         const storage = GlobalContainerStorage.instance;
         const data = PlayerData.instance;
         if (!storage || !data) return;
 
+        const playerCount = this.getPlayerCount(data, type);
+        const playerMax = this.getPlayerMax(data, type);
+        const storageCount = this.getStorageCount(storage, type);
+
+        if (storageCount <= 0) return;
+        if (playerCount >= playerMax) return;
+
+        // 实际取出量 = min(期望数量, 仓库库存, 玩家剩余空间)
+        const actual = Math.min(amount, storageCount, playerMax - playerCount);
+
+        this.applyWithdraw(data, storage, type, actual);
+        this.refreshPanel();
+    }
+
+    // ==================== 供编辑器绑定的事件方法 ====================
+    // 使用方式：在编辑器中，将 deposit-001 / deposit-002 / withdraw-001 / withdraw-002
+    // 按钮的 Click Events 绑定到对应方法，并在 CustomEventData 中填入 "5" 或 "10"。
+
+    public onDepositWood(_btn: Button, customEventData: string) {
+        this.depositBulk('wood', parseInt(customEventData) || 1);
+    }
+    public onDepositCopper(_btn: Button, customEventData: string) {
+        this.depositBulk('copper', parseInt(customEventData) || 1);
+    }
+    public onDepositIron(_btn: Button, customEventData: string) {
+        this.depositBulk('iron', parseInt(customEventData) || 1);
+    }
+    public onWithdrawWood(_btn: Button, customEventData: string) {
+        this.withdrawBulk('wood', parseInt(customEventData) || 1);
+    }
+    public onWithdrawCopper(_btn: Button, customEventData: string) {
+        this.withdrawBulk('copper', parseInt(customEventData) || 1);
+    }
+    public onWithdrawIron(_btn: Button, customEventData: string) {
+        this.withdrawBulk('iron', parseInt(customEventData) || 1);
+    }
+
+    // ==================== 辅助方法 ====================
+
+    private getPlayerCount(data: PlayerData, type: ResourceType): number {
+        switch (type) {
+            case 'wood': return data.woodCount;
+            case 'copper': return data.copperCount;
+            case 'iron': return data.ironCount;
+        }
+    }
+
+    private getPlayerMax(data: PlayerData, type: ResourceType): number {
+        switch (type) {
+            case 'wood': return data.maxWood;
+            case 'copper': return data.maxCopper;
+            case 'iron': return data.maxIron;
+        }
+    }
+
+    private getStorageCount(storage: GlobalContainerStorage, type: ResourceType): number {
+        switch (type) {
+            case 'wood': return storage.storedWood;
+            case 'copper': return storage.storedCopper;
+            case 'iron': return storage.storedIron;
+        }
+    }
+
+    private getStorageMax(storage: GlobalContainerStorage, type: ResourceType): number {
+        switch (type) {
+            case 'wood': return storage.maxWood;
+            case 'copper': return storage.maxCopper;
+            case 'iron': return storage.maxIron;
+        }
+    }
+
+    private applyDeposit(data: PlayerData, storage: GlobalContainerStorage, type: ResourceType, amount: number) {
         switch (type) {
             case 'wood':
-                if (storage.storedWood <= 0) return;
-                if (data.woodCount >= data.maxWood) return;
-                storage.storedWood--;
-                data.woodCount++;
+                data.woodCount -= amount;
+                storage.storedWood += amount;
                 break;
             case 'copper':
-                if (storage.storedCopper <= 0) return;
-                if (data.copperCount >= data.maxCopper) return;
-                storage.storedCopper--;
-                data.copperCount++;
+                data.copperCount -= amount;
+                storage.storedCopper += amount;
                 break;
             case 'iron':
-                if (storage.storedIron <= 0) return;
-                if (data.ironCount >= data.maxIron) return;
-                storage.storedIron--;
-                data.ironCount++;
+                data.ironCount -= amount;
+                storage.storedIron += amount;
                 break;
         }
-        this.refreshPanel();
+    }
+
+    private applyWithdraw(data: PlayerData, storage: GlobalContainerStorage, type: ResourceType, amount: number) {
+        switch (type) {
+            case 'wood':
+                storage.storedWood -= amount;
+                data.woodCount += amount;
+                break;
+            case 'copper':
+                storage.storedCopper -= amount;
+                data.copperCount += amount;
+                break;
+            case 'iron':
+                storage.storedIron -= amount;
+                data.ironCount += amount;
+                break;
+        }
     }
 }
