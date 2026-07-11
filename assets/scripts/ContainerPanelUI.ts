@@ -1,5 +1,5 @@
 import {
-    _decorator, Button, Component, input, Input, EventKeyboard, KeyCode, Label, Node, Sprite, Vec3,
+    _decorator, Button, Component, Label, Node, Sprite,
 } from 'cc';
 import { Container } from './Container';
 import { GlobalContainerStorage } from './GlobalContainerStorage';
@@ -7,14 +7,11 @@ import { PlayerData } from './PlayerData';
 
 const { ccclass, property } = _decorator;
 
-/** 交互检测距离（像素） */
-const INTERACT_DISTANCE = 80;
-
 type ResourceType = 'wood' | 'copper' | 'iron';
 
 /**
  * 集装箱交互面板 UI。
- * 玩家走到集装箱附近按 E 键打开面板，可存取资源。
+ * 双击集装箱实体打开面板，可存取资源。
  * 挂载在 Canvas 下。
  */
 @ccclass('ContainerPanelUI')
@@ -22,7 +19,7 @@ export class ContainerPanelUI extends Component {
     @property({ type: Node, tooltip: '面板根节点（控制显示/隐藏）' })
     panelRoot: Node | null = null;
 
-    @property({ type: Label, tooltip: '提示文本（"按 E 互动"）' })
+    @property({ type: Label, tooltip: '提示文本（已废弃，双击进入）' })
     hintLabel: Label | null = null;
 
     // 资源图标（Sprite）
@@ -67,9 +64,6 @@ export class ContainerPanelUI extends Component {
     @property({ type: Button, tooltip: '关闭面板按钮' })
     closeBtn: Button | null = null;
 
-    @property({ type: Node, tooltip: '玩家节点（用于距离检测）' })
-    playerNode: Node | null = null;
-
     /** 当前交互的集装箱 */
     private _currentContainer: Container | null = null;
     /** 面板是否打开 */
@@ -78,25 +72,9 @@ export class ContainerPanelUI extends Component {
     start() {
         this.hideAll();
         this.bindButtons();
-        input.on(Input.EventType.KEY_DOWN, this.onKeyDown, this);
     }
 
-    onDestroy() {
-        input.off(Input.EventType.KEY_DOWN, this.onKeyDown, this);
-    }
-
-    update(_dt: number) {
-        if (this._isOpen) return;
-
-        const container = this.findNearbyContainer();
-        if (container) {
-            this._currentContainer = container;
-            this.showHint();
-        } else {
-            this._currentContainer = null;
-            this.hideHint();
-        }
-    }
+    onDestroy() {}
 
     private bindButtons() {
         // 1个存取按钮（代码绑定）
@@ -117,91 +95,22 @@ export class ContainerPanelUI extends Component {
         btn.node.on(Button.EventType.CLICK, handler, this);
     }
 
-    private onKeyDown(event: EventKeyboard) {
-        if (event.keyCode === KeyCode.ESCAPE && this._isOpen) {
-            this.closePanel();
-        }
-    }
-
-    /** 查找玩家附近的集装箱 */
-    private findNearbyContainer(): Container | null {
-        const player = this.findPlayer();
-        if (!player) {
-            return null;
-        }
-
-        const playerPos = player.worldPosition;
-        const scene = this.node.scene;
-        if (!scene) return null;
-
-        const containers = scene.getComponentsInChildren(Container);
-        let closest: Container | null = null;
-        let minDist = Number.MAX_VALUE;
-
-        for (const c of containers) {
-            if (!c || !c.isValid || !c.isPlaced || c.hp <= 0) continue;
-            const dist = Vec3.distance(playerPos, c.node.worldPosition);
-            if (dist < INTERACT_DISTANCE && dist < minDist) {
-                minDist = dist;
-                closest = c;
-            }
-        }
-
-        return closest;
-    }
-
-    /** 查找玩家节点（优先使用绑定节点，其次在场景中搜索） */
-    private findPlayer(): Node | null {
-        if (this.playerNode && this.playerNode.isValid) return this.playerNode;
-        const scene = this.node.scene;
-        if (!scene) return null;
-        const p1 = scene.getChildByName('Player');
-        const p2 = scene.getChildByName('GameWorld')?.getChildByName('Player');
-        const p3 = this.findNodeByName(scene, 'Player');
-        return p1 ?? p2 ?? p3;
-    }
-
-    /** 递归按名称查找节点 */
-    private findNodeByName(root: Node, name: string): Node | null {
-        if (root.name === name) return root;
-        for (const child of root.children) {
-            const found = this.findNodeByName(child, name);
-            if (found) return found;
-        }
-        return null;
-    }
-
-    private showHint() {
-        if (this.hintLabel) {
-            this.hintLabel.node.active = true;
-            this.hintLabel.string = '按 E 互动';
-        }
-    }
-
-    private hideHint() {
-        if (this.hintLabel) {
-            this.hintLabel.node.active = false;
-        }
-    }
-
     private closePanel() {
         this._isOpen = false;
         if (this.panelRoot) this.panelRoot.active = false;
     }
 
-    /** 供外部调用的公共打开面板方法（由 PlayerController 在 E 键时调用） */
+    /** 供外部调用的公共打开面板方法（由 Container 双击时调用） */
     public openPanelPublic(container: Container) {
         if (this._isOpen) return;
         this._currentContainer = container;
         this._isOpen = true;
         if (this.panelRoot) this.panelRoot.active = true;
-        this.hideHint();
         this.refreshPanel();
     }
 
     private hideAll() {
         this._isOpen = false;
-        this.hideHint();
         if (this.panelRoot) this.panelRoot.active = false;
     }
 

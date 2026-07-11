@@ -1,11 +1,16 @@
-import { _decorator, CCInteger, CCFloat, Component } from 'cc';
+import { _decorator, CCInteger, CCFloat, Component, EventTouch, Node } from 'cc';
 import { GlobalContainerStorage } from './GlobalContainerStorage';
+import { ContainerPanelUI } from './ContainerPanelUI';
 
 const { ccclass, property } = _decorator;
+
+/** 双击间隔（毫秒） */
+const DOUBLE_CLICK_INTERVAL = 300;
 
 /**
  * 集装箱组件，挂载在集装箱预制体上。
  * 建造后向 GlobalContainerStorage 注册，实现全图资源互通。
+ * 双击集装箱实体可打开交互面板。
  */
 @ccclass('Container')
 export class Container extends Component {
@@ -43,6 +48,11 @@ export class Container extends Component {
     maxStorageIron = 500;
 
     private _isPlaced = false;
+    private _lastClickTime = 0;
+
+    onLoad() {
+        this.node.on(Node.EventType.TOUCH_END, this.onTouchEnd, this);
+    }
 
     start() {
         if (!this._isPlaced) {
@@ -59,6 +69,7 @@ export class Container extends Component {
     }
 
     onDestroy() {
+        this.node.off(Node.EventType.TOUCH_END, this.onTouchEnd, this);
         if (this._isPlaced) {
             GlobalContainerStorage.instance?.unregisterContainer(this);
             this._isPlaced = false;
@@ -84,5 +95,26 @@ export class Container extends Component {
         const oldHp = this.hp;
         this.hp = Math.min(this.maxHp, this.hp + amount);
         return this.hp - oldHp;
+    }
+
+    // ── 双击打开面板 ──
+
+    private onTouchEnd(_event: EventTouch) {
+        const now = Date.now();
+        if (now - this._lastClickTime < DOUBLE_CLICK_INTERVAL) {
+            this.openPanel();
+        }
+        this._lastClickTime = now;
+    }
+
+    /** 双击集装箱时打开交互面板 */
+    private openPanel() {
+        if (!this._isPlaced || this.hp <= 0) return;
+        const scene = this.node.scene;
+        if (!scene) return;
+        const panelUI = scene.getComponentInChildren(ContainerPanelUI);
+        if (panelUI) {
+            panelUI.openPanelPublic(this);
+        }
     }
 }
