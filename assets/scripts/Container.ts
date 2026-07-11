@@ -152,25 +152,31 @@ export class Container extends Component {
         panelUI.openPanelPublic(this);
     }
 
-    /** 查找玩家节点 */
+    /** 查找玩家节点（递归搜索整个场景） */
     private findPlayerNode(scene: Node): Node | null {
-        console.log(`[Container] 场景子节点列表: ${scene.children.map(c => c.name).join(', ')}`);
-        const p1 = scene.getChildByName('Player');
-        if (p1) {
-            console.log(`[Container] 找到 Player: scene/Player`);
-            return p1;
+        const result = this.findNodeByName(scene, 'Player');
+        if (result) {
+            console.log(`[Container] 找到 Player: ${this.getNodePath(result)}`);
         }
-        const gw = scene.getChildByName('GameWorld');
-        if (gw) {
-            console.log(`[Container] GameWorld 子节点: ${gw.children.map(c => c.name).join(', ')}`);
-            const p2 = gw.getChildByName('Player');
-            if (p2) {
-                console.log(`[Container] 找到 Player: scene/GameWorld/Player`);
-                return p2;
-            }
-        } else {
-            console.warn('[Container] 找不到 GameWorld 节点');
+        return result;
+    }
+
+    private findNodeByName(root: Node, name: string): Node | null {
+        if (root.name === name) return root;
+        for (const child of root.children) {
+            const found = this.findNodeByName(child, name);
+            if (found) return found;
         }
         return null;
+    }
+
+    private getNodePath(node: Node): string {
+        const parts: string[] = [];
+        let current: Node | null = node;
+        while (current) {
+            parts.unshift(current.name);
+            current = current.parent;
+        }
+        return parts.join('/');
     }
 }
