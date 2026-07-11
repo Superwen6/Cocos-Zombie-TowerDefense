@@ -154,16 +154,22 @@ export class Container extends Component {
 
     /** 查找玩家节点 */
     private findPlayerNode(scene: Node): Node | null {
+        console.log(`[Container] 场景子节点列表: ${scene.children.map(c => c.name).join(', ')}`);
         const p1 = scene.getChildByName('Player');
         if (p1) {
             console.log(`[Container] 找到 Player: scene/Player`);
             return p1;
         }
         const gw = scene.getChildByName('GameWorld');
-        const p2 = gw?.getChildByName('Player');
-        if (p2) {
-            console.log(`[Container] 找到 Player: scene/GameWorld/Player`);
-            return p2;
+        if (gw) {
+            console.log(`[Container] GameWorld 子节点: ${gw.children.map(c => c.name).join(', ')}`);
+            const p2 = gw.getChildByName('Player');
+            if (p2) {
+                console.log(`[Container] 找到 Player: scene/GameWorld/Player`);
+                return p2;
+            }
+        } else {
+            console.warn('[Container] 找不到 GameWorld 节点');
         }
         return null;
     }
