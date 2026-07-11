@@ -121,14 +121,18 @@ export class TurretBuildPanelUI extends Component {
         const gen = base ? base.totalPowerGen : 0;
 
         const prefabCount = manager.turretPrefabs.length;
-        const displayCount = Math.min(this.turretCostDisplays.length, prefabCount);
+        const displayCount = Math.min(this.turretCostDisplays.length, this.turretPowerCosts.length, prefabCount);
+
+        if (displayCount < prefabCount) {
+            warn(`[TurretBuildPanelUI] turretCostDisplays/turretPowerCosts 数组长度(${this.turretCostDisplays.length}/${this.turretPowerCosts.length}) 小于 turretPrefabs 数量(${prefabCount})，部分炮塔将不显示消耗`);
+        }
 
         for (let i = 0; i < displayCount; i++) {
             const prefab = manager.turretPrefabs[i];
             const costDisplay = this.turretCostDisplays[i];
             const powerCost = this.turretPowerCosts[i];
 
-            if (!costDisplay || !prefab) continue;
+            if (!costDisplay || !powerCost || !prefab) continue;
 
             // 从预制体读取消耗
             const tempNode = instantiate(prefab);

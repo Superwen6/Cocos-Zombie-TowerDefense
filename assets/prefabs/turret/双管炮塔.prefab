@@ -986,9 +986,9 @@
     "__prefab": {
       "__id__": 43
     },
-    "costWood": 0,
-    "costCopper": 0,
-    "costIron": 0,
+    "costWood": 80,
+    "costCopper": 80,
+    "costIron": 80,
     "costMoney": 0,
     "powerCost": 1,
     "maxHp": 150,
@@ -1012,6 +1012,7 @@
     "colliderHalfH": 30,
     "enableDualShot": true,
     "dualShotSpread": 20,
+    "homingBullet": true,
     "_id": ""
   },
   {
