@@ -1,4 +1,4 @@
-import { _decorator, CCInteger, CCFloat, Component, EventTouch, Node } from 'cc';
+import { _decorator, CCInteger, CCFloat, Component, EventTouch, Node, Vec3 } from 'cc';
 import { GlobalContainerStorage } from './GlobalContainerStorage';
 import { ContainerPanelUI } from './ContainerPanelUI';
 
@@ -10,7 +10,7 @@ const DOUBLE_CLICK_INTERVAL = 300;
 /**
  * 集装箱组件，挂载在集装箱预制体上。
  * 建造后向 GlobalContainerStorage 注册，实现全图资源互通。
- * 双击集装箱实体可打开交互面板。
+ * 玩家靠近后双击集装箱实体可打开交互面板。
  */
 @ccclass('Container')
 export class Container extends Component {
@@ -46,6 +46,9 @@ export class Container extends Component {
 
     @property({ type: CCInteger, tooltip: '最大铁矿存储量' })
     maxStorageIron = 500;
+
+    @property({ type: CCFloat, tooltip: '玩家与集装箱交互的最大距离（像素）' })
+    interactDistance = 80;
 
     private _isPlaced = false;
     private _lastClickTime = 0;
@@ -107,14 +110,28 @@ export class Container extends Component {
         this._lastClickTime = now;
     }
 
-    /** 双击集装箱时打开交互面板 */
+    /** 双击集装箱时打开交互面板（需玩家在附近） */
     private openPanel() {
         if (!this._isPlaced || this.hp <= 0) return;
         const scene = this.node.scene;
         if (!scene) return;
+
+        // 检查玩家是否在交互距离内
+        const player = this.findPlayerNode(scene);
+        if (!player) return;
+        const dist = Vec3.distance(this.node.worldPosition, player.worldPosition);
+        if (dist > this.interactDistance) return;
+
         const panelUI = scene.getComponentInChildren(ContainerPanelUI);
         if (panelUI) {
             panelUI.openPanelPublic(this);
         }
+    }
+
+    /** 查找玩家节点 */
+    private findPlayerNode(scene: Node): Node | null {
+        const p1 = scene.getChildByName('Player');
+        const p2 = scene.getChildByName('GameWorld')?.getChildByName('Player');
+        return p1 ?? p2 ?? null;
     }
 }
