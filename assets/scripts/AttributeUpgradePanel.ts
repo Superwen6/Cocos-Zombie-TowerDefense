@@ -1,4 +1,4 @@
-import { _decorator, Button, Color, Component, find, Node, Sprite, warn } from 'cc';
+import { _decorator, Button, Color, Component, find, Label, Node, Sprite, warn } from 'cc';
 import { PlayerState } from './PlayerState';
 
 const { ccclass, property } = _decorator;
@@ -68,6 +68,9 @@ export class AttributeUpgradePanel extends Component {
     @property({ type: Node, tooltip: '潜行升级按钮' })
     stealthButton: Node | null = null;
 
+    @property({ type: Label, tooltip: '升级点数显示文本' })
+    pointNumberLabel: Label | null = null;
+
     private _panelVisible = false;
     private static _openPanelBound = false;
     private static _pendingOpen = false;
@@ -100,6 +103,7 @@ export class AttributeUpgradePanel extends Component {
     showPanel() {
         this._panelVisible = true;
         this.setHostPanelVisible(true);
+        this.refreshPointDisplay();
         this.refreshSurvivalButtons();
     }
 
@@ -264,6 +268,7 @@ export class AttributeUpgradePanel extends Component {
         }
 
         ps.upgradePoints--;
+        this.refreshPointDisplay();
         state.level++;
         this.applyUpgradeEffect(name, state.level);
         this.refreshSurvivalButtons();
@@ -304,6 +309,14 @@ export class AttributeUpgradePanel extends Component {
                 PlayerState.zombieAlertRadiusMultiplier = 0.2;
                 break;
         }
+    }
+
+    /** 刷新升级点数显示 */
+    private refreshPointDisplay() {
+        if (!this.pointNumberLabel) return;
+        const ps = PlayerState.instance;
+        const points = ps ? ps.upgradePoints : 0;
+        this.pointNumberLabel.string = `${points}`;
     }
 
     /** 刷新所有生存按钮的视觉状态 */
