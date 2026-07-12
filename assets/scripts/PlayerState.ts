@@ -348,6 +348,9 @@ export class PlayerState extends Component {
         return null;
     }
 
+    private _fatigueLogTimer = 0;
+    private _fatiguePrevValue = 0;
+
     private updateFatigue(dt: number, distance: number, safeRadius: number) {
         // 裁剪 dt 防止帧率骤降导致疲劳跳变
         const clampedDt = Math.min(dt, FATIGUE_DT_MAX);
@@ -364,6 +367,25 @@ export class PlayerState extends Component {
             this.fatigueGainSpeed = 0;
             this.fatigueRecoverySpeed = FATIGUE_RECOVERY_RATE;
             this.fatigue = Math.max(0, this.fatigue - FATIGUE_RECOVERY_RATE * clampedDt);
+        }
+
+        // 每秒诊断日志
+        this._fatigueLogTimer += dt;
+        if (this._fatigueLogTimer >= 1) {
+            this._fatigueLogTimer = 0;
+            const delta = this.fatigue - this._fatiguePrevValue;
+            this._fatiguePrevValue = this.fatigue;
+            const inBase = distance <= safeRadius;
+            console.log(
+                `[Fatigue] 每秒变化: ${delta >= 0 ? '+' : ''}${delta.toFixed(2)} | ` +
+                `当前: ${this.fatigue.toFixed(2)} | ` +
+                `FATIGUE_GAIN_BASE=${FATIGUE_GAIN_BASE} | ` +
+                `fatigueReduction=${this.fatigueReduction} | ` +
+                `实际增加速度=${this.fatigueGainSpeed.toFixed(2)} | ` +
+                `恢复速度=${this.fatigueRecoverySpeed} | ` +
+                `位置: ${inBase ? '基地内' : '基地外'} | ` +
+                `距离: ${distance.toFixed(0)} / 安全区: ${safeRadius}`,
+            );
         }
     }
 }
