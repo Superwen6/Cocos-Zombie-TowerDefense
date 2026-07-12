@@ -1,6 +1,20 @@
-import { _decorator, Button, Component, find, Node, Sprite, warn } from 'cc';
+import { _decorator, Button, Color, Component, find, Node, Sprite, warn } from 'cc';
 
 const { ccclass, property } = _decorator;
+
+/** 按钮升级状态 */
+interface UpgradeState {
+    node: Node;
+    level: number;
+    maxLevel: number;
+}
+
+/** 锁定颜色：灰色 */
+const LOCKED_COLOR = new Color(128, 128, 128, 255);
+/** 完成颜色：金色 */
+const COMPLETED_COLOR = new Color(255, 215, 0, 255);
+/** 可用颜色：白色 */
+const NORMAL_COLOR = new Color(255, 255, 255, 255);
 
 /**
  * 属性升级面板 UI。
@@ -9,6 +23,7 @@ const { ccclass, property } = _decorator;
  */
 @ccclass('AttributeUpgradePanel')
 export class AttributeUpgradePanel extends Component {
+    // ---- 面板通用 ----
     @property({ type: Button, tooltip: '面板右上角：关闭按钮' })
     closeButton: Button | null = null;
 
@@ -30,12 +45,38 @@ export class AttributeUpgradePanel extends Component {
     @property({ type: Node, tooltip: '武器内容区' })
     weaponContent: Node | null = null;
 
+    // ---- 生存选项卡按钮 ----
+    @property({ type: Node, tooltip: '行走速度升级按钮' })
+    walkspeedButton: Node | null = null;
+
+    @property({ type: Node, tooltip: '疲劳减缓升级按钮' })
+    fatigueReduceButton: Node | null = null;
+
+    @property({ type: Node, tooltip: '血量提升升级按钮' })
+    hpIncreaseButton: Node | null = null;
+
+    @property({ type: Node, tooltip: '木材采集升级按钮' })
+    woodCollectButton: Node | null = null;
+
+    @property({ type: Node, tooltip: '铜矿采集升级按钮' })
+    copperCollectButton: Node | null = null;
+
+    @property({ type: Node, tooltip: '铁矿采集升级按钮' })
+    ironCollectButton: Node | null = null;
+
+    @property({ type: Node, tooltip: '潜行升级按钮' })
+    stealthButton: Node | null = null;
+
     private _panelVisible = false;
     private static _openPanelBound = false;
     private static _pendingOpen = false;
 
+    /** 生存按钮状态 Map */
+    private _upgradeStates: Map<string, UpgradeState> = new Map();
+
     start() {
         this.bindCloseButton();
+        this.initSurvivalUpgrades();
 
         if (AttributeUpgradePanel._pendingOpen) {
             AttributeUpgradePanel._pendingOpen = false;
@@ -49,12 +90,16 @@ export class AttributeUpgradePanel extends Component {
         if (this.closeButton?.node.isValid) {
             this.closeButton.node.off(Button.EventType.CLICK, this.hidePanel, this);
         }
+        this.unbindSurvivalButtons();
     }
+
+    // ==================== 面板显示/隐藏 ====================
 
     /** 显示属性升级面板 */
     showPanel() {
         this._panelVisible = true;
         this.setHostPanelVisible(true);
+        this.refreshSurvivalButtons();
     }
 
     /** 隐藏属性升级面板 */
@@ -127,6 +172,153 @@ export class AttributeUpgradePanel extends Component {
         }
         for (const child of this.node.children) {
             child.active = visible;
+        }
+    }
+
+    // ==================== 生存选项卡升级逻辑 ====================
+
+    /** 初始化所有生存按钮的升级状态和点击事件 */
+    private initSurvivalUpgrades() {
+        this.registerUpgrade('Walkspeed', this.walkspeedButton || this.findButtonInSurvival('Walkspeed'), 2);
+        this.registerUpgrade('FatigueReduce', this.fatigueReduceButton || this.findButtonInSurvival('FatigueReduce'), 2);
+        this.registerUpgrade('HPIncrease', this.hpIncreaseButton || this.findButtonInSurvival('HPIncrease'), 3);
+        this.registerUpgrade('WoodCollect', this.woodCollectButton || this.findButtonInSurvival('WoodCollect'), 3);
+        this.registerUpgrade('CopperCollect', this.copperCollectButton || this.findButtonInSurvival('CopperCollect'), 3);
+        this.registerUpgrade('IronCollect', this.ironCollectButton || this.findButtonInSurvival('IronCollect'), 3);
+        this.registerUpgrade('Stealth', this.stealthButton || this.findButtonInSurvival('Stealth'), 1);
+    }
+
+    /** 递归在 survivalContent 子树中查找指定名称的节点 */
+    private findButtonInSurvival(name: string): Node | null {
+        if (!this.survivalContent) return null;
+        return this.findNodeByName(this.survivalContent, name);
+    }
+
+    private findNodeByName(root: Node, name: string): Node | null {
+        if (root.name === name) return root;
+        for (const child of root.children) {
+            const found = this.findNodeByName(child, name);
+            if (found) return found;
+        }
+        return null;
+    }
+
+    /** 注册单个升级按钮 */
+    private registerUpgrade(name: string, node: Node | null, maxLevel: number) {
+        if (!node) return;
+        const state: UpgradeState = { node, level: 0, maxLevel };
+        this._upgradeStates.set(name, state);
+
+        const btn = node.getComponent(Button);
+        if (btn) {
+            btn.node.on(Button.EventType.CLICK, () => this.onUpgradeClick(name), this);
+        }
+    }
+
+    /** 检查按钮是否已解锁 */
+    private isUnlocked(name: string): boolean {
+        const state = this._upgradeStates.get(name);
+        if (!state) return false;
+        if (state.level >= state.maxLevel) return false; // 已满级不可再点
+
+        switch (name) {
+            case 'Walkspeed':
+                return true; // 初始即解锁
+            case 'FatigueReduce':
+            case 'WoodCollect':
+                return this.getLevel('Walkspeed') >= 2;
+            case 'HPIncrease':
+                return this.getLevel('FatigueReduce') >= 2;
+            case 'CopperCollect':
+                return this.getLevel('WoodCollect') >= 3;
+            case 'IronCollect':
+                return this.getLevel('CopperCollect') >= 3;
+            case 'Stealth':
+                return this.getLevel('IronCollect') >= 3;
+            default:
+                return false;
+        }
+    }
+
+    /** 获取按钮当前等级 */
+    private getLevel(name: string): number {
+        return this._upgradeStates.get(name)?.level ?? 0;
+    }
+
+    /** 升级按钮点击处理 */
+    private onUpgradeClick(name: string) {
+        const state = this._upgradeStates.get(name);
+        if (!state) return;
+        if (!this.isUnlocked(name)) return;
+        if (state.level >= state.maxLevel) return;
+
+        state.level++;
+        this.applyUpgradeEffect(name, state.level);
+        this.refreshSurvivalButtons();
+    }
+
+    /** 应用升级效果（实际游戏数值修改） */
+    private applyUpgradeEffect(name: string, level: number) {
+        // TODO: 接入 PlayerState / PlayerData / ResourceSpawner 等实际效果
+        switch (name) {
+            case 'Walkspeed':
+                // Lv1: +30%, Lv2: +50%
+                break;
+            case 'FatigueReduce':
+                // Lv1: -15%, Lv2: -30%
+                break;
+            case 'HPIncrease':
+                // Lv1: +50%, Lv2: +100%, Lv3: +200%
+                break;
+            case 'WoodCollect':
+                // Lv1: 2x, Lv2: 3x, Lv3: 4x
+                break;
+            case 'CopperCollect':
+                // Lv1: 2x, Lv2: 3x, Lv3: 4x
+                break;
+            case 'IronCollect':
+                // Lv1: 2x, Lv2: 3x, Lv3: 4x
+                break;
+            case 'Stealth':
+                // 僵尸检测距离 → 1/5
+                break;
+        }
+    }
+
+    /** 刷新所有生存按钮的视觉状态 */
+    private refreshSurvivalButtons() {
+        for (const [name, state] of this._upgradeStates) {
+            this.updateButtonVisual(name, state);
+        }
+    }
+
+    /** 更新单个按钮的视觉状态 */
+    private updateButtonVisual(name: string, state: UpgradeState) {
+        const btn = state.node.getComponent(Button);
+        const sprite = state.node.getComponent(Sprite);
+
+        if (state.level >= state.maxLevel) {
+            // 已满级：金色 + 不可点击
+            if (btn) btn.interactable = false;
+            if (sprite) sprite.color = COMPLETED_COLOR;
+        } else if (this.isUnlocked(name)) {
+            // 已解锁可点击：白色 + 可点击
+            if (btn) btn.interactable = true;
+            if (sprite) sprite.color = NORMAL_COLOR;
+        } else {
+            // 未解锁：灰色 + 不可点击
+            if (btn) btn.interactable = false;
+            if (sprite) sprite.color = LOCKED_COLOR;
+        }
+    }
+
+    /** 解绑所有生存按钮事件 */
+    private unbindSurvivalButtons() {
+        for (const [name, state] of this._upgradeStates) {
+            const btn = state.node.getComponent(Button);
+            if (btn?.node.isValid) {
+                btn.node.off(Button.EventType.CLICK, () => this.onUpgradeClick(name), this);
+            }
         }
     }
 }
