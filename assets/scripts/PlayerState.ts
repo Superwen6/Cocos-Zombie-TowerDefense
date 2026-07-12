@@ -73,6 +73,32 @@ export class PlayerState extends Component {
     @property({ tooltip: '忍耐分支等级 0-5' })
     collectorFatigueLevel = 0;
 
+    // ---- 属性升级面板 ----
+
+    @property({ tooltip: '当前可用的升级点数' })
+    upgradePoints = 0;
+
+    @property({ tooltip: '行走速度倍率（生存面板升级）' })
+    walkSpeedMultiplier = 1.0;
+
+    @property({ tooltip: '血量倍率（生存面板升级）' })
+    hpMultiplier = 1.0;
+
+    @property({ tooltip: '疲劳增长倍率（生存面板升级，越低越好）' })
+    fatigueGainMultiplier = 1.0;
+
+    @property({ tooltip: '木材采集倍率（生存面板升级）' })
+    woodCollectMultiplier = 1.0;
+
+    @property({ tooltip: '铜矿采集倍率（生存面板升级）' })
+    copperCollectMultiplier = 1.0;
+
+    @property({ tooltip: '铁矿采集倍率（生存面板升级）' })
+    ironCollectMultiplier = 1.0;
+
+    /** 僵尸感知距离倍率（生存面板潜行升级，越低越好） */
+    static zombieAlertRadiusMultiplier = 1.0;
+
     @property({ tooltip: '基地节点名（用于自动查找）' })
     baseNodeName = 'Base';
 
@@ -153,7 +179,7 @@ export class PlayerState extends Component {
             }
         }
 
-        this.hp = Math.min(this.hp, this.maxHp);
+        this.hp = Math.min(this.hp, this.getEffectiveMaxHp());
         this.fatigue = Math.min(this.fatigue, FATIGUE_MAX);
 
         this._statusLogTimer += dt;
@@ -177,10 +203,10 @@ export class PlayerState extends Component {
     }
 
     /**
-     * 最终移动速度 = (moveSpeed + bonusSpeed)，虚弱时减半。
+     * 最终移动速度 = (moveSpeed + bonusSpeed) * walkSpeedMultiplier，虚弱时减半。
      */
     getFinalMoveSpeed(): number {
-        const raw = this.moveSpeed + this.bonusSpeed;
+        const raw = (this.moveSpeed + this.bonusSpeed) * this.walkSpeedMultiplier;
         return this.isExhausted ? raw * 0.5 : raw;
     }
 
@@ -224,6 +250,21 @@ export class PlayerState extends Component {
         this.fatigueReduction = this.collectorFatigueLevel;
     }
 
+    /** 获取当前有效最大血量（maxHp * hpMultiplier） */
+    getEffectiveMaxHp(): number {
+        return Math.round(this.maxHp * this.hpMultiplier);
+    }
+
+    /** 获取指定资源类型的采集倍率 */
+    getResourceCollectMultiplier(resourceType: string): number {
+        switch (resourceType) {
+            case 'wood': return this.woodCollectMultiplier;
+            case 'copper': return this.copperCollectMultiplier;
+            case 'iron': return this.ironCollectMultiplier;
+            default: return 1.0;
+        }
+    }
+
     private onPlayerDeath() {
         if (this._deathLogged) {
             return;
@@ -241,11 +282,12 @@ export class PlayerState extends Component {
             ? BaseSystem.instance.getCurrentHpRegen()
             : 0;
 
-        if (regen <= 0 || this.hp >= this.maxHp) {
+        const effectiveMaxHp = this.getEffectiveMaxHp();
+        if (regen <= 0 || this.hp >= effectiveMaxHp) {
             return;
         }
 
-        this.hp = Math.min(this.maxHp, this.hp + regen * dt);
+        this.hp = Math.min(effectiveMaxHp, this.hp + regen * dt);
     }
 
     private getFatigueMode(distance: number, safeRadius: number): FatigueMode {
@@ -351,7 +393,7 @@ export class PlayerState extends Component {
         if (distance > safeRadius) {
             const gainPerSecond = Math.max(
                 FATIGUE_GAIN_MIN,
-                this.fatigueGainBase - this.fatigueReduction,
+                this.fatigueGainBase * this.fatigueGainMultiplier - this.fatigueReduction,
             );
             this.fatigue += gainPerSecond * clampedDt;
         } else {

@@ -58,8 +58,10 @@ export class ResourceItem extends Component {
     }
 
     private collectAndDestroy() {
-        const bonusYield = PlayerState.instance?.bonusYield ?? 0;
-        const totalAmount = this.baseAmount + bonusYield;
+        const ps = PlayerState.instance;
+        const bonusYield = ps?.bonusYield ?? 0;
+        const multiplier = ps?.getResourceCollectMultiplier(this.resourceType) ?? 1.0;
+        const totalAmount = Math.round((this.baseAmount + bonusYield) * multiplier);
 
         if (PlayerData.instance) {
             PlayerData.instance.addResource(this.resourceType, totalAmount);

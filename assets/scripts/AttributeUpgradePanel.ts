@@ -1,4 +1,5 @@
 import { _decorator, Button, Color, Component, find, Node, Sprite, warn } from 'cc';
+import { PlayerState } from './PlayerState';
 
 const { ccclass, property } = _decorator;
 
@@ -252,6 +253,17 @@ export class AttributeUpgradePanel extends Component {
         if (!this.isUnlocked(name)) return;
         if (state.level >= state.maxLevel) return;
 
+        const ps = PlayerState.instance;
+        if (!ps) {
+            warn('[AttributeUpgradePanel] PlayerState 实例不存在');
+            return;
+        }
+        if (ps.upgradePoints <= 0) {
+            warn(`[AttributeUpgradePanel] 升级点数不足，无法升级 ${name}`);
+            return;
+        }
+
+        ps.upgradePoints--;
         state.level++;
         this.applyUpgradeEffect(name, state.level);
         this.refreshSurvivalButtons();
@@ -259,28 +271,37 @@ export class AttributeUpgradePanel extends Component {
 
     /** 应用升级效果（实际游戏数值修改） */
     private applyUpgradeEffect(name: string, level: number) {
-        // TODO: 接入 PlayerState / PlayerData / ResourceSpawner 等实际效果
+        const ps = PlayerState.instance;
+        if (!ps) return;
+
         switch (name) {
             case 'Walkspeed':
                 // Lv1: +30%, Lv2: +50%
+                ps.walkSpeedMultiplier = level === 1 ? 1.3 : 1.5;
                 break;
             case 'FatigueReduce':
-                // Lv1: -15%, Lv2: -30%
+                // Lv1: -15%, Lv2: -30%（倍率越低疲劳越慢）
+                ps.fatigueGainMultiplier = level === 1 ? 0.85 : 0.70;
                 break;
             case 'HPIncrease':
                 // Lv1: +50%, Lv2: +100%, Lv3: +200%
+                ps.hpMultiplier = [1.5, 2.0, 3.0][level - 1];
+                // 升级时回满血到新上限
+                ps.hp = ps.getEffectiveMaxHp();
                 break;
             case 'WoodCollect':
                 // Lv1: 2x, Lv2: 3x, Lv3: 4x
+                ps.woodCollectMultiplier = level + 1;
                 break;
             case 'CopperCollect':
-                // Lv1: 2x, Lv2: 3x, Lv3: 4x
+                ps.copperCollectMultiplier = level + 1;
                 break;
             case 'IronCollect':
-                // Lv1: 2x, Lv2: 3x, Lv3: 4x
+                ps.ironCollectMultiplier = level + 1;
                 break;
             case 'Stealth':
                 // 僵尸检测距离 → 1/5
+                PlayerState.zombieAlertRadiusMultiplier = 0.2;
                 break;
         }
     }

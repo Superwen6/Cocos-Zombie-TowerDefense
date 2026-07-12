@@ -473,7 +473,7 @@ export class ZombieMove extends Component {
                 this.returnToDefaultTarget();
                 return;
             }
-            if (lineClear && distToPlayer <= this.alertRadius) {
+            if (lineClear && distToPlayer <= this.alertRadius * PlayerState.zombieAlertRadiusMultiplier) {
                 this._lastKnownPlayerPos.set(playerNode.worldPosition);
                 this._memoryTimer = MEMORY_DURATION;
                 this._aiState = 'CHASE_PLAYER';
@@ -549,7 +549,7 @@ export class ZombieMove extends Component {
         }
 
         // ===== 夜间僵尸：看到玩家就追击（视觉发现，非玩家攻击，优先级低于炮塔） =====
-        if (lineClear && distToPlayer <= this.alertRadius) {
+        if (lineClear && distToPlayer <= this.alertRadius * PlayerState.zombieAlertRadiusMultiplier) {
             this._lastKnownPlayerPos.set(playerNode.worldPosition);
             this._memoryTimer = MEMORY_DURATION;
             this._buildingTarget = null;
