@@ -62,6 +62,12 @@ export class PlayerState extends Component {
     @property({ tooltip: '忍耐分支：疲劳上升减免（点/秒）' })
     fatigueReduction = 0;
 
+    @property({ tooltip: '当前疲劳增加速度（点/秒，只读）' })
+    fatigueGainSpeed = 0;
+
+    @property({ tooltip: '当前疲劳恢复速度（点/秒，只读）' })
+    fatigueRecoverySpeed = 0;
+
     @property({ tooltip: '速度分支等级 0-5' })
     collectorSpeedLevel = 0;
 
@@ -351,8 +357,12 @@ export class PlayerState extends Component {
                 FATIGUE_GAIN_MIN,
                 FATIGUE_GAIN_BASE - this.fatigueReduction,
             );
+            this.fatigueGainSpeed = gainPerSecond;
+            this.fatigueRecoverySpeed = 0;
             this.fatigue += gainPerSecond * clampedDt;
         } else {
+            this.fatigueGainSpeed = 0;
+            this.fatigueRecoverySpeed = FATIGUE_RECOVERY_RATE;
             this.fatigue = Math.max(0, this.fatigue - FATIGUE_RECOVERY_RATE * clampedDt);
         }
     }
