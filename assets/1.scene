@@ -722,6 +722,7 @@
     "profession": "Collector",
     "bonusSpeed": 0,
     "bonusYield": 0,
+    "fatigueGainBase": 1,
     "fatigueReduction": 0,
     "collectorSpeedLevel": 0,
     "collectorYieldLevel": 0,
@@ -9611,7 +9612,7 @@
     "_prefab": null,
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": 0,
+      "x": 28.454,
       "y": 17.702,
       "z": 0
     },
@@ -13656,7 +13657,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 0,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -13690,7 +13691,7 @@
     "_pressedSprite": null,
     "_disabledSprite": null,
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.8,
     "_target": {
       "__id__": 569
     },
@@ -17443,7 +17444,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 0,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -17477,7 +17478,7 @@
     "_pressedSprite": null,
     "_disabledSprite": null,
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.8,
     "_target": {
       "__id__": 627
     },
@@ -19226,7 +19227,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 0,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -19260,7 +19261,7 @@
     "_pressedSprite": null,
     "_disabledSprite": null,
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.8,
     "_target": null,
     "_id": "02mwvgg3VLSrmsFOFBAjV/"
   },
@@ -21007,7 +21008,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 0,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -21041,7 +21042,7 @@
     "_pressedSprite": null,
     "_disabledSprite": null,
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.8,
     "_target": null,
     "_id": "674mVyz79Nf5LU2LXBIEGX"
   },
@@ -22788,7 +22789,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 0,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -22822,7 +22823,7 @@
     "_pressedSprite": null,
     "_disabledSprite": null,
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.8,
     "_target": null,
     "_id": "14VL0sol1I45652CldFFFR"
   },
@@ -24569,7 +24570,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 0,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -24603,7 +24604,7 @@
     "_pressedSprite": null,
     "_disabledSprite": null,
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.8,
     "_target": null,
     "_id": "04NUEthNxNWKlqXBcIKIQ7"
   },
@@ -24975,7 +24976,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 0,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -25009,7 +25010,7 @@
     "_pressedSprite": null,
     "_disabledSprite": null,
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.8,
     "_target": {
       "__id__": 862
     },
@@ -25559,7 +25560,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 0,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -25593,7 +25594,7 @@
     "_pressedSprite": null,
     "_disabledSprite": null,
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.8,
     "_target": {
       "__id__": 869
     },
@@ -27961,7 +27962,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 0,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -27995,7 +27996,7 @@
     "_pressedSprite": null,
     "_disabledSprite": null,
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.8,
     "_target": {
       "__id__": 886
     },
@@ -29991,7 +29992,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 0,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -30025,7 +30026,7 @@
     "_pressedSprite": null,
     "_disabledSprite": null,
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.8,
     "_target": {
       "__id__": 937
     },
@@ -31944,7 +31945,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 0,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -31978,7 +31979,7 @@
     "_pressedSprite": null,
     "_disabledSprite": null,
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.8,
     "_target": {
       "__id__": 986
     },
@@ -33897,7 +33898,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 0,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -33931,7 +33932,7 @@
     "_pressedSprite": null,
     "_disabledSprite": null,
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.8,
     "_target": {
       "__id__": 1035
     },
@@ -35930,7 +35931,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 0,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -35964,7 +35965,7 @@
     "_pressedSprite": null,
     "_disabledSprite": null,
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.8,
     "_target": {
       "__id__": 1086
     },
@@ -37883,7 +37884,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 0,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -37917,7 +37918,7 @@
     "_pressedSprite": null,
     "_disabledSprite": null,
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.8,
     "_target": {
       "__id__": 1135
     },
@@ -39836,7 +39837,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 0,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -39870,7 +39871,7 @@
     "_pressedSprite": null,
     "_disabledSprite": null,
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.8,
     "_target": {
       "__id__": 1184
     },
@@ -41789,7 +41790,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 0,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -41823,7 +41824,7 @@
     "_pressedSprite": null,
     "_disabledSprite": null,
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.8,
     "_target": {
       "__id__": 1233
     },
@@ -43816,7 +43817,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 0,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -43850,7 +43851,7 @@
     "_pressedSprite": null,
     "_disabledSprite": null,
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.8,
     "_target": {
       "__id__": 1284
     },
@@ -45769,7 +45770,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 0,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -45803,7 +45804,7 @@
     "_pressedSprite": null,
     "_disabledSprite": null,
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.8,
     "_target": {
       "__id__": 1333
     },
@@ -47796,7 +47797,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 0,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -47830,7 +47831,7 @@
     "_pressedSprite": null,
     "_disabledSprite": null,
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.8,
     "_target": {
       "__id__": 1384
     },
@@ -49749,7 +49750,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 0,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -49783,7 +49784,7 @@
     "_pressedSprite": null,
     "_disabledSprite": null,
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.8,
     "_target": {
       "__id__": 1433
     },

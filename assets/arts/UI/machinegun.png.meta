@@ -1,0 +1,134 @@
+{
+  "ver": "1.0.27",
+  "importer": "image",
+  "imported": true,
+  "uuid": "91150458-a5e3-4144-914d-19336a8ca5a6",
+  "files": [
+    ".json",
+    ".png"
+  ],
+  "subMetas": {
+    "6c48a": {
+      "importer": "texture",
+      "uuid": "91150458-a5e3-4144-914d-19336a8ca5a6@6c48a",
+      "displayName": "machinegun",
+      "id": "6c48a",
+      "name": "texture",
+      "userData": {
+        "wrapModeS": "clamp-to-edge",
+        "wrapModeT": "clamp-to-edge",
+        "imageUuidOrDatabaseUri": "91150458-a5e3-4144-914d-19336a8ca5a6",
+        "isUuid": true,
+        "visible": false,
+        "minfilter": "linear",
+        "magfilter": "linear",
+        "mipfilter": "none",
+        "anisotropy": 0
+      },
+      "ver": "1.0.22",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "f9941": {
+      "importer": "sprite-frame",
+      "uuid": "91150458-a5e3-4144-914d-19336a8ca5a6@f9941",
+      "displayName": "machinegun",
+      "id": "f9941",
+      "name": "spriteFrame",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -21.5,
+        "offsetY": 18.5,
+        "trimX": 637,
+        "trimY": 371,
+        "width": 100,
+        "height": 71,
+        "rawWidth": 1417,
+        "rawHeight": 850,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [
+            -50,
+            -35.5,
+            0,
+            50,
+            -35.5,
+            0,
+            -50,
+            35.5,
+            0,
+            50,
+            35.5,
+            0
+          ],
+          "indexes": [
+            0,
+            1,
+            2,
+            2,
+            1,
+            3
+          ],
+          "uv": [
+            637,
+            479,
+            737,
+            479,
+            637,
+            408,
+            737,
+            408
+          ],
+          "nuv": [
+            0.44954128440366975,
+            0.48,
+            0.5201129146083274,
+            0.48,
+            0.44954128440366975,
+            0.5635294117647058,
+            0.5201129146083274,
+            0.5635294117647058
+          ],
+          "minPos": [
+            -50,
+            -35.5,
+            0
+          ],
+          "maxPos": [
+            50,
+            35.5,
+            0
+          ]
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "91150458-a5e3-4144-914d-19336a8ca5a6@6c48a",
+        "atlasUuid": "",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "type": "sprite-frame",
+    "fixAlphaTransparencyArtifacts": false,
+    "hasAlpha": true,
+    "redirect": "91150458-a5e3-4144-914d-19336a8ca5a6@6c48a"
+  }
+}

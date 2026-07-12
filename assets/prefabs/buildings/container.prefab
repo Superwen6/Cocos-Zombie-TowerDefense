@@ -552,7 +552,7 @@
     "colliderHalfW": 30,
     "colliderHalfH": 30,
     "semiTransparentOpacity": 100,
-    "triggerDistance": 80,
+    "triggerDistance": 150,
     "_id": ""
   },
   {
@@ -581,6 +581,7 @@
     "maxStorageWood": 40,
     "maxStorageCopper": 20,
     "maxStorageIron": 10,
+    "interactDistance": 80,
     "_id": ""
   },
   {
