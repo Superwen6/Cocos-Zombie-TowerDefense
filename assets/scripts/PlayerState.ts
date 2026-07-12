@@ -6,7 +6,6 @@ const { ccclass, property } = _decorator;
 /** 默认安全区半径（BaseSystem 未就绪时回退） */
 const FALLBACK_SAFE_RADIUS = 300;
 
-const FATIGUE_GAIN_BASE = 5;
 const FATIGUE_GAIN_MIN = 0.5;
 const FATIGUE_RECOVERY_RATE = 8;
 const FATIGUE_MAX = 100;
@@ -59,14 +58,11 @@ export class PlayerState extends Component {
     @property({ tooltip: '贪婪分支：每次采集额外产出' })
     bonusYield = 0;
 
+    @property({ tooltip: '疲劳基础增加速度（点/秒）' })
+    fatigueGainBase = 5;
+
     @property({ tooltip: '忍耐分支：疲劳上升减免（点/秒）' })
     fatigueReduction = 0;
-
-    @property({ tooltip: '当前疲劳增加速度（点/秒，只读）' })
-    fatigueGainSpeed = 0;
-
-    @property({ tooltip: '当前疲劳恢复速度（点/秒，只读）' })
-    fatigueRecoverySpeed = 0;
 
     @property({ tooltip: '速度分支等级 0-5' })
     collectorSpeedLevel = 0;
@@ -270,7 +266,7 @@ export class PlayerState extends Component {
         }
 
         if (curr === FatigueMode.RISING) {
-            const gain = Math.max(FATIGUE_GAIN_MIN, FATIGUE_GAIN_BASE - this.fatigueReduction);
+            const gain = Math.max(FATIGUE_GAIN_MIN, this.fatigueGainBase - this.fatigueReduction);
             log(
                 `[PlayerState] 已离开基地（距离 ${distance.toFixed(0)} > ${safeRadius}），疲劳开始上升（约 ${gain.toFixed(1)} 点/秒）`,
             );
@@ -348,9 +344,6 @@ export class PlayerState extends Component {
         return null;
     }
 
-    private _fatigueLogTimer = 0;
-    private _fatiguePrevValue = 0;
-
     private updateFatigue(dt: number, distance: number, safeRadius: number) {
         // 裁剪 dt 防止帧率骤降导致疲劳跳变
         const clampedDt = Math.min(dt, FATIGUE_DT_MAX);
@@ -358,34 +351,11 @@ export class PlayerState extends Component {
         if (distance > safeRadius) {
             const gainPerSecond = Math.max(
                 FATIGUE_GAIN_MIN,
-                FATIGUE_GAIN_BASE - this.fatigueReduction,
+                this.fatigueGainBase - this.fatigueReduction,
             );
-            this.fatigueGainSpeed = gainPerSecond;
-            this.fatigueRecoverySpeed = 0;
             this.fatigue += gainPerSecond * clampedDt;
         } else {
-            this.fatigueGainSpeed = 0;
-            this.fatigueRecoverySpeed = FATIGUE_RECOVERY_RATE;
             this.fatigue = Math.max(0, this.fatigue - FATIGUE_RECOVERY_RATE * clampedDt);
-        }
-
-        // 每秒诊断日志
-        this._fatigueLogTimer += dt;
-        if (this._fatigueLogTimer >= 1) {
-            this._fatigueLogTimer = 0;
-            const delta = this.fatigue - this._fatiguePrevValue;
-            this._fatiguePrevValue = this.fatigue;
-            const inBase = distance <= safeRadius;
-            console.log(
-                `[Fatigue] 每秒变化: ${delta >= 0 ? '+' : ''}${delta.toFixed(2)} | ` +
-                `当前: ${this.fatigue.toFixed(2)} | ` +
-                `FATIGUE_GAIN_BASE=${FATIGUE_GAIN_BASE} | ` +
-                `fatigueReduction=${this.fatigueReduction} | ` +
-                `实际增加速度=${this.fatigueGainSpeed.toFixed(2)} | ` +
-                `恢复速度=${this.fatigueRecoverySpeed} | ` +
-                `位置: ${inBase ? '基地内' : '基地外'} | ` +
-                `距离: ${distance.toFixed(0)} / 安全区: ${safeRadius}`,
-            );
         }
     }
 }
