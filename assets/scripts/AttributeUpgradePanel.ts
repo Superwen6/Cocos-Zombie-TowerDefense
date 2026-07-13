@@ -14,8 +14,17 @@ interface UpgradeState {
 const LOCKED_COLOR = new Color(128, 128, 128, 255);
 /** 完成颜色：金色 */
 const COMPLETED_COLOR = new Color(255, 215, 0, 255);
-/** 可用颜色：白色 */
-const NORMAL_COLOR = new Color(255, 255, 255, 255);
+
+/** 升级依赖链：点击某个按钮后，哪些按钮的视觉状态需要刷新 */
+const AFFECTED_BUTTONS: Record<string, string[]> = {
+    Walkspeed: ['Walkspeed', 'FatigueReduce', 'WoodCollect'],
+    FatigueReduce: ['FatigueReduce', 'HPIncrease'],
+    WoodCollect: ['WoodCollect', 'CopperCollect'],
+    CopperCollect: ['CopperCollect', 'IronCollect'],
+    IronCollect: ['IronCollect', 'Stealth'],
+    HPIncrease: ['HPIncrease'],
+    Stealth: ['Stealth'],
+};
 
 /**
  * 属性升级面板 UI。
@@ -77,6 +86,8 @@ export class AttributeUpgradePanel extends Component {
 
     /** 生存按钮状态 Map */
     private _upgradeStates: Map<string, UpgradeState> = new Map();
+    /** 每个按钮子树中所有 Sprite 的原始颜色（用于解锁时恢复） */
+    private _originalColors: Map<Node, Color> = new Map();
 
     start() {
         this.bindCloseButton();
@@ -214,9 +225,23 @@ export class AttributeUpgradePanel extends Component {
         const state: UpgradeState = { node, level: 0, maxLevel };
         this._upgradeStates.set(name, state);
 
+        // 保存按钮子树中所有 Sprite 的原始颜色
+        this.saveOriginalColors(node);
+
         const btn = node.getComponent(Button);
         if (btn) {
             btn.node.on(Button.EventType.CLICK, () => this.onUpgradeClick(name), this);
+        }
+    }
+
+    /** 递归保存节点子树中所有 Sprite 的原始颜色 */
+    private saveOriginalColors(node: Node) {
+        const sprite = node.getComponent(Sprite);
+        if (sprite) {
+            this._originalColors.set(node, sprite.color.clone());
+        }
+        for (const child of node.children) {
+            this.saveOriginalColors(child);
         }
     }
 
@@ -271,7 +296,7 @@ export class AttributeUpgradePanel extends Component {
         this.refreshPointDisplay();
         state.level++;
         this.applyUpgradeEffect(name, state.level);
-        this.refreshSurvivalButtons();
+        this.refreshAffectedButtons(name);
     }
 
     /** 应用升级效果（实际游戏数值修改） */
@@ -319,30 +344,60 @@ export class AttributeUpgradePanel extends Component {
         this.pointNumberLabel.string = `${points}`;
     }
 
-    /** 刷新所有生存按钮的视觉状态 */
+    /** 刷新所有生存按钮的视觉状态（面板打开时全量刷新） */
     private refreshSurvivalButtons() {
         for (const [name, state] of this._upgradeStates) {
             this.updateButtonVisual(name, state);
         }
     }
 
+    /** 只刷新受影响的按钮（点击升级时） */
+    private refreshAffectedButtons(clickedName: string) {
+        const affected = AFFECTED_BUTTONS[clickedName] || [clickedName];
+        for (const name of affected) {
+            const state = this._upgradeStates.get(name);
+            if (state) {
+                this.updateButtonVisual(name, state);
+            }
+        }
+    }
+
     /** 更新单个按钮的视觉状态 */
     private updateButtonVisual(name: string, state: UpgradeState) {
         const btn = state.node.getComponent(Button);
-        const sprite = state.node.getComponent(Sprite);
 
         if (state.level >= state.maxLevel) {
-            // 已满级：金色 + 不可点击
             if (btn) btn.interactable = false;
-            if (sprite) sprite.color = COMPLETED_COLOR;
+            this.setSubtreeColor(state.node, COMPLETED_COLOR);
         } else if (this.isUnlocked(name)) {
-            // 已解锁可点击：白色 + 可点击
             if (btn) btn.interactable = true;
-            if (sprite) sprite.color = NORMAL_COLOR;
+            this.restoreOriginalColors(state.node);
         } else {
-            // 未解锁：灰色 + 不可点击
             if (btn) btn.interactable = false;
-            if (sprite) sprite.color = LOCKED_COLOR;
+            this.setSubtreeColor(state.node, LOCKED_COLOR);
+        }
+    }
+
+    /** 递归设置节点子树中所有 Sprite 为指定颜色 */
+    private setSubtreeColor(node: Node, color: Color) {
+        const sprite = node.getComponent(Sprite);
+        if (sprite) {
+            sprite.color = color;
+        }
+        for (const child of node.children) {
+            this.setSubtreeColor(child, color);
+        }
+    }
+
+    /** 递归恢复节点子树中所有 Sprite 的原始颜色 */
+    private restoreOriginalColors(node: Node) {
+        const sprite = node.getComponent(Sprite);
+        const original = this._originalColors.get(node);
+        if (sprite && original) {
+            sprite.color = original;
+        }
+        for (const child of node.children) {
+            this.restoreOriginalColors(child);
         }
     }
 
