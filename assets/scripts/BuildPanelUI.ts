@@ -1,6 +1,7 @@
 import { _decorator, Button, Color, Component, find, Label, Prefab, Sprite, SpriteFrame, instantiate, warn } from 'cc';
 import { BaseSystem } from './BaseSystem';
 import { PlayerData } from './PlayerData';
+import { PlayerState } from './PlayerState';
 import { TurretPlacementManager, TurretPlacementCost } from './TurretPlacementManager';
 import { PlantPanelUI } from './PlantPanelUI';
 import { UpgradePanelUI } from './UpgradePanelUI';
@@ -270,15 +271,25 @@ export class BuildPanelUI extends Component {
             return;
         }
 
-        this.setCostLabel(this.costWoodLabel, `${data.woodCount}/${tier.wood}`, data.woodCount >= tier.wood);
-        this.setCostLabel(this.costCopperLabel, `${data.copperCount}/${tier.copper}`, data.copperCount >= tier.copper);
-        this.setCostLabel(this.costIronLabel, `${data.ironCount}/${tier.iron}`, data.ironCount >= tier.iron);
-        this.setCostLabel(this.costMoneyLabel, `${data.money}/${tier.money}`, data.money >= tier.money);
+        // 应用省材料率
+        const ps = PlayerState.instance;
+        const saveRate = ps ? ps.materialSaveRate : 0;
+        const actualWood = Math.round(tier.wood * (1 - saveRate));
+        const actualCopper = Math.round(tier.copper * (1 - saveRate));
+        const actualIron = Math.round(tier.iron * (1 - saveRate));
+        const actualMoney = Math.round(tier.money * (1 - saveRate));
 
-        // 电力消耗：从 levelPowerCosts 读取，显示单数字，不足时变红
+        this.setCostLabel(this.costWoodLabel, `${data.woodCount}/${actualWood}`, data.woodCount >= actualWood);
+        this.setCostLabel(this.costCopperLabel, `${data.copperCount}/${actualCopper}`, data.copperCount >= actualCopper);
+        this.setCostLabel(this.costIronLabel, `${data.ironCount}/${actualIron}`, data.ironCount >= actualIron);
+        this.setCostLabel(this.costMoneyLabel, `${data.money}/${actualMoney}`, data.money >= actualMoney);
+
+        // 电力消耗：从 levelPowerCosts 读取，应用省电率，显示单数字，不足时变红
         const powerCost = base.getNextLevelPowerCost();
+        const powerSave = ps ? ps.powerSaveRate : 0;
+        const actualPower = powerCost - Math.round(powerCost * powerSave);
         const gen = base.totalPowerGen;
-        this.setCostLabel(this.costPowerLabel, `${powerCost}`, gen >= powerCost);
+        this.setCostLabel(this.costPowerLabel, `${actualPower}`, gen >= actualPower);
     }
 
     private setCostLabel(label: Label | null, text: string, affordable: boolean) {
@@ -362,17 +373,26 @@ export class BuildPanelUI extends Component {
             return;
         }
 
-        this.setCostChildValue(costDisplay, 'CostWood', `${data.woodCount}/${cost.wood}`, data.woodCount >= cost.wood);
-        this.setCostChildValue(costDisplay, 'CostIron', `${data.ironCount}/${cost.iron}`, data.ironCount >= cost.iron);
-        this.setCostChildValue(costDisplay, 'CostCopper', `${data.copperCount}/${cost.copper}`, data.copperCount >= cost.copper);
+        // 应用省材料率
+        const ps = PlayerState.instance;
+        const saveRate = ps ? ps.materialSaveRate : 0;
+        const actualWood = Math.round(cost.wood * (1 - saveRate));
+        const actualIron = Math.round(cost.iron * (1 - saveRate));
+        const actualCopper = Math.round(cost.copper * (1 - saveRate));
+
+        this.setCostChildValue(costDisplay, 'CostWood', `${data.woodCount}/${actualWood}`, data.woodCount >= actualWood);
+        this.setCostChildValue(costDisplay, 'CostIron', `${data.ironCount}/${actualIron}`, data.ironCount >= actualIron);
+        this.setCostChildValue(costDisplay, 'CostCopper', `${data.copperCount}/${actualCopper}`, data.copperCount >= actualCopper);
 
         if (isGenerator) {
             // 发电机：显示发电量，始终白色
             this.setCostChildValue(costDisplay, 'CostPower', `${powerValue}`, true);
         } else {
-            // 集装箱：显示单数字耗电量，不足时变红
+            // 集装箱：应用省电率，显示单数字耗电量，不足时变红
+            const powerSave = ps ? ps.powerSaveRate : 0;
+            const actualPower = powerValue - Math.round(powerValue * powerSave);
             const gen = BaseSystem.instance ? BaseSystem.instance.totalPowerGen : 0;
-            this.setCostChildValue(costDisplay, 'CostPower', `${powerValue}`, gen >= powerValue);
+            this.setCostChildValue(costDisplay, 'CostPower', `${actualPower}`, gen >= actualPower);
         }
     }
 

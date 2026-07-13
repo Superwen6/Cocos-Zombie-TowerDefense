@@ -1,5 +1,6 @@
 import { _decorator, Button, Color, Component, instantiate, Label, log, Node, warn } from 'cc';
 import { PlayerData } from './PlayerData';
+import { PlayerState } from './PlayerState';
 import { TurretPlacementManager } from './TurretPlacementManager';
 import { BaseSystem } from './BaseSystem';
 import { Turret } from './Turret';
@@ -32,12 +33,19 @@ export class TurretBuildPanelUI extends Component {
     @property({ type: [Node], tooltip: '各炮塔的 CostPower 节点（按顺序拖入 LV1~LV5 下的 CostPower）' })
     turretPowerCosts: Node[] = [];
 
-    /** 从 TurretPlacementManager 读取实时消耗 */
+    /** 从 TurretPlacementManager 读取实时消耗（应用省材料率） */
     private getCosts() {
         const manager = TurretPlacementManager.instance;
         if (manager) {
             const c = manager.getTurretCosts();
-            return { wood: c.wood, iron: c.iron, copper: c.copper, money: c.money };
+            const ps = PlayerState.instance;
+            const saveRate = ps ? ps.materialSaveRate : 0;
+            return {
+                wood: Math.round(c.wood * (1 - saveRate)),
+                iron: Math.round(c.iron * (1 - saveRate)),
+                copper: Math.round(c.copper * (1 - saveRate)),
+                money: Math.round(c.money * (1 - saveRate)),
+            };
         }
         return { wood: 0, iron: 2, copper: 0, money: 5 };
     }
@@ -143,14 +151,23 @@ export class TurretBuildPanelUI extends Component {
             const power = turret ? (turret.powerCost ?? 0) : 0;
             tempNode.destroy();
 
+            // 应用省材料/省电率
+            const ps = PlayerState.instance;
+            const saveRate = ps ? ps.materialSaveRate : 0;
+            const powerSave = ps ? ps.powerSaveRate : 0;
+            const actualWood = Math.round(wood * (1 - saveRate));
+            const actualIron = Math.round(iron * (1 - saveRate));
+            const actualCopper = Math.round(copper * (1 - saveRate));
+            const actualPower = power - Math.round(power * powerSave);
+
             // 更新资源消耗
             const woodNow = data?.woodCount ?? 0;
             const ironNow = data?.ironCount ?? 0;
             const copperNow = data?.copperCount ?? 0;
 
-            this.setCostChildValue(costDisplay, 'CostWood', `${wood}`, woodNow >= wood);
-            this.setCostChildValue(costDisplay, 'CostIron', `${iron}`, ironNow >= iron);
-            this.setCostChildValue(costDisplay, 'CostCopper', `${copper}`, copperNow >= copper);
+            this.setCostChildValue(costDisplay, 'CostWood', `${actualWood}`, woodNow >= actualWood);
+            this.setCostChildValue(costDisplay, 'CostIron', `${actualIron}`, ironNow >= actualIron);
+            this.setCostChildValue(costDisplay, 'CostCopper', `${actualCopper}`, copperNow >= actualCopper);
 
             // 更新电力消耗
             if (powerCost) {
@@ -158,8 +175,8 @@ export class TurretBuildPanelUI extends Component {
                 if (valueNode) {
                     const label = valueNode.getComponent(Label);
                     if (label) {
-                        label.string = `${power}`;
-                        label.color = gen >= power ? Color.WHITE : Color.RED;
+                        label.string = `${actualPower}`;
+                        label.color = gen >= actualPower ? Color.WHITE : Color.RED;
                     }
                 }
             }

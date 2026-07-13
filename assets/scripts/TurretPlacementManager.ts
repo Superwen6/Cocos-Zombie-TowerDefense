@@ -5,6 +5,7 @@ import {
 } from 'cc';
 import { GameHUDUI } from './GameHUDUI';
 import { PlayerData } from './PlayerData';
+import { PlayerState } from './PlayerState';
 import { Turret } from './Turret';
 import { BaseSystem } from './BaseSystem';
 import { TurretBuildPanelUI } from './TurretBuildPanelUI';
@@ -413,7 +414,10 @@ export class TurretPlacementManager extends Component {
         if (!playerNode) return true;
         const playerPos = playerNode.worldPosition;
         const dist = Vec3.distance(worldPos, playerPos);
-        if (dist > data.buildRadius) return false;
+
+        // 远程用材料：跳过距离限制
+        const ps = PlayerState.instance;
+        if (!ps?.remoteMaterialEnabled && dist > data.buildRadius) return false;
 
         // 墙体阻挡判定：检查玩家到虚影之间的视线是否被墙体遮挡
         if (CollisionWorld.instance) {

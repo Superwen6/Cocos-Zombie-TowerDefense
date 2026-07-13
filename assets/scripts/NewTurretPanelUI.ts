@@ -1,5 +1,6 @@
 import { _decorator, Button, Color, Component, Label, Node, Prefab, warn } from 'cc';
 import { PlayerData } from './PlayerData';
+import { PlayerState } from './PlayerState';
 import { TurretPlacementManager, TurretPlacementCost } from './TurretPlacementManager';
 import { BaseSystem } from './BaseSystem';
 
@@ -145,12 +146,26 @@ export class NewTurretPanelUI extends Component {
 
     // ── 消耗读取 ──
 
-    private getCosts(index: number): TurretPlacementCost {
+    /** 获取原始消耗（从预制体读取） */
+    private getRawCosts(index: number): TurretPlacementCost {
         const manager = TurretPlacementManager.instance;
         if (manager) {
             return manager.getCostsFromPrefab(this.turretPanelPrefabs[index]);
         }
         return { wood: 0, copper: 0, iron: 0, money: 0 };
+    }
+
+    /** 获取实际消耗（应用省材料率） */
+    private getCosts(index: number): TurretPlacementCost {
+        const raw = this.getRawCosts(index);
+        const ps = PlayerState.instance;
+        const saveRate = ps ? ps.materialSaveRate : 0;
+        return {
+            wood: Math.round(raw.wood * (1 - saveRate)),
+            copper: Math.round(raw.copper * (1 - saveRate)),
+            iron: Math.round(raw.iron * (1 - saveRate)),
+            money: Math.round(raw.money * (1 - saveRate)),
+        };
     }
 
     // ── 资源检测 ──

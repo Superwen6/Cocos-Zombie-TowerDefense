@@ -99,6 +99,26 @@ export class PlayerState extends Component {
     /** 僵尸感知距离倍率（生存面板潜行升级，越低越好） */
     static zombieAlertRadiusMultiplier = 1.0;
 
+    // ---- 工程面板升级 ----
+
+    @property({ tooltip: '远程维修等级 (0-1)' })
+    remoteRepairLevel = 0;
+
+    @property({ tooltip: '远程维修范围（像素）' })
+    remoteRepairRange = 200;
+
+    @property({ tooltip: '远程维修每秒回血量' })
+    remoteRepairHealPerSec = 5;
+
+    @property({ tooltip: '是否启用远程用材料（直接消耗仓库物资）' })
+    remoteMaterialEnabled = false;
+
+    @property({ tooltip: '全局省材料率 (0-0.2，工程面板升级)' })
+    materialSaveRate = 0;
+
+    @property({ tooltip: '全局省电率 (0-0.2，工程面板升级)' })
+    powerSaveRate = 0;
+
     @property({ tooltip: '基地节点名（用于自动查找）' })
     baseNodeName = 'Base';
 
@@ -182,6 +202,9 @@ export class PlayerState extends Component {
         this.hp = Math.min(this.hp, this.getEffectiveMaxHp());
         this.fatigue = Math.min(this.fatigue, FATIGUE_MAX);
 
+        // 远程维修：自动回血范围内炮塔
+        this.updateRemoteRepair(dt);
+
         this._statusLogTimer += dt;
         if (this._statusLogTimer >= this.statusLogInterval) {
             this._statusLogTimer = 0;
@@ -262,6 +285,41 @@ export class PlayerState extends Component {
             case 'copper': return this.copperCollectMultiplier;
             case 'iron': return this.ironCollectMultiplier;
             default: return 1.0;
+        }
+    }
+
+    /** 远程维修：范围内炮塔自动回血 */
+    private updateRemoteRepair(dt: number) {
+        if (this.remoteRepairLevel <= 0) return;
+
+        const turrets = this.findAllTurrets();
+        const playerPos = this.node.worldPosition;
+
+        for (const turret of turrets) {
+            if (!turret.node.isValid || turret['hp'] <= 0) continue;
+            const dist = Vec3.distance(playerPos, turret.node.worldPosition);
+            if (dist > this.remoteRepairRange) continue;
+            // 距离越近，回血越多（线性衰减）
+            const ratio = 1 - dist / this.remoteRepairRange;
+            const heal = this.remoteRepairHealPerSec * ratio * dt;
+            turret['hp'] = Math.min(turret['maxHp'], (turret['hp'] ?? 0) + heal);
+        }
+    }
+
+    /** 查找场景中所有 Turret 组件 */
+    private findAllTurrets(): Component[] {
+        const scene = this.node.scene;
+        if (!scene) return [];
+        const result: Component[] = [];
+        this.collectTurretComponents(scene, result);
+        return result;
+    }
+
+    private collectTurretComponents(root: Node, out: Component[]) {
+        const turret = root.getComponent('Turret') as Component | null;
+        if (turret) out.push(turret);
+        for (const child of root.children) {
+            this.collectTurretComponents(child, out);
         }
     }
 

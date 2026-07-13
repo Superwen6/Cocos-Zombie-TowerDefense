@@ -1,6 +1,7 @@
 import { _decorator, Button, Component, Node, Prefab, warn } from 'cc';
 import { TurretPlacementManager, TurretPlacementCost } from './TurretPlacementManager';
 import { PlayerData } from './PlayerData';
+import { PlayerState } from './PlayerState';
 import { PlantGenerator } from './PlantGenerator';
 import { BaseSystem } from './BaseSystem';
 import { BuildPanelUI } from './BuildPanelUI';
@@ -112,6 +113,16 @@ export class PlantPanelUI extends Component {
         const cost: TurretPlacementCost = manager.getCostsFromPrefab(prefab);
         const plantId = index + 1;
 
+        // 应用省材料率
+        const ps = PlayerState.instance;
+        const saveRate = ps ? ps.materialSaveRate : 0;
+        const actualCost: TurretPlacementCost = {
+            wood: Math.round(cost.wood * (1 - saveRate)),
+            copper: Math.round(cost.copper * (1 - saveRate)),
+            iron: Math.round(cost.iron * (1 - saveRate)),
+            money: Math.round(cost.money * (1 - saveRate)),
+        };
+
         // 等级锁定：基地等级必须 >= plantId 才能建造
         const baseSystem = BaseSystem.instance;
         if (!baseSystem || baseSystem.currentLevel < plantId) {
@@ -121,19 +132,19 @@ export class PlantPanelUI extends Component {
 
         // 检查资源
         const data = PlayerData.instance;
-        if (!data || !data.canAfford(cost.wood, cost.copper, cost.iron, cost.money)) {
+        if (!data || !data.canAfford(actualCost.wood, actualCost.copper, actualCost.iron, actualCost.money)) {
             warn(`[PlantPanelUI] 资源不足，无法建造发电机 ID=${plantId}`);
             return;
         }
 
         // 扣除资源
-        data.spendUpgradeCost(cost.wood, cost.copper, cost.iron, cost.money);
+        data.spendUpgradeCost(actualCost.wood, actualCost.copper, actualCost.iron, actualCost.money);
 
         // 关闭面板
         this.hidePanel();
 
         // 进入固定节点放置模式：在 targetNode 位置生成虚影，等待确认
-        manager.startPlantPlacementByNode(targetNode, prefab, cost, plantId);
+        manager.startPlantPlacementByNode(targetNode, prefab, actualCost, plantId);
     }
 
     /** 关闭 UpgradePanel（通过 BuildPanelUI.hidePanel 避免直接 deactivate 宿主节点） */

@@ -1,5 +1,6 @@
 import { _decorator, CCFloat, CCInteger, Color, Component, log, Node, Sprite, find, warn } from 'cc';
 import { PlayerData } from './PlayerData';
+import { PlayerState } from './PlayerState';
 import { PlantGenerator } from './PlantGenerator';
 import { Turret } from './Turret';
 import { GlobalContainerStorage } from './GlobalContainerStorage';
@@ -263,7 +264,13 @@ export class BaseSystem extends Component {
         if (!tier) {
             return false;
         }
-        return PlayerData.instance?.canAfford(tier.wood, tier.copper, tier.iron, tier.money) ?? false;
+        const ps = PlayerState.instance;
+        const saveRate = ps ? ps.materialSaveRate : 0;
+        const actualWood = Math.round(tier.wood * (1 - saveRate));
+        const actualCopper = Math.round(tier.copper * (1 - saveRate));
+        const actualIron = Math.round(tier.iron * (1 - saveRate));
+        const actualMoney = Math.round(tier.money * (1 - saveRate));
+        return PlayerData.instance?.canAfford(actualWood, actualCopper, actualIron, actualMoney) ?? false;
     }
 
     /** 检查升级到下一级所需的发电机是否已放置 */
@@ -311,7 +318,15 @@ export class BaseSystem extends Component {
             return false;
         }
 
-        if (!PlayerData.instance?.spendUpgradeCost(tier.wood, tier.copper, tier.iron, tier.money)) {
+        // 应用省材料率
+        const ps = PlayerState.instance;
+        const saveRate = ps ? ps.materialSaveRate : 0;
+        const actualWood = Math.round(tier.wood * (1 - saveRate));
+        const actualCopper = Math.round(tier.copper * (1 - saveRate));
+        const actualIron = Math.round(tier.iron * (1 - saveRate));
+        const actualMoney = Math.round(tier.money * (1 - saveRate));
+
+        if (!PlayerData.instance?.spendUpgradeCost(actualWood, actualCopper, actualIron, actualMoney)) {
             this.upgradeWarning = '材料或金钱不足，升级失败';
             warn(`[BaseSystem] ${this.upgradeWarning}`);
             return false;

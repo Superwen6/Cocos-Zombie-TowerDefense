@@ -1,6 +1,7 @@
 import { _decorator, Button, Component, Node, Prefab, warn } from 'cc';
 import { TurretPlacementManager, TurretPlacementCost } from './TurretPlacementManager';
 import { PlayerData } from './PlayerData';
+import { PlayerState } from './PlayerState';
 import { BaseSystem } from './BaseSystem';
 import { BuildPanelUI } from './BuildPanelUI';
 
@@ -64,21 +65,31 @@ export class UpgradePanelUI extends Component {
 
         const cost: TurretPlacementCost = manager.getCostsFromPrefab(this.containerPrefab);
 
+        // 应用省材料率
+        const ps = PlayerState.instance;
+        const saveRate = ps ? ps.materialSaveRate : 0;
+        const actualCost: TurretPlacementCost = {
+            wood: Math.round(cost.wood * (1 - saveRate)),
+            copper: Math.round(cost.copper * (1 - saveRate)),
+            iron: Math.round(cost.iron * (1 - saveRate)),
+            money: Math.round(cost.money * (1 - saveRate)),
+        };
+
         // 检查资源
         const data = PlayerData.instance;
-        if (!data || !data.canAfford(cost.wood, cost.copper, cost.iron, cost.money)) {
-            warn(`[UpgradePanelUI] 资源不足 | 木${cost.wood} 铜${cost.copper} 铁${cost.iron} 金${cost.money}`);
+        if (!data || !data.canAfford(actualCost.wood, actualCost.copper, actualCost.iron, actualCost.money)) {
+            warn(`[UpgradePanelUI] 资源不足 | 木${actualCost.wood} 铜${actualCost.copper} 铁${actualCost.iron} 金${actualCost.money}`);
             return;
         }
 
         // 扣除资源
-        data.spendUpgradeCost(cost.wood, cost.copper, cost.iron, cost.money);
+        data.spendUpgradeCost(actualCost.wood, actualCost.copper, actualCost.iron, actualCost.money);
 
         // 关闭面板
         this.hidePanel();
 
         // 进入集装箱放置模式
-        manager.startContainerPlacement(this.containerPrefab, cost);
+        manager.startContainerPlacement(this.containerPrefab, actualCost);
     }
 
     /** 关闭 UpgradePanel（通过 BuildPanelUI.hidePanel 避免直接 deactivate 宿主节点） */
