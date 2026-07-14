@@ -280,6 +280,8 @@ export class DayNightSystem extends Component {
     private onEnterNewDay() {
         if (this.currentDay >= this.maxDays) {
             if (GameManager.instance) {
+                GameManager.instance.triggerVictory();
+            }
             return;
         }
 
