@@ -5,7 +5,6 @@ import {
     Component,
     EventTarget,
     Label,
-    log,
     Sprite,
     UIOpacity,
     warn,
@@ -158,12 +157,6 @@ export class DayNightSystem extends Component {
     start() {
         this.showDayNotice(`Day ${this.currentDay}`);
         this.spawnDayResources();
-
-        if (this.enableLog) {
-            log(
-                `[DayNightSystem] 游戏开始 | Day ${this.currentDay}/${this.maxDays} | 白天${this.dayDuration - this.transitionTime}s → 黄昏${this.transitionTime}s → 夜晚${this.nightDuration - this.transitionTime}s → 黎明${this.transitionTime}s`,
-            );
-        }
     }
 
     update(dt: number) {
@@ -279,12 +272,6 @@ export class DayNightSystem extends Component {
             currentDay: this.currentDay,
         };
 
-        if (this.enableLog) {
-            log(
-                `[DayNightSystem] 阶段切换: ${DayNightPhase[previousPhase]} -> ${DayNightPhase[this._phase]} | Day ${this.currentDay}`,
-            );
-        }
-
         this.node.emit(DayNightEvents.PHASE_CHANGED, detail);
         DayNightSystem.eventTarget.emit(DayNightEvents.PHASE_CHANGED, detail);
     }
@@ -293,11 +280,6 @@ export class DayNightSystem extends Component {
     private onEnterNewDay() {
         if (this.currentDay >= this.maxDays) {
             if (GameManager.instance) {
-                GameManager.instance.triggerVictory();
-            } else {
-                warn('[DayNightSystem] 未找到 GameManager，无法触发通关');
-                log('🎉 恭喜！你已成功生存 100 天，通关胜利！');
-            }
             return;
         }
 
@@ -310,12 +292,10 @@ export class DayNightSystem extends Component {
     private spawnDayResources() {
         if (this.resourceSpawner) {
             this.resourceSpawner.spawnDayResources();
-            log(`[DayNightSystem] Day ${this.currentDay} 白天开始，已触发资源刷新`);
         } else {
             const spawner = this.getComponent(ResourceSpawner);
             if (spawner) {
                 spawner.spawnDayResources();
-                log(`[DayNightSystem] Day ${this.currentDay} 白天开始，已触发资源刷新（自动查找）`);
             }
         }
     }

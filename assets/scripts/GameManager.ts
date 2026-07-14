@@ -1,4 +1,4 @@
-import { _decorator, Component, log, warn, Node } from 'cc';
+import { _decorator, Component, Node, warn } from 'cc';
 import { CollisionWorld } from './CollisionWorld';
 import { YSortManager } from './YSortManager';
 
@@ -37,7 +37,6 @@ export class GameManager extends Component {
         const cwNode = new Node('CollisionWorld');
         cwNode.parent = this.node;
         cwNode.addComponent(CollisionWorld);
-        log('[GameManager] CollisionWorld 已创建');
     }
 
     private ensureYSortManager() {
@@ -56,6 +55,5 @@ export class GameManager extends Component {
 
     /** 百日生存通关 */
     triggerVictory() {
-        log('🎉 恭喜！你已成功生存 100 天，通关胜利！');
     }
 }

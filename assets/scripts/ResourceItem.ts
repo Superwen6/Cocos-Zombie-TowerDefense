@@ -1,4 +1,4 @@
-import { _decorator, Component, log } from 'cc';
+import { _decorator, Component } from 'cc';
 import { PlayerData, ResourceType } from './PlayerData';
 import { PlayerState } from './PlayerState';
 import { CollisionWorld, Collider2D, ColliderGroup } from './CollisionWorld';
@@ -50,7 +50,6 @@ export class ResourceItem extends Component {
         }
 
         this.hp -= 1;
-        log(`[ResourceItem] 击打 ${this.resourceType}，剩余耐久 ${this.hp}`);
 
         if (this.hp <= 0) {
             this.collectAndDestroy();

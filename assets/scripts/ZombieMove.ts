@@ -1,4 +1,4 @@
-import { _decorator, CCFloat, CCInteger, Component, Node, randomRange, Sprite, SpriteFrame, Vec3, warn, log } from 'cc';
+import { _decorator, CCFloat, CCInteger, Component, Node, randomRange, Sprite, SpriteFrame, Vec3, warn } from 'cc';
 import { BaseSystem } from './BaseSystem';
 import { PlayerData } from './PlayerData';
 import { PlayerState } from './PlayerState';
@@ -359,7 +359,6 @@ export class ZombieMove extends Component {
         });
 
         if (nearest) {
-            log(`[ZombieMove][scanForBuildings] 游荡僵尸找到目标: ${nearest.name}, distance=${nearestDist.toFixed(1)}`);
             this._buildingTarget = nearest;
             this._aiState = 'CHASE_BUILDING';
             this._memoryTimer = 0;

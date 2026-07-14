@@ -1,4 +1,4 @@
-import { _decorator, Component, log, Node, Vec3, warn } from 'cc';
+import { _decorator, Component, Node, Vec3, warn } from 'cc';
 import { BaseSystem } from './BaseSystem';
 
 const { ccclass, property } = _decorator;
@@ -158,10 +158,6 @@ export class PlayerState extends Component {
 
         this._fatigueMode = this.getFatigueMode(this.getDistanceToBase());
         this._wasExhausted = this.isExhausted;
-
-        log(
-            `[PlayerState] 初始化 | HP ${this.hp}/${this.maxHp} | 攻击 ${this.attackDamage} / ${this.attackInterval}s | 移速 ${this.getFinalMoveSpeed()} | 安全区 ${this.getSafeRadius()}`,
-        );
     }
 
     update(dt: number) {
@@ -350,7 +346,6 @@ export class PlayerState extends Component {
             return;
         }
         this._deathLogged = true;
-        log('🚨 玩家已阵亡！游戏结束！');
     }
 
     private updateBaseHpRegen(dt: number, distance: number, safeRadius: number) {
@@ -388,52 +383,24 @@ export class PlayerState extends Component {
         }
 
         if (curr === FatigueMode.RISING) {
-            const gain = Math.max(FATIGUE_GAIN_MIN, this.fatigueGainBase - this.fatigueReduction);
-            log(
-                `[PlayerState] 已离开基地（距离 ${distance.toFixed(0)} > ${safeRadius}），疲劳开始上升（约 ${gain.toFixed(1)} 点/秒）`,
-            );
             return;
         }
 
         if (curr === FatigueMode.RECOVERING) {
-            log(
-                `[PlayerState] 已回到基地范围内（距离 ${distance.toFixed(0)} <= ${safeRadius}），疲劳开始下降（${FATIGUE_RECOVERY_RATE} 点/秒）`,
-            );
             return;
         }
 
         if (curr === FatigueMode.IDLE && prev === FatigueMode.RECOVERING) {
-            const regen = BaseSystem.instance?.getCurrentHpRegen() ?? 0;
-            log(
-                `[PlayerState] 疲劳已恢复至 0${regen > 0 ? `，基地回血 ${regen} 点/秒` : ''}`,
-            );
+            // 疲劳已恢复，不需要额外处理
         }
     }
 
     private logExhaustedTransition(wasExhausted: boolean, isExhausted: boolean) {
-        if (!wasExhausted && isExhausted) {
-            log(
-                `[PlayerState] 疲劳已达 ${FATIGUE_MAX}，虚弱：移速减半，每秒扣血 ${this.exhaustedHpDrain}`,
-            );
-            return;
-        }
-
-        if (wasExhausted && !isExhausted) {
-            log('[PlayerState] 已脱离虚弱惩罚状态');
-        }
+        // 不需要日志
     }
 
     private logPeriodicStatus(distance: number, safeRadius: number) {
-        const zone = this.isInsideBase ? '基地内' : '基地外';
-        const exhaustedTag = this.isExhausted ? ' | 虚弱中' : '';
-        const regen = BaseSystem.instance?.getCurrentHpRegen() ?? 0;
-        const regenTag =
-            this.isInsideBase && this.fatigue <= 0 && regen > 0
-                ? ` | 回血 ${regen}/秒`
-                : '';
-        log(
-            `[PlayerState] 疲劳: ${this.fatigue.toFixed(1)}, 血量: ${this.hp.toFixed(1)}/${this.maxHp} | ${zone} | 距基地: ${distance.toFixed(0)} | 安全区: ${safeRadius}${exhaustedTag}${regenTag}`,
-        );
+        // 不需要日志
     }
 
     private resolveBaseNode() {

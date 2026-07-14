@@ -1,4 +1,4 @@
-import { _decorator, CCFloat, CCInteger, Color, Component, log, Node, Sprite, find, warn } from 'cc';
+import { _decorator, CCFloat, CCInteger, Color, Component, Node, Sprite, find, warn } from 'cc';
 import { PlayerData } from './PlayerData';
 import { PlayerState } from './PlayerState';
 import { PlantGenerator } from './PlantGenerator';
@@ -336,7 +336,6 @@ export class BaseSystem extends Component {
         const baseNode = find('GameWorld/Base') ?? this.node;
         this._upgradeHealthBar = baseNode.getComponentInChildren(HealthBar);
         if (!this._upgradeHealthBar) {
-            log('[BaseSystem] Base 节点下未挂载 HealthBar 子节点，跳过建造进度，直接升级');
             this.finishUpgrade();
             return true;
         }
@@ -345,7 +344,6 @@ export class BaseSystem extends Component {
         this._upgradeTimer = 0;
         this._isUpgrading = true;
 
-        log(`[BaseSystem] 基地升级建造开始，预计 ${this._upgradeHealthBar.buildTime} 秒完成`);
         return true;
     }
 
@@ -356,9 +354,6 @@ export class BaseSystem extends Component {
         this.maxBaseHp = this.getMaxBaseHpForLevel(this.currentLevel);
         this.baseHp = this.maxBaseHp;
 
-        log(
-            `[BaseSystem] 基地升级成功 Lv.${prevLevel} -> Lv.${this.currentLevel} | 耐久 ${this.baseHp}/${this.maxBaseHp} | 安全区 ${this.getCurrentSafeRadius()} | 回血 ${this.getCurrentHpRegen()}/秒 | 防御塔: ${this.getUnlockedTowers().join(', ') || '无'}`,
-        );
         this.refreshBaseAppearance();
         this.updatePowerStatus();
         this.invokeUpgradeCallbacks();
@@ -379,7 +374,6 @@ export class BaseSystem extends Component {
             return;
         }
         this.baseHp = Math.max(0, this.baseHp - amount);
-        log(`[BaseSystem] 基地受损 -${amount}，剩余 ${this.baseHp}/${this.maxBaseHp}`);
     }
 
     // ── 电力系统 ──
@@ -411,14 +405,6 @@ export class BaseSystem extends Component {
 
         const wasOutage = this.isPowerOutage;
         this.isPowerOutage = this.totalPowerGen === 0 || this.totalPowerGen < this.totalPowerCost;
-
-        if (wasOutage !== this.isPowerOutage) {
-            if (this.isPowerOutage) {
-                log(`[BaseSystem] 电力不足！发电 ${this.totalPowerGen} < 耗电 ${this.totalPowerCost}，所有炮塔停机`);
-            } else {
-                log(`[BaseSystem] 电力恢复！发电 ${this.totalPowerGen} >= 耗电 ${this.totalPowerCost}，炮塔恢复运行`);
-            }
-        }
     }
 
     /** 触发所有升级回调 */

@@ -53,7 +53,6 @@ export class ResourceSpawner extends Component {
     mapMaxY = 3350;
 
     start() {
-        console.log("[DEBUG] ResourceSpawner 启动，等待 DayNightSystem 触发资源生成...");
         // 第一天也交由 DayNightSystem 在 showDayNotice 后触发，避免重复
     }
 
@@ -75,8 +74,6 @@ export class ResourceSpawner extends Component {
             log(`[ResourceSpawner] 地图资源已达上限 (${currentCount}/${this.mapResourceLimit})，今日不生成新资源`);
             return;
         }
-
-        log(`[ResourceSpawner] Day 资源生成：请求 ${this.spawnCount}，当前地图 ${currentCount}/${this.mapResourceLimit}，实际生成 ${actualSpawnCount}`);
 
         // 获取坐标系参考原点（世界坐标），若未赋值则自动查找
         const coordRef = this.coordinateReference ?? find('GameWorld/CoordinateReference');

@@ -1,7 +1,7 @@
 import {
     _decorator, Color, Component, Camera, Collider2D, EventKeyboard, EventMouse,
     instantiate, input, Input, KeyCode, Layers, Node, Prefab, Sprite,
-    RenderRoot2D, UIOpacity, Vec3, director, log, warn,
+    RenderRoot2D, UIOpacity, Vec3, director, warn,
 } from 'cc';
 import { GameHUDUI } from './GameHUDUI';
 import { PlayerData } from './PlayerData';
@@ -257,7 +257,6 @@ export class TurretPlacementManager extends Component {
             warn(`[TurretPlacementManager] 发电机 ID=${plantId} 无法获取放置位置，targetNode 已失效`);
             return;
         }
-        log(`[TurretPlacementManager] 发电机 ID=${plantId} 放置位置: (${plantPos.x.toFixed(1)}, ${plantPos.y.toFixed(1)})`);
 
         // 在目标节点位置创建虚影
         this.createGhostNodeWithPrefab(ghostPrefab);
