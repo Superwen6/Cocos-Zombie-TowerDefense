@@ -288,38 +288,60 @@ export class PlayerState extends Component {
         }
     }
 
-    /** 远程维修：范围内炮塔自动回血 */
+    /** 远程维修：范围内所有受损建筑自动回血 */
     private updateRemoteRepair(dt: number) {
         if (this.remoteRepairLevel <= 0) return;
 
-        const turrets = this.findAllTurrets();
+        const buildings = this.findAllDamageableBuildings();
         const playerPos = this.node.worldPosition;
 
-        for (const turret of turrets) {
-            if (!turret.node.isValid || turret['hp'] <= 0) continue;
-            const dist = Vec3.distance(playerPos, turret.node.worldPosition);
+        for (const building of buildings) {
+            if (!building.node.isValid) continue;
+            const hp = building['hp'] ?? building['baseHp'] ?? 0;
+            const maxHp = building['maxHp'] ?? building['maxBaseHp'] ?? 0;
+            if (hp <= 0 || maxHp <= 0) continue;
+
+            const dist = Vec3.distance(playerPos, building.node.worldPosition);
             if (dist > this.remoteRepairRange) continue;
             // 距离越近，回血越多（线性衰减）
             const ratio = 1 - dist / this.remoteRepairRange;
             const heal = this.remoteRepairHealPerSec * ratio * dt;
-            turret['hp'] = Math.min(turret['maxHp'], (turret['hp'] ?? 0) + heal);
+            const newHp = Math.min(maxHp, hp + heal);
+
+            if ('baseHp' in building) {
+                building['baseHp'] = newHp;
+            } else if ('hp' in building) {
+                building['hp'] = newHp;
+            }
         }
     }
 
-    /** 查找场景中所有 Turret 组件 */
-    private findAllTurrets(): Component[] {
+    /** 查找场景中所有可伤害的建筑（Turret, PlantGenerator, Container） */
+    private findAllDamageableBuildings(): Component[] {
         const scene = this.node.scene;
         if (!scene) return [];
         const result: Component[] = [];
-        this.collectTurretComponents(scene, result);
+        this.collectDamageableComponents(scene, result);
         return result;
-    }
+}
 
-    private collectTurretComponents(root: Node, out: Component[]) {
+    /** 递归收集所有带 hp 的建筑组件 */
+    private collectDamageableComponents(root: Node, out: Component[]) {
+        // 检查所有建筑类型
         const turret = root.getComponent('Turret') as Component | null;
-        if (turret) out.push(turret);
+        if (turret && typeof turret['hp'] === 'number') out.push(turret);
+
+        const plant = root.getComponent('PlantGenerator') as Component | null;
+        if (plant && typeof plant['hp'] === 'number') out.push(plant);
+
+        const container = root.getComponent('Container') as Component | null;
+        if (container && typeof container['hp'] === 'number') out.push(container);
+
+        const base = root.getComponent('BaseSystem') as Component | null;
+        if (base && typeof base['baseHp'] === 'number') out.push(base);
+
         for (const child of root.children) {
-            this.collectTurretComponents(child, out);
+            this.collectDamageableComponents(child, out);
         }
     }
 

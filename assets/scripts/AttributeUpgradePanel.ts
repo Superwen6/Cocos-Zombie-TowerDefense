@@ -125,6 +125,9 @@ export class AttributeUpgradePanel extends Component {
     @property({ type: Camera, tooltip: '世界相机（用于坐标转换）' })
     worldCamera: Camera | null = null;
 
+    @property({ type: Label, tooltip: '警告提示标签（用于显示点数不足等）' })
+    warningLabel: Label | null = null;
+
     private _panelVisible = false;
     private _currentCategory: Category = 'survival';
     private static _openPanelBound = false;
@@ -399,6 +402,7 @@ export class AttributeUpgradePanel extends Component {
         }
         if (ps.upgradePoints <= 0) {
             warn(`[AttributeUpgradePanel] 升级点数不足，无法升级 ${name}`);
+            this.showWarning('升级点数不足！');
             return;
         }
 
@@ -416,7 +420,7 @@ export class AttributeUpgradePanel extends Component {
         if (data.woodCount < REINFORCE_COST.wood
             || data.copperCount < REINFORCE_COST.copper
             || data.ironCount < REINFORCE_COST.iron) {
-            warn(`[AttributeUpgradePanel] 材料不足，需要 ${REINFORCE_COST.wood}木 ${REINFORCE_COST.copper}铜 ${REINFORCE_COST.iron}铁`);
+            this.showWarning(`材料不足！需要 ${REINFORCE_COST.wood}木 ${REINFORCE_COST.copper}铜 ${REINFORCE_COST.iron}铁`);
             return false;
         }
         data.addResource('wood', -REINFORCE_COST.wood);
@@ -717,6 +721,21 @@ export class AttributeUpgradePanel extends Component {
         const ps = PlayerState.instance;
         const points = ps ? ps.upgradePoints : 0;
         this.pointNumberLabel.string = `${points}`;
+    }
+
+    /** 显示临时警告 */
+    private showWarning(msg: string) {
+        if (!this.warningLabel) {
+            warn(`[AttributeUpgradePanel] 未绑定 WarningLabel，警告：${msg}`);
+            return;
+        }
+        this.warningLabel.string = msg;
+        this.warningLabel.node.active = true;
+        this.scheduleOnce(() => {
+            if (this.warningLabel?.node.isValid) {
+                this.warningLabel.node.active = false;
+            }
+        }, 2);
     }
 
     private refreshAllButtons() {
