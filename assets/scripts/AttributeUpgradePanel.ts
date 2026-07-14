@@ -50,15 +50,6 @@ export class AttributeUpgradePanel extends Component {
     @property({ type: Button, tooltip: '面板右上角：关闭按钮' })
     closeButton: Button | null = null;
 
-    @property({ type: Node, tooltip: '生存选项卡按钮' })
-    tabSurvival: Node | null = null;
-
-    @property({ type: Node, tooltip: '工程选项卡按钮' })
-    tabEngineering: Node | null = null;
-
-    @property({ type: Node, tooltip: '武器选项卡按钮' })
-    tabWeapon: Node | null = null;
-
     @property({ type: Node, tooltip: '生存内容区' })
     survivalContent: Node | null = null;
 
