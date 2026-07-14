@@ -770,15 +770,16 @@ export class AttributeUpgradePanel extends Component {
         const btn = state.node.getComponent(Button);
 
         if (state.level >= state.maxLevel) {
-            if (btn) btn.enabled = false;
+            if (btn) btn.interactable = false;
             this.setSubtreeColor(state.node, COMPLETED_COLOR);
         } else if (this.isUnlocked(name)) {
-            if (btn) btn.enabled = true;
+            if (btn) btn.interactable = true;
             this.restoreOriginalColors(state.node);
         } else {
             if (btn) {
-                btn.enabled = false;
+                btn.interactable = false;
             } else {
+                // 无 Button 组件，输出调试信息
                 log(`[AttributeUpgradePanel] updateButtonVisual: ${name} 无 Button 组件，无法设置 interactable`);
             }
             this.setSubtreeColor(state.node, LOCKED_COLOR);
