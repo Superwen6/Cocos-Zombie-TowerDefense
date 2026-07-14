@@ -1,4 +1,4 @@
-import { _decorator, Button, Camera, Color, Component, EventTouch, find, Input, input, Label, Node, Sprite, UITransform, Vec2, Vec3, warn } from 'cc';
+import { _decorator, Button, Camera, Color, Component, EventTouch, find, Input, input, Label, log, Node, Sprite, UITransform, Vec2, Vec3, warn } from 'cc';
 import { PlayerState } from './PlayerState';
 import { PlayerData } from './PlayerData';
 
@@ -39,8 +39,6 @@ const REINFORCE_COST = { wood: 6, copper: 3, iron: 1 };
 
 /** 动作按钮尺寸 */
 const ACTION_BTN_SIZE = { w: 120, h: 40 };
-
-type Category = 'survival' | 'engineering' | 'weapon';
 
 /**
  * 属性升级面板 UI。
@@ -129,7 +127,6 @@ export class AttributeUpgradePanel extends Component {
     warningLabel: Label | null = null;
 
     private _panelVisible = false;
-    private _currentCategory: Category = 'survival';
     private static _openPanelBound = false;
     private static _pendingOpen = false;
 
@@ -149,9 +146,9 @@ export class AttributeUpgradePanel extends Component {
         this.bindCloseButton();
         this.initSurvivalUpgrades();
         this.initEngineeringUpgrades();
-        this.initTabButtons();
 
-        this.showCategory('survival');
+        // 所有分类同时显示（不再使用 Tab 切换）
+        this.showAllContent();
 
         if (AttributeUpgradePanel._pendingOpen) {
             AttributeUpgradePanel._pendingOpen = false;
@@ -244,28 +241,13 @@ export class AttributeUpgradePanel extends Component {
         }
     }
 
-    // ==================== 选项卡切换 ====================
+    // ==================== 内容区显示 ====================
 
-    private initTabButtons() {
-        this.bindTabButton(this.tabSurvival, 'survival');
-        this.bindTabButton(this.tabEngineering, 'engineering');
-        this.bindTabButton(this.tabWeapon, 'weapon');
-    }
-
-    private bindTabButton(tabNode: Node | null, category: Category) {
-        if (!tabNode) return;
-        const btn = tabNode.getComponent(Button);
-        if (btn) {
-            btn.node.on(Button.EventType.CLICK, () => this.showCategory(category), this);
-        }
-    }
-
-    private showCategory(category: Category) {
-        this._currentCategory = category;
-        if (this.survivalContent) this.survivalContent.active = (category === 'survival');
-        if (this.engineeringContent) this.engineeringContent.active = (category === 'engineering');
-        if (this.weaponContent) this.weaponContent.active = (category === 'weapon');
-        this.refreshAllButtons();
+    /** 同时显示所有分类内容（不再使用 Tab 互斥切换） */
+    private showAllContent() {
+        if (this.survivalContent) this.survivalContent.active = true;
+        if (this.engineeringContent) this.engineeringContent.active = true;
+        if (this.weaponContent) this.weaponContent.active = true;
     }
 
     // ==================== 初始化 ====================
@@ -290,15 +272,35 @@ export class AttributeUpgradePanel extends Component {
     }
 
     private registerUpgrade(name: string, node: Node | null, maxLevel: number) {
-        if (!node) return;
+        if (!node) {
+            warn(`[AttributeUpgradePanel] registerUpgrade 失败：${name} 节点为 null（属性未绑定且场景中找不到同名节点）`);
+            return;
+        }
+        const btn = node.getComponent(Button);
+        if (!btn) {
+            warn(`[AttributeUpgradePanel] registerUpgrade 警告：${name} 节点没有 Button 组件！将无法点击。节点路径: ${this.getNodePath(node)}`);
+        } else {
+            log(`[AttributeUpgradePanel] registerUpgrade: ${name} max=${maxLevel} Button=OK`);
+        }
+
         const state: UpgradeState = { node, level: 0, maxLevel };
         this._upgradeStates.set(name, state);
         this.saveOriginalColors(node);
 
-        const btn = node.getComponent(Button);
         if (btn) {
             btn.node.on(Button.EventType.CLICK, () => this.onUpgradeClick(name), this);
         }
+    }
+
+    /** 获取节点路径（用于调试） */
+    private getNodePath(node: Node): string {
+        const parts: string[] = [];
+        let current: Node | null = node;
+        while (current) {
+            parts.unshift(current.name);
+            current = current.parent;
+        }
+        return parts.join('/');
     }
 
     private saveOriginalColors(node: Node) {
@@ -378,10 +380,20 @@ export class AttributeUpgradePanel extends Component {
     // ==================== 升级点击 ====================
 
     private onUpgradeClick(name: string) {
+        log(`[AttributeUpgradePanel] onUpgradeClick 触发: ${name}`);
         const state = this._upgradeStates.get(name);
-        if (!state) return;
-        if (!this.isUnlocked(name)) return;
-        if (state.level >= state.maxLevel) return;
+        if (!state) {
+            warn(`[AttributeUpgradePanel] onUpgradeClick: ${name} 状态不存在！`);
+            return;
+        }
+        if (!this.isUnlocked(name)) {
+            warn(`[AttributeUpgradePanel] onUpgradeClick: ${name} 未解锁`);
+            return;
+        }
+        if (state.level >= state.maxLevel) {
+            warn(`[AttributeUpgradePanel] onUpgradeClick: ${name} 已达上限 (${state.level}/${state.maxLevel})`);
+            return;
+        }
 
         // 特殊处理：炮塔强化和爆破需要进入模式，不消耗点数
         if (name === 'TurretReinforcement') {
@@ -764,7 +776,12 @@ export class AttributeUpgradePanel extends Component {
             if (btn) btn.interactable = true;
             this.restoreOriginalColors(state.node);
         } else {
-            if (btn) btn.interactable = false;
+            if (btn) {
+                btn.interactable = false;
+            } else {
+                // 无 Button 组件，输出调试信息
+                log(`[AttributeUpgradePanel] updateButtonVisual: ${name} 无 Button 组件，无法设置 interactable`);
+            }
             this.setSubtreeColor(state.node, LOCKED_COLOR);
         }
     }
