@@ -1,4 +1,4 @@
-import { _decorator, Button, Camera, Color, Component, EventTouch, find, Input, input, Label, log, Node, Sprite, UITransform, Vec2, Vec3, warn } from 'cc';
+import { _decorator, Button, Camera, Color, Component, EventTouch, find, Input, input, Label, Node, Sprite, UITransform, Vec2, Vec3, warn } from 'cc';
 import { PlayerState } from './PlayerState';
 import { PlayerData } from './PlayerData';
 
@@ -272,35 +272,15 @@ export class AttributeUpgradePanel extends Component {
     }
 
     private registerUpgrade(name: string, node: Node | null, maxLevel: number) {
-        if (!node) {
-            warn(`[AttributeUpgradePanel] registerUpgrade 失败：${name} 节点为 null（属性未绑定且场景中找不到同名节点）`);
-            return;
-        }
-        const btn = node.getComponent(Button);
-        if (!btn) {
-            warn(`[AttributeUpgradePanel] registerUpgrade 警告：${name} 节点没有 Button 组件！将无法点击。节点路径: ${this.getNodePath(node)}`);
-        } else {
-            log(`[AttributeUpgradePanel] registerUpgrade: ${name} max=${maxLevel} Button=OK`);
-        }
-
+        if (!node) return;
         const state: UpgradeState = { node, level: 0, maxLevel };
         this._upgradeStates.set(name, state);
         this.saveOriginalColors(node);
 
+        const btn = node.getComponent(Button);
         if (btn) {
             btn.node.on(Button.EventType.CLICK, () => this.onUpgradeClick(name), this);
         }
-    }
-
-    /** 获取节点路径（用于调试） */
-    private getNodePath(node: Node): string {
-        const parts: string[] = [];
-        let current: Node | null = node;
-        while (current) {
-            parts.unshift(current.name);
-            current = current.parent;
-        }
-        return parts.join('/');
     }
 
     private saveOriginalColors(node: Node) {
@@ -380,20 +360,10 @@ export class AttributeUpgradePanel extends Component {
     // ==================== 升级点击 ====================
 
     private onUpgradeClick(name: string) {
-        log(`[AttributeUpgradePanel] onUpgradeClick 触发: ${name}`);
         const state = this._upgradeStates.get(name);
-        if (!state) {
-            warn(`[AttributeUpgradePanel] onUpgradeClick: ${name} 状态不存在！`);
-            return;
-        }
-        if (!this.isUnlocked(name)) {
-            warn(`[AttributeUpgradePanel] onUpgradeClick: ${name} 未解锁`);
-            return;
-        }
-        if (state.level >= state.maxLevel) {
-            warn(`[AttributeUpgradePanel] onUpgradeClick: ${name} 已达上限 (${state.level}/${state.maxLevel})`);
-            return;
-        }
+        if (!state) return;
+        if (!this.isUnlocked(name)) return;
+        if (state.level >= state.maxLevel) return;
 
         // 特殊处理：炮塔强化和爆破需要进入模式，不消耗点数
         if (name === 'TurretReinforcement') {
@@ -776,12 +746,7 @@ export class AttributeUpgradePanel extends Component {
             if (btn) btn.interactable = true;
             this.restoreOriginalColors(state.node);
         } else {
-            if (btn) {
-                btn.interactable = false;
-            } else {
-                // 无 Button 组件，输出调试信息
-                log(`[AttributeUpgradePanel] updateButtonVisual: ${name} 无 Button 组件，无法设置 interactable`);
-            }
+            if (btn) btn.interactable = false;
             this.setSubtreeColor(state.node, LOCKED_COLOR);
         }
     }
