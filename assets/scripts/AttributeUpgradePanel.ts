@@ -1,6 +1,7 @@
-import { _decorator, Button, Camera, Color, Component, EventTouch, find, Input, input, Label, Node, Sprite, Vec2, Vec3, warn } from 'cc';
+import { _decorator, Button, Camera, Color, Component, EventMouse, EventTouch, find, Input, input, Label, Node, Sprite, Vec3, warn } from 'cc';
 import { PlayerState } from './PlayerState';
 import { PlayerData } from './PlayerData';
+import { TurretPlacementManager } from './TurretPlacementManager';
 
 const { ccclass, property } = _decorator;
 
@@ -15,6 +16,12 @@ interface UpgradeState {
 const LOCKED_COLOR = new Color(128, 128, 128, 255);
 /** 完成颜色：金色 */
 const COMPLETED_COLOR = new Color(255, 215, 0, 255);
+/** 炮塔强化悬停颜色：#D99AFD 半透明 */
+const REINFORCE_HOVER_COLOR = new Color(217, 154, 253, 150);
+/** 炮塔强化永久颜色：#D99AFD 不透明 */
+const REINFORCE_PERMANENT_COLOR = new Color(217, 154, 253, 255);
+/** 悬停检测距离阈值 */
+const REINFORCE_HOVER_RADIUS = 80;
 
 /** 升级依赖链：点击某个按钮后，哪些按钮的视觉状态需要刷新 */
 const AFFECTED_BUTTONS: Record<string, string[]> = {
@@ -126,6 +133,9 @@ export class AttributeUpgradePanel extends Component {
     private _reinforceMode = false;
     private _blastMode = false;
     private _modeInputSetup = false;
+    /** 强化模式悬停高亮 */
+    private _highlightedTurret: Node | null = null;
+    private _turretOriginalColors: Map<Node, Color> = new Map();
 
     start() {
         this.bindCloseButton();
@@ -439,8 +449,6 @@ export class AttributeUpgradePanel extends Component {
 
     private enterReinforceMode() {
         if (this.getLevel('TurretReinforcement') < 1) return;
-        // 消耗材料
-        if (!this.consumeReinforceMaterials()) return;
 
         this.exitAllModes();
         this._reinforceMode = true;
@@ -454,6 +462,7 @@ export class AttributeUpgradePanel extends Component {
 
     private exitReinforceMode() {
         this._reinforceMode = false;
+        this.clearTurretHighlight();
         if (this.reinforceActionBtn) {
             const btn = this.reinforceActionBtn.getComponent(Button);
             if (btn) btn.interactable = true;
@@ -531,6 +540,8 @@ export class AttributeUpgradePanel extends Component {
 
         // 监听全局触摸/点击事件
         input.on(Input.EventType.TOUCH_END, this.onModeTouchEnd, this);
+        // 监听鼠标移动（悬停高亮）
+        input.on(Input.EventType.MOUSE_MOVE, this.onModeMouseMove, this);
         // 监听鼠标右键取消
         input.on(Input.EventType.MOUSE_DOWN, this.onModeMouseDown, this);
         // 监听 ESC 取消
@@ -540,13 +551,34 @@ export class AttributeUpgradePanel extends Component {
     private onModeTouchEnd(event: EventTouch) {
         if (!this._reinforceMode && !this._blastMode) return;
 
-        const touchPos = event.getUILocation();
-        const worldPos = this.screenToWorld(touchPos);
+        const touchLoc = event.getLocation();
+        const worldPos = this.screenToWorldPos(touchLoc.x, touchLoc.y);
+        if (!worldPos) return;
 
         if (this._reinforceMode) {
             this.tryReinforceTurret(worldPos);
         } else if (this._blastMode) {
             this.tryBlastTarget(worldPos);
+        }
+    }
+
+    /** 鼠标移动：强化模式下悬停高亮炮塔 */
+    private onModeMouseMove(event: EventMouse) {
+        if (!this._reinforceMode) return;
+
+        const worldPos = this.screenToWorldPos(event.getLocationX(), event.getLocationY());
+        if (!worldPos) {
+            this.clearTurretHighlight();
+            return;
+        }
+
+        const turretNode = this.findTurretNodeAt(worldPos);
+        if (turretNode && turretNode !== this._highlightedTurret) {
+            this.clearTurretHighlight();
+            this._highlightedTurret = turretNode;
+            this.highlightTurretChildren(turretNode, true);
+        } else if (!turretNode) {
+            this.clearTurretHighlight();
         }
     }
 
@@ -562,12 +594,88 @@ export class AttributeUpgradePanel extends Component {
         }
     }
 
-    /** 屏幕坐标 → 世界坐标 */
-    private screenToWorld(screenPos: Vec2): Vec3 {
-        if (this.worldCamera) {
-            return this.worldCamera.screenToWorld(new Vec3(screenPos.x, screenPos.y, 0), new Vec3());
+    /** 屏幕坐标 → 世界坐标（x, y 参数版本，参照 DemolishManager） */
+    private screenToWorldPos(x: number, y: number): Vec3 | null {
+        const cam = this.worldCamera ?? TurretPlacementManager.instance?.worldCamera;
+        if (!cam) return null;
+        const v3 = cam.screenToWorld(new Vec3(x, y, 0), new Vec3());
+        v3.z = 0;
+        return v3;
+    }
+
+    /** 查找世界坐标处的炮塔节点 */
+    private findTurretNodeAt(worldPos: Vec3): Node | null {
+        const scene = this.node.scene;
+        if (!scene) return null;
+        return this.findTurretNodeRecursive(scene, worldPos, REINFORCE_HOVER_RADIUS);
+    }
+
+    private findTurretNodeRecursive(root: Node, worldPos: Vec3, threshold: number): Node | null {
+        const turret = root.getComponent('Turret') as Component | null;
+        if (turret && turret.node.active) {
+            const dist = Vec3.distance(root.worldPosition, worldPos);
+            if (dist <= threshold) return root;
         }
-        return new Vec3(screenPos.x, screenPos.y, 0);
+        for (const child of root.children) {
+            const found = this.findTurretNodeRecursive(child, worldPos, threshold);
+            if (found) return found;
+        }
+        return null;
+    }
+
+    /** 高亮/取消高亮炮塔的 Turnet 和 Turnet_foundation 子节点 */
+    private highlightTurretChildren(turretNode: Node, highlight: boolean) {
+        if (highlight) {
+            this._turretOriginalColors.clear();
+            this.collectTurretChildColors(turretNode, REINFORCE_HOVER_COLOR);
+        } else {
+            this.restoreTurretChildColors();
+        }
+    }
+
+    /** 递归收集 Turnet/Turnet_foundation 子节点的 Sprite 颜色并设置 */
+    private collectTurretChildColors(node: Node, color: Color) {
+        // 只对名为 Turnet 或 Turnet_foundation 的子节点及其子树着色
+        if (node.name === 'Turnet' || node.name === 'Turnet_foundation') {
+            this.collectAndSetColorRecursive(node, color);
+            return;
+        }
+        for (const child of node.children) {
+            this.collectTurretChildColors(child, color);
+        }
+    }
+
+    /** 递归设置节点及其子树的 Sprite 颜色 */
+    private collectAndSetColorRecursive(node: Node, color: Color) {
+        const sprite = node.getComponent(Sprite);
+        if (sprite) {
+            this._turretOriginalColors.set(node, sprite.color.clone());
+            sprite.color = color;
+        }
+        for (const child of node.children) {
+            this.collectAndSetColorRecursive(child, color);
+        }
+    }
+
+    /** 恢复 Turret/Turret_foundation 的原始颜色 */
+    private restoreTurretChildColors() {
+        for (const [node, color] of this._turretOriginalColors) {
+            if (node && node.isValid) {
+                const sprite = node.getComponent(Sprite);
+                if (sprite) {
+                    sprite.color = color;
+                }
+            }
+        }
+        this._turretOriginalColors.clear();
+    }
+
+    /** 清除炮塔悬停高亮 */
+    private clearTurretHighlight() {
+        if (this._highlightedTurret) {
+            this.restoreTurretChildColors();
+            this._highlightedTurret = null;
+        }
     }
 
     /** 尝试强化炮塔 */
@@ -578,17 +686,17 @@ export class AttributeUpgradePanel extends Component {
             return;
         }
 
+        // 消耗材料（确认强化后才扣除）
+        if (!this.consumeReinforceMaterials()) return;
+
         // 强化效果：范围/攻速/攻击 ×1.5
         const t = turret as any;
         t.attackRange = (t.attackRange ?? 1200) * 1.5;
         t.attackInterval = (t.attackInterval ?? 0.5) * (1 / 1.5);
         t.damage = (t.damage ?? 10) * 1.5;
 
-        // 变为紫色
-        const sprite = turret.node.getComponent(Sprite);
-        if (sprite) {
-            sprite.color = new Color(200, 100, 255, 255);
-        }
+        // 永久着色：对 Turnet 和 Turnet_foundation 子节点应用 #D99AFD
+        this.applyPermanentColorToTurretChildren(turret.node);
 
         // 标记升级完成
         const state = this._upgradeStates.get('TurretReinforcement');
@@ -599,6 +707,13 @@ export class AttributeUpgradePanel extends Component {
 
         this.exitReinforceMode();
         warn('[AttributeUpgradePanel] 炮塔强化完成！范围/攻速/攻击 ×1.5');
+    }
+
+    /** 对炮塔的 Turnet/Turnet_foundation 子节点永久着色 */
+    private applyPermanentColorToTurretChildren(turretNode: Node) {
+        this.collectTurretChildColors(turretNode, REINFORCE_PERMANENT_COLOR);
+        // 不保存原始颜色（永久着色，不需要恢复）
+        this._turretOriginalColors.clear();
     }
 
     /** 查找点击位置的炮塔 */
