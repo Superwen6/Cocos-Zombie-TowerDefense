@@ -137,6 +137,12 @@ export class AttributeUpgradePanel extends Component {
     private _highlightedTurret: Node | null = null;
     private _turretOriginalColors: Map<Node, Color> = new Map();
 
+    /** onLoad 比 start 更早执行，确保第一帧前隐藏按钮 */
+    onLoad() {
+        if (this.reinforceActionBtn) this.reinforceActionBtn.active = false;
+        if (this.blastActionBtn) this.blastActionBtn.active = false;
+    }
+
     start() {
         this.bindCloseButton();
         this.initSurvivalUpgrades();
@@ -436,11 +442,11 @@ export class AttributeUpgradePanel extends Component {
                 break;
             case 'TurretReinforcement':
                 // 点亮 Canvas 强化操作按钮
-                this.showCanvasActionBtn(this.reinforceActionBtn);
+                this.showCanvasActionBtn(this.reinforceActionBtn, 'TurretReinforcement');
                 break;
             case 'Blast':
                 // 点亮 Canvas 爆破操作按钮
-                this.showCanvasActionBtn(this.blastActionBtn);
+                this.showCanvasActionBtn(this.blastActionBtn, 'Blast');
                 break;
         }
     }
@@ -526,9 +532,10 @@ export class AttributeUpgradePanel extends Component {
         }
     }
 
-    /** 点亮 Canvas 操作按钮（永久显示） */
-    private showCanvasActionBtn(btnNode: Node | null) {
+    /** 点亮 Canvas 操作按钮（永久显示），仅在对应升级已完成时生效 */
+    private showCanvasActionBtn(btnNode: Node | null, upgradeName: string) {
         if (!btnNode) return;
+        if (this.getLevel(upgradeName) < 1) return;
         btnNode.active = true;
     }
 
