@@ -1,4 +1,4 @@
-import { _decorator, Button, Camera, Color, Component, EventTouch, find, Input, input, Label, Node, Sprite, UITransform, Vec2, Vec3, warn } from 'cc';
+import { _decorator, Button, Camera, Color, Component, EventTouch, find, Input, input, Label, Node, Sprite, Vec2, Vec3, warn } from 'cc';
 import { PlayerState } from './PlayerState';
 import { PlayerData } from './PlayerData';
 
@@ -36,9 +36,6 @@ const AFFECTED_BUTTONS: Record<string, string[]> = {
 
 /** 炮塔强化消耗 */
 const REINFORCE_COST = { wood: 6, copper: 3, iron: 1 };
-
-/** 动作按钮尺寸 */
-const ACTION_BTN_SIZE = { w: 120, h: 40 };
 
 /**
  * 属性升级面板 UI。
@@ -103,11 +100,11 @@ export class AttributeUpgradePanel extends Component {
     @property({ type: Node, tooltip: '爆破按钮（分支二）' })
     blastButton: Node | null = null;
 
-    // ---- Demolition 旁按钮 ----
-    @property({ type: Node, tooltip: '炮塔强化操作按钮（Demolition 旁）' })
+    // ---- Canvas 永久操作按钮（升级点亮后显示，独立于面板） ----
+    @property({ type: Node, tooltip: '炮塔强化操作按钮（Canvas 下，点亮后永久显示）' })
     reinforceActionBtn: Node | null = null;
 
-    @property({ type: Node, tooltip: '爆破操作按钮（Demolition 上方）' })
+    @property({ type: Node, tooltip: '爆破操作按钮（Canvas 下，点亮后永久显示）' })
     blastActionBtn: Node | null = null;
 
     // ---- Camera ----
@@ -129,14 +126,12 @@ export class AttributeUpgradePanel extends Component {
     private _reinforceMode = false;
     private _blastMode = false;
     private _modeInputSetup = false;
-    /** 动态创建的动作按钮 */
-    private _dynamicReinforceBtn: Node | null = null;
-    private _dynamicBlastBtn: Node | null = null;
 
     start() {
         this.bindCloseButton();
         this.initSurvivalUpgrades();
         this.initEngineeringUpgrades();
+        this.initCanvasActionButtons();
 
         // 所有分类同时显示（不再使用 Tab 切换）
         this.showAllContent();
@@ -155,8 +150,7 @@ export class AttributeUpgradePanel extends Component {
         }
         this.unbindAllButtons();
         this.exitAllModes();
-        if (this._dynamicReinforceBtn?.isValid) this._dynamicReinforceBtn.destroy();
-        if (this._dynamicBlastBtn?.isValid) this._dynamicBlastBtn.destroy();
+        this.unbindCanvasActionButtons();
     }
 
     // ==================== 面板显示/隐藏 ====================
@@ -356,18 +350,6 @@ export class AttributeUpgradePanel extends Component {
         if (!this.isUnlocked(name)) return;
         if (state.level >= state.maxLevel) return;
 
-        // 特殊处理：炮塔强化和爆破需要进入模式，不消耗点数
-        if (name === 'TurretReinforcement') {
-            if (this.getLevel('TurretReinforcement') >= 1) return;
-            this.enterReinforceMode();
-            return;
-        }
-        if (name === 'Blast') {
-            if (this.getLevel('Blast') >= 1) return;
-            this.enterBlastMode();
-            return;
-        }
-
         const ps = PlayerState.instance;
         if (!ps) {
             warn('[AttributeUpgradePanel] PlayerState 实例不存在');
@@ -442,26 +424,30 @@ export class AttributeUpgradePanel extends Component {
             case 'PowerSaving':
                 ps.powerSaveRate = [0.1, 0.15, 0.2][level - 1];
                 break;
+            case 'TurretReinforcement':
+                // 点亮 Canvas 强化操作按钮
+                this.showCanvasActionBtn(this.reinforceActionBtn);
+                break;
+            case 'Blast':
+                // 点亮 Canvas 爆破操作按钮
+                this.showCanvasActionBtn(this.blastActionBtn);
+                break;
         }
     }
 
     // ==================== 炮塔强化模式 ====================
 
     private enterReinforceMode() {
+        if (this.getLevel('TurretReinforcement') < 1) return;
         // 消耗材料
         if (!this.consumeReinforceMaterials()) return;
 
         this.exitAllModes();
         this._reinforceMode = true;
         this.setupModeInput();
-
-        // 使用已绑定的按钮或动态创建
         if (this.reinforceActionBtn) {
-            this.reinforceActionBtn.active = true;
             const btn = this.reinforceActionBtn.getComponent(Button);
-            if (btn) btn.interactable = true;
-        } else {
-            this._dynamicReinforceBtn = this.createActionBtn('强化炮塔', new Color(200, 100, 255, 255), 0, 50);
+            if (btn) btn.interactable = false;
         }
         warn('[AttributeUpgradePanel] 进入炮塔强化模式，点击游戏中的炮塔进行强化，右键或ESC取消');
     }
@@ -469,27 +455,23 @@ export class AttributeUpgradePanel extends Component {
     private exitReinforceMode() {
         this._reinforceMode = false;
         if (this.reinforceActionBtn) {
-            this.reinforceActionBtn.active = false;
-        }
-        if (this._dynamicReinforceBtn) {
-            this._dynamicReinforceBtn.destroy();
-            this._dynamicReinforceBtn = null;
+            const btn = this.reinforceActionBtn.getComponent(Button);
+            if (btn) btn.interactable = true;
         }
     }
 
     // ==================== 爆破模式 ====================
 
     private enterBlastMode() {
+        if (this.getLevel('Blast') < 1) return;
+
         this.exitAllModes();
         this._blastMode = true;
         this.setupModeInput();
 
         if (this.blastActionBtn) {
-            this.blastActionBtn.active = true;
             const btn = this.blastActionBtn.getComponent(Button);
-            if (btn) btn.interactable = true;
-        } else {
-            this._dynamicBlastBtn = this.createActionBtn('爆破', new Color(255, 80, 80, 255), 0, 100);
+            if (btn) btn.interactable = false;
         }
         warn('[AttributeUpgradePanel] 进入爆破模式，点击 SchoolBus 进行拆除，右键或ESC取消');
     }
@@ -497,11 +479,8 @@ export class AttributeUpgradePanel extends Component {
     private exitBlastMode() {
         this._blastMode = false;
         if (this.blastActionBtn) {
-            this.blastActionBtn.active = false;
-        }
-        if (this._dynamicBlastBtn) {
-            this._dynamicBlastBtn.destroy();
-            this._dynamicBlastBtn = null;
+            const btn = this.blastActionBtn.getComponent(Button);
+            if (btn) btn.interactable = true;
         }
     }
 
@@ -510,45 +489,41 @@ export class AttributeUpgradePanel extends Component {
         this.exitBlastMode();
     }
 
-    /** 动态创建动作按钮（在 Demolition 节点旁） */
-    private createActionBtn(label: string, color: Color, offsetX: number, offsetY: number): Node | null {
-        const canvas = this.node.parent;
-        if (!canvas) return null;
+    // ==================== Canvas 永久操作按钮 ====================
 
-        // 查找 Demolition 节点作为定位参考
-        const demolition = canvas.getChildByName('Demolition');
-        const refPos = demolition ? demolition.position.clone() : new Vec3(0, 0, 0);
-
-        const btnNode = new Node('ActionBtn_' + label);
-        btnNode.setParent(canvas);
-        btnNode.setPosition(refPos.x + offsetX, refPos.y + offsetY, 0);
-        btnNode.layer = this.node.layer;
-
-        const uiTransform = btnNode.addComponent(UITransform);
-        uiTransform.setContentSize(ACTION_BTN_SIZE.w, ACTION_BTN_SIZE.h);
-
-        const sprite = btnNode.addComponent(Sprite);
-        sprite.color = color;
-        sprite.type = Sprite.Type.SLICED;
-
-        const button = btnNode.addComponent(Button);
-        button.interactable = true;
-
-        // 添加文字标签
-        const labelNode = new Node('Label');
-        labelNode.setParent(btnNode);
-        labelNode.layer = btnNode.layer;
-        const labelComp = labelNode.addComponent(Label);
-        labelComp.string = label;
-        labelComp.fontSize = 16;
-        labelComp.color = Color.WHITE;
-        labelComp.horizontalAlign = Label.HorizontalAlign.CENTER;
-        labelComp.verticalAlign = Label.VerticalAlign.CENTER;
-        const labelTransform = labelNode.addComponent(UITransform);
-        labelTransform.setContentSize(ACTION_BTN_SIZE.w, ACTION_BTN_SIZE.h);
-
-        return btnNode;
+    /** 初始化 Canvas 操作按钮：隐藏并绑定点击事件 */
+    private initCanvasActionButtons() {
+        this.bindCanvasActionBtn(this.reinforceActionBtn, () => this.enterReinforceMode());
+        this.bindCanvasActionBtn(this.blastActionBtn, () => this.enterBlastMode());
     }
+
+    private bindCanvasActionBtn(btnNode: Node | null, handler: () => void) {
+        if (!btnNode) return;
+        btnNode.active = false;
+        const btn = btnNode.getComponent(Button);
+        if (btn) {
+            btn.node.on(Button.EventType.CLICK, handler, this);
+        }
+    }
+
+    private unbindCanvasActionButtons() {
+        if (this.reinforceActionBtn?.isValid) {
+            const btn = this.reinforceActionBtn.getComponent(Button);
+            if (btn) btn.node.targetOff(this);
+        }
+        if (this.blastActionBtn?.isValid) {
+            const btn = this.blastActionBtn.getComponent(Button);
+            if (btn) btn.node.targetOff(this);
+        }
+    }
+
+    /** 点亮 Canvas 操作按钮（永久显示） */
+    private showCanvasActionBtn(btnNode: Node | null) {
+        if (!btnNode) return;
+        btnNode.active = true;
+    }
+
+    // ==================== 模式输入 ====================
 
     private setupModeInput() {
         if (this._modeInputSetup) return;
@@ -654,7 +629,7 @@ export class AttributeUpgradePanel extends Component {
             return;
         }
 
-        target.node.destroy();
+        target.destroy();
 
         const state = this._upgradeStates.get('Blast');
         if (state) {
@@ -667,17 +642,17 @@ export class AttributeUpgradePanel extends Component {
     }
 
     /** 查找点击位置的 SchoolBus */
-    private findSchoolBusAt(worldPos: Vec3): Component | null {
+    private findSchoolBusAt(worldPos: Vec3): Node | null {
         const scene = this.node.scene;
         if (!scene) return null;
         return this.findSchoolBusRecursive(scene, worldPos, 80);
     }
 
-    private findSchoolBusRecursive(root: Node, worldPos: Vec3, threshold: number): Component | null {
+    private findSchoolBusRecursive(root: Node, worldPos: Vec3, threshold: number): Node | null {
         if (root.name.includes('Bus') || root.name.toLowerCase().includes('schoolbus')) {
             const dist = Vec3.distance(root.worldPosition, worldPos);
             if (dist <= threshold) {
-                return root.getComponent(Component) || ({} as Component);
+                return root;
             }
         }
         for (const child of root.children) {
