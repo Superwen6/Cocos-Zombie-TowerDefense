@@ -374,6 +374,8 @@ export class PlayerController extends Component {
             return;
         }
 
+        console.log('[PlayerController] tryAttack, weaponMode:', state.weaponMode, 'isAttacking:', this.isAttacking);
+
         // 正在攻击动画中，忽略
         if (this.isAttacking) {
             return;
@@ -381,9 +383,17 @@ export class PlayerController extends Component {
 
         // 武器模式：发射子弹，禁止采矿
         if (state.weaponMode) {
-            if (!_clickCanvasPos) return;
-            if (this._weaponFireTimer < state.weaponAttackInterval) return;
+            console.log('[PlayerController] 武器模式 tryAttack, clickPos:', _clickCanvasPos, 'fireTimer:', this._weaponFireTimer, 'interval:', state.weaponAttackInterval);
+            if (!_clickCanvasPos) {
+                console.log('[PlayerController] 武器模式：无点击位置，跳过');
+                return;
+            }
+            if (this._weaponFireTimer < state.weaponAttackInterval) {
+                console.log('[PlayerController] 武器模式：攻击间隔冷却中');
+                return;
+            }
             this._weaponFireTimer = 0;
+            console.log('[PlayerController] 武器模式：触发 fireWeaponBullet');
             this.fireWeaponBullet(_clickCanvasPos);
             return;
         }
@@ -428,7 +438,11 @@ export class PlayerController extends Component {
     /** 武器模式：向点击位置发射子弹 */
     private fireWeaponBullet(clickScreenPos: Vec3) {
         const state = this.playerState ?? PlayerState.instance;
-        if (!state || !this.weaponBulletPrefab || !this.worldCamera) return;
+        console.log('[PlayerController] fireWeaponBullet, state:', !!state, 'prefab:', !!this.weaponBulletPrefab, 'camera:', !!this.worldCamera);
+        if (!state || !this.weaponBulletPrefab || !this.worldCamera) {
+            console.log('[PlayerController] fireWeaponBullet: 缺少依赖，跳过');
+            return;
+        }
 
         const playerPos = this.node.worldPosition;
 
@@ -437,20 +451,28 @@ export class PlayerController extends Component {
             new Vec3(clickScreenPos.x, clickScreenPos.y, 0), new Vec3());
         worldTarget.z = 0;
 
+        console.log('[PlayerController] fireWeaponBullet, playerPos:', playerPos, 'worldTarget:', worldTarget);
+
         // 方向：玩家 → 点击位置
         const dir = new Vec3();
         Vec3.subtract(dir, worldTarget, playerPos);
-        if (dir.lengthSqr() < 0.01) return;
+        if (dir.lengthSqr() < 0.01) {
+            console.log('[PlayerController] fireWeaponBullet: 方向太短，跳过');
+            return;
+        }
         dir.normalize();
 
         const bulletNode = instantiate(this.weaponBulletPrefab);
+        console.log('[PlayerController] fireWeaponBullet, bulletNode:', !!bulletNode);
         bulletNode.setScale(0, 0, 1);
         Bullet.attachToWorld(bulletNode, playerPos.clone());
 
         const bullet = bulletNode.getComponent(Bullet);
+        console.log('[PlayerController] fireWeaponBullet, bullet component:', !!bullet);
         if (bullet) {
             bullet.setDirection(dir);
             bullet.init(null, state.attackDamage * state.attackDamageMultiplier, this.node, false);
+            console.log('[PlayerController] fireWeaponBullet: 子弹已发射, damage:', state.attackDamage * state.attackDamageMultiplier);
         }
     }
 
