@@ -50,6 +50,28 @@ const AFFECTED_BUTTONS: Record<string, string[]> = {
 /** 炮塔强化消耗 */
 const REINFORCE_COST = { wood: 6, copper: 3, iron: 1 };
 
+/** 按钮悬停描述映射 */
+const BUTTON_DESCRIPTIONS: Record<string, string> = {
+    Walkspeed: 'LV2，移动速度加快',
+    FatigueReduce: 'LV2，疲劳增长减缓',
+    HPIncrease: 'LV3，生命值提升',
+    WoodCollect: 'LV3，木材采集效率提升',
+    CopperCollect: 'LV3，铜矿采集效率提升',
+    IronCollect: 'LV3，铁矿采集效率提升',
+    Stealth: 'LV1，降低僵尸感知范围',
+    RemoteRepair: 'LV1，远程维修建筑',
+    RemoteMaterial: 'LV1，远程用材料维修',
+    TurretReinforcement: 'LV1，强化炮塔属性',
+    MaterialSave: 'LV3，全局节省材料',
+    PowerSaving: 'LV3，全局节省电力',
+    Blast: 'LV1，爆破拆除障碍物',
+    AttackIncrease: 'LV3，提升攻击力',
+    Pistol: 'LV1，切换手枪模式',
+    Micromsg: 'LV1，切换微型冲锋枪',
+    Rifle: 'LV1，切换步枪模式',
+    Machinegun: 'LV1，切换机关枪模式',
+};
+
 /**
  * 属性升级面板 UI。
  * 挂载在 Canvas/AttributeUpgradePanel 节点上。
@@ -172,6 +194,15 @@ export class AttributeUpgradePanel extends Component {
     @property({ type: Label, tooltip: '警告提示标签（用于显示点数不足等）' })
     warningLabel: Label | null = null;
 
+    @property({ type: Label, tooltip: '属性描述文本（悬停按钮时显示）' })
+    attributeDescribeLabel: Label | null = null;
+
+    @property({ type: Node, tooltip: '重置按钮节点' })
+    resetButton: Node | null = null;
+
+    @property({ tooltip: '重置属性所需花费（金钱）' })
+    resetCost = 50;
+
     private _panelVisible = false;
     private static _openPanelBound = false;
     private static _pendingOpen = false;
@@ -195,15 +226,27 @@ export class AttributeUpgradePanel extends Component {
         if (this.weaponActionBtn) this.weaponActionBtn.active = false;
     }
 
-    start() {
-        this.bindCloseButton();
-        this.initSurvivalUpgrades();
-        this.initEngineeringUpgrades();
-        this.initWeaponUpgrades();
-        this.initCanvasActionButtons();
+    private _initialized = false;
 
-        // 所有分类同时显示（不再使用 Tab 切换）
-        this.showAllContent();
+    start() {
+        // 仅在首次初始化时注册升级按钮，避免重复调用 start() 时覆盖已有升级状态
+        if (!this._initialized) {
+            this._initialized = true;
+            this.bindCloseButton();
+            this.initSurvivalUpgrades();
+            this.initEngineeringUpgrades();
+            this.initWeaponUpgrades();
+            this.initCanvasActionButtons();
+            this.bindResetButton();
+
+            // 描述标签初始隐藏
+            if (this.attributeDescribeLabel) {
+                this.attributeDescribeLabel.node.active = false;
+            }
+
+            // 所有分类同时显示（不再使用 Tab 切换）
+            this.showAllContent();
+        }
 
         if (AttributeUpgradePanel._pendingOpen) {
             AttributeUpgradePanel._pendingOpen = false;
@@ -216,6 +259,12 @@ export class AttributeUpgradePanel extends Component {
     onDestroy() {
         if (this.closeButton?.node.isValid) {
             this.closeButton.node.off(Button.EventType.CLICK, this.hidePanel, this);
+        }
+        if (this.resetButton?.isValid) {
+            const resetBtn = this.resetButton.getComponent(Button);
+            if (resetBtn?.node.isValid) {
+                resetBtn.node.off(Button.EventType.CLICK, this.onResetClick, this);
+            }
         }
         this.unbindAllButtons();
         this.exitAllModes();
@@ -343,6 +392,10 @@ export class AttributeUpgradePanel extends Component {
         if (btn) {
             btn.node.on(Button.EventType.CLICK, () => this.onUpgradeClick(name), this);
         }
+
+        // 悬停描述
+        node.on(Node.EventType.MOUSE_ENTER, () => this.onButtonHover(name), this);
+        node.on(Node.EventType.MOUSE_LEAVE, () => this.onButtonHoverEnd(), this);
     }
 
     private saveOriginalColors(node: Node) {
@@ -374,6 +427,10 @@ export class AttributeUpgradePanel extends Component {
             const btn = state.node.getComponent(Button);
             if (btn?.node.isValid) {
                 btn.node.off(Button.EventType.CLICK, () => this.onUpgradeClick(name), this);
+            }
+            if (state.node.isValid) {
+                state.node.off(Node.EventType.MOUSE_ENTER, () => this.onButtonHover(name), this);
+                state.node.off(Node.EventType.MOUSE_LEAVE, () => this.onButtonHoverEnd(), this);
             }
         }
     }
@@ -885,11 +942,98 @@ export class AttributeUpgradePanel extends Component {
 
     // ==================== 刷新 ====================
 
+    /** 绑定重置按钮 */
+    private bindResetButton() {
+        if (!this.resetButton) return;
+        const btn = this.resetButton.getComponent(Button);
+        if (btn) {
+            btn.node.on(Button.EventType.CLICK, this.onResetClick, this);
+        }
+    }
+
+    /** 按钮悬停：显示描述 */
+    private onButtonHover(name: string) {
+        if (!this.attributeDescribeLabel) return;
+        const desc = BUTTON_DESCRIPTIONS[name];
+        if (desc) {
+            this.attributeDescribeLabel.string = desc;
+            this.attributeDescribeLabel.node.active = true;
+        }
+    }
+
+    /** 按钮悬停结束：隐藏描述 */
+    private onButtonHoverEnd() {
+        if (!this.attributeDescribeLabel) return;
+        this.attributeDescribeLabel.node.active = false;
+    }
+
+    /** 重置按钮点击 */
+    private onResetClick() {
+        const ps = PlayerState.instance;
+        if (!ps) return;
+
+        // 检查是否有升级过的属性
+        let totalLevels = 0;
+        for (const [, state] of this._upgradeStates) {
+            totalLevels += state.level;
+        }
+        if (totalLevels === 0) {
+            this.showWarning('没有可重置的属性！');
+            return;
+        }
+
+        // 检查金钱是否足够
+        const data = PlayerData.instance;
+        if (!data) return;
+        if (data.money < this.resetCost) {
+            this.showWarning(`金钱不足！需要 ${this.resetCost} 金币`);
+            return;
+        }
+
+        // 扣除金钱
+        data.money -= this.resetCost;
+
+        // 重置所有升级状态
+        for (const [, state] of this._upgradeStates) {
+            state.level = 0;
+        }
+
+        // 归还属性点
+        ps.upgradePoints += totalLevels;
+
+        // 重置 PlayerState 属性
+        ps.walkSpeedMultiplier = 1.0;
+        ps.fatigueGainMultiplier = 1.0;
+        ps.hpMultiplier = 1.0;
+        ps.woodCollectMultiplier = 1.0;
+        ps.copperCollectMultiplier = 1.0;
+        ps.ironCollectMultiplier = 1.0;
+        PlayerState.zombieAlertRadiusMultiplier = 1.0;
+        ps.remoteRepairLevel = 0;
+        ps.remoteMaterialEnabled = false;
+        ps.materialSaveRate = 0;
+        ps.powerSaveRate = 0;
+        ps.attackDamageMultiplier = 1.0;
+        ps.weaponAttackInterval = 0.5;
+        ps.weaponDamage = 10;
+        ps.weaponMode = false;
+
+        // 隐藏 Canvas 操作按钮
+        if (this.reinforceActionBtn) this.reinforceActionBtn.active = false;
+        if (this.blastActionBtn) this.blastActionBtn.active = false;
+        if (this.weaponActionBtn) this.weaponActionBtn.active = false;
+
+        // 刷新 UI
+        this.refreshPointDisplay();
+        this.refreshAllButtons();
+        this.showWarning(`重置完成！属性点已归还`);
+    }
+
     private refreshPointDisplay() {
         if (!this.pointNumberLabel) return;
         const ps = PlayerState.instance;
         const points = ps ? ps.upgradePoints : 0;
-        this.pointNumberLabel.string = `${points}`;
+        this.pointNumberLabel.string = `属性点：${points}`;
     }
 
     /** 显示临时警告 */
