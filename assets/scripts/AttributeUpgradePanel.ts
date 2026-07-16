@@ -129,6 +129,19 @@ export class AttributeUpgradePanel extends Component {
     @property({ type: Node, tooltip: '机关枪按钮' })
     machinegunButton: Node | null = null;
 
+    // ---- 武器攻击间隔（属性检查器可调） ----
+    @property({ tooltip: '手枪攻击间隔（秒）' })
+    pistolAttackInterval = 0.5;
+
+    @property({ tooltip: '微型冲锋枪攻击间隔（秒）' })
+    micromsgAttackInterval = 0.3;
+
+    @property({ tooltip: '步枪攻击间隔（秒）' })
+    rifleAttackInterval = 0.8;
+
+    @property({ tooltip: '机关枪攻击间隔（秒）' })
+    machinegunAttackInterval = 0.15;
+
     // ---- Canvas 永久操作按钮（升级点亮后显示，独立于面板） ----
     @property({ type: Node, tooltip: '炮塔强化操作按钮（Canvas 下，点亮后永久显示）' })
     reinforceActionBtn: Node | null = null;
@@ -496,16 +509,17 @@ export class AttributeUpgradePanel extends Component {
                 ps.attackDamageMultiplier = [1.5, 3.0, 6.0][level - 1];
                 break;
             case 'Pistol':
+                ps.weaponAttackInterval = this.pistolAttackInterval;
                 this.showCanvasActionBtn(this.weaponActionBtn, 'Pistol');
                 break;
             case 'Micromsg':
-                ps.weaponAttackInterval = 0.3;
+                ps.weaponAttackInterval = this.micromsgAttackInterval;
                 break;
             case 'Rifle':
-                ps.weaponAttackInterval = 0.8;
+                ps.weaponAttackInterval = this.rifleAttackInterval;
                 break;
             case 'Machinegun':
-                ps.weaponAttackInterval = 0.15;
+                ps.weaponAttackInterval = this.machinegunAttackInterval;
                 break;
         }
     }

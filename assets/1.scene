@@ -740,6 +740,9 @@
     "remoteMaterialEnabled": false,
     "materialSaveRate": 0,
     "powerSaveRate": 0,
+    "attackDamageMultiplier": 1,
+    "weaponMode": false,
+    "weaponAttackInterval": 0.5,
     "baseNodeName": "Base",
     "baseNode": {
       "__id__": 6
@@ -807,6 +810,10 @@
     "mapMaxX": 3760,
     "mapMinY": -2710,
     "mapMaxY": 3350,
+    "weaponBulletPrefab": {
+      "__uuid__": "1d6466a5-ddf5-4dc3-a7d8-dec9a81c92ba",
+      "__expectedType__": "cc.Prefab"
+    },
     "_id": "c0RxC7l0tKWKiVtrPlJJ01"
   },
   {
@@ -50781,7 +50788,7 @@
         "__id__": 1504
       }
     ],
-    "_active": false,
+    "_active": true,
     "_components": [
       {
         "__id__": 1507
@@ -51034,9 +51041,9 @@
     "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
-      "r": 214,
-      "g": 214,
-      "b": 214,
+      "r": 255,
+      "g": 255,
+      "b": 255,
       "a": 255
     },
     "_hoverColor": {
@@ -65784,7 +65791,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 0,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -65818,7 +65825,7 @@
     "_pressedSprite": null,
     "_disabledSprite": null,
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.9,
     "_target": {
       "__id__": 1868
     },
@@ -66170,7 +66177,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 0,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -66204,7 +66211,7 @@
     "_pressedSprite": null,
     "_disabledSprite": null,
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.9,
     "_target": {
       "__id__": 1878
     },
@@ -66556,7 +66563,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 0,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -66590,7 +66597,7 @@
     "_pressedSprite": null,
     "_disabledSprite": null,
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.9,
     "_target": {
       "__id__": 1888
     },
@@ -66942,7 +66949,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 0,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -66976,7 +66983,7 @@
     "_pressedSprite": null,
     "_disabledSprite": null,
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.9,
     "_target": {
       "__id__": 1898
     },
@@ -67328,7 +67335,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 0,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -67362,7 +67369,7 @@
     "_pressedSprite": null,
     "_disabledSprite": null,
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.9,
     "_target": {
       "__id__": 1908
     },
@@ -67545,11 +67552,29 @@
     "blastButton": {
       "__id__": 1855
     },
+    "attackIncreaseButton": {
+      "__id__": 1868
+    },
+    "pistolButton": {
+      "__id__": 1878
+    },
+    "micromsgButton": {
+      "__id__": 1888
+    },
+    "rifleButton": {
+      "__id__": 1898
+    },
+    "machinegunButton": {
+      "__id__": 1908
+    },
     "reinforceActionBtn": {
       "__id__": 1495
     },
     "blastActionBtn": {
       "__id__": 1487
+    },
+    "weaponActionBtn": {
+      "__id__": 1503
     },
     "worldCamera": {
       "__id__": 9

@@ -381,9 +381,10 @@ export class PlayerController extends Component {
 
         // 武器模式：发射子弹，禁止采矿
         if (state.weaponMode) {
+            if (!_clickCanvasPos) return;
             if (this._weaponFireTimer < state.weaponAttackInterval) return;
             this._weaponFireTimer = 0;
-            this.fireWeaponBullet();
+            this.fireWeaponBullet(_clickCanvasPos);
             return;
         }
 
@@ -391,7 +392,7 @@ export class PlayerController extends Component {
 
         const zombie = this.findClosestZombieInRange(playerPos);
         if (zombie) {
-            zombie.takeDamage(state.attackDamage);
+            zombie.takeDamage(state.attackDamage * state.attackDamageMultiplier);
             // 有目标时：根据目标与玩家的相对位置决定方向
             const targetIsRight = zombie.node.worldPosition.x > playerPos.x;
             this.playAttackAnimation(targetIsRight);
@@ -424,14 +425,23 @@ export class PlayerController extends Component {
         this.playAttackAnimation(isRight);
     }
 
-    /** 武器模式：发射子弹到最近僵尸 */
-    private fireWeaponBullet() {
+    /** 武器模式：向点击位置发射子弹 */
+    private fireWeaponBullet(clickScreenPos: Vec3) {
         const state = this.playerState ?? PlayerState.instance;
-        if (!state || !this.weaponBulletPrefab) return;
+        if (!state || !this.weaponBulletPrefab || !this.worldCamera) return;
 
         const playerPos = this.node.worldPosition;
-        const zombie = this.findClosestZombieInRange(playerPos);
-        if (!zombie) return;
+
+        // 屏幕坐标 → 世界坐标
+        const worldTarget = this.worldCamera.screenToWorld(
+            new Vec3(clickScreenPos.x, clickScreenPos.y, 0), new Vec3());
+        worldTarget.z = 0;
+
+        // 方向：玩家 → 点击位置
+        const dir = new Vec3();
+        Vec3.subtract(dir, worldTarget, playerPos);
+        if (dir.lengthSqr() < 0.01) return;
+        dir.normalize();
 
         const bulletNode = instantiate(this.weaponBulletPrefab);
         bulletNode.setScale(0, 0, 1);
@@ -439,8 +449,8 @@ export class PlayerController extends Component {
 
         const bullet = bulletNode.getComponent(Bullet);
         if (bullet) {
-            const damage = state.attackDamage * state.attackDamageMultiplier;
-            bullet.init(zombie.node, damage, this.node, false);
+            bullet.setDirection(dir);
+            bullet.init(null, state.attackDamage * state.attackDamageMultiplier, this.node, false);
         }
     }
 

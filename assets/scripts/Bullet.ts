@@ -44,17 +44,17 @@ export class Bullet extends Component {
         }
     }
 
-    init(targetNode: Node, damage: number, attackerNode?: Node, homing = true) {
+    init(targetNode: Node | null, damage: number, attackerNode?: Node, homing = true) {
         this._targetNode = targetNode;
-        this._targetZombie = targetNode.getComponent(ZombieMove);
+        this._targetZombie = targetNode?.getComponent(ZombieMove) ?? null;
         this._attackerNode = attackerNode ?? null;
         this._damage = damage;
         this._lifetime = 0;
         this._homing = homing;
         this._hitZombies.clear();
 
-        // 非跟踪模式：记录初始发射方向
-        if (!this._homing) {
+        // 非跟踪模式且有目标：记录初始发射方向
+        if (!this._homing && targetNode) {
             targetNode.getWorldPosition(this._tempVec);
             const bulletWP = this.node.worldPosition;
             this._initialDir.set(
@@ -73,6 +73,12 @@ export class Bullet extends Component {
         }, 16);
     }
 
+    /** 设置子弹飞行方向（不依赖目标节点，用于玩家武器） */
+    setDirection(dir: Vec3) {
+        this._initialDir.set(dir);
+        this._initialDir.normalize();
+    }
+
     update(dt: number) {
         this._lifetime += dt;
         if (this._lifetime >= this.lifetime) {
@@ -82,32 +88,33 @@ export class Bullet extends Component {
 
         this.bringToFront();
 
-        if (!this._targetNode?.isValid) {
-            this.node.destroy();
-            return;
-        }
-
         const bulletWP = this.node.worldPosition.clone();
         let dir: Vec3;
-        let dist: number;
 
-        if (this._homing) {
+        if (this._homing && this._targetNode?.isValid) {
             // 跟踪模式：每帧重新计算指向目标的方向
             this._targetNode.getWorldPosition(this._tempVec);
             dir = this._tempVec.clone().subtract(bulletWP);
-            dist = dir.length();
+            const dist = dir.length();
             dir.normalize();
-        } else {
-            // 非跟踪模式：沿初始方向直线飞行，但仍检测是否接近目标
+            if (dist < HIT_RADIUS) {
+                this.dealDamageToTarget();
+                this.node.destroy();
+                return;
+            }
+        } else if (this._targetNode?.isValid) {
+            // 非跟踪模式 + 有目标：沿初始方向直线飞行，检测与目标距离
             dir = this._initialDir.clone();
             this._targetNode.getWorldPosition(this._tempVec);
-            dist = Vec3.distance(bulletWP, this._tempVec);
-        }
-
-        if (dist < HIT_RADIUS) {
-            this.dealDamageToTarget();
-            this.node.destroy();
-            return;
+            const dist = Vec3.distance(bulletWP, this._tempVec);
+            if (dist < HIT_RADIUS) {
+                this.dealDamageToTarget();
+                this.node.destroy();
+                return;
+            }
+        } else {
+            // 无目标模式：沿初始方向飞行，仅靠碰撞检测
+            dir = this._initialDir.clone();
         }
 
         const step = this.speed * dt;
