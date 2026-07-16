@@ -114,6 +114,9 @@ export class PlayerController extends Component {
 
     // 武器模式射击计时
     private _weaponFireTimer = 0;
+    // 持续发射：按住鼠标/触屏时持续射击
+    private _isFiring = false;
+    private _lastFirePos = new Vec3();
 
     onLoad() {
         if (!this.playerState) {
@@ -145,7 +148,10 @@ export class PlayerController extends Component {
         input.on(Input.EventType.KEY_DOWN, this.onKeyDown, this);
         input.on(Input.EventType.KEY_UP, this.onKeyUp, this);
         input.on(Input.EventType.MOUSE_DOWN, this.onMouseDown, this);
+        input.on(Input.EventType.MOUSE_UP, this.onMouseUp, this);
         input.on(Input.EventType.TOUCH_START, this.onTouchStart, this);
+        input.on(Input.EventType.TOUCH_END, this.onTouchEnd, this);
+        input.on(Input.EventType.TOUCH_CANCEL, this.onTouchEnd, this);
     }
 
     start() {
@@ -172,7 +178,10 @@ export class PlayerController extends Component {
         input.off(Input.EventType.KEY_DOWN, this.onKeyDown, this);
         input.off(Input.EventType.KEY_UP, this.onKeyUp, this);
         input.off(Input.EventType.MOUSE_DOWN, this.onMouseDown, this);
+        input.off(Input.EventType.MOUSE_UP, this.onMouseUp, this);
         input.off(Input.EventType.TOUCH_START, this.onTouchStart, this);
+        input.off(Input.EventType.TOUCH_END, this.onTouchEnd, this);
+        input.off(Input.EventType.TOUCH_CANCEL, this.onTouchEnd, this);
         this.keyPressedMap = {};
     }
 
@@ -181,9 +190,13 @@ export class PlayerController extends Component {
             return;
         }
 
-        // 武器模式：攻击间隔计时
+        // 武器模式：攻击间隔计时 + 持续发射
         if (this.playerState.weaponMode) {
             this._weaponFireTimer += dt;
+            if (this._isFiring && this._weaponFireTimer >= this.playerState.weaponAttackInterval) {
+                this._weaponFireTimer = 0;
+                this.fireWeaponBullet(this._lastFirePos);
+            }
         }
 
         // 攻击动画帧更新
@@ -342,16 +355,29 @@ export class PlayerController extends Component {
             return;
         }
         const screenPos = event.getLocation();
+        this._lastFirePos.set(screenPos.x, screenPos.y, 0);
+        this._isFiring = true;
         const worldPos = this.screenToWorldPos(screenPos);
         const isRight = worldPos ? worldPos.x > this.node.worldPosition.x : false;
         this.tryAttack(new Vec3(screenPos.x, screenPos.y, 0), isRight);
     }
 
+    private onMouseUp(_event: { getButton: () => number }) {
+        if (_event.getButton() !== 0) return;
+        this._isFiring = false;
+    }
+
     private onTouchStart(event: EventTouch) {
         const screenPos = event.getLocation();
+        this._lastFirePos.set(screenPos.x, screenPos.y, 0);
+        this._isFiring = true;
         const worldPos = this.screenToWorldPos(screenPos);
         const isRight = worldPos ? worldPos.x > this.node.worldPosition.x : false;
         this.tryAttack(new Vec3(screenPos.x, screenPos.y, 0), isRight);
+    }
+
+    private onTouchEnd(_event: EventTouch) {
+        this._isFiring = false;
     }
 
     private screenToWorldPos(screenPos: { x: number; y: number }): Vec3 | null {
@@ -449,8 +475,10 @@ export class PlayerController extends Component {
 
         const bullet = bulletNode.getComponent(Bullet);
         if (bullet) {
+            const finalDamage = state.weaponDamage * state.attackDamageMultiplier;
+            console.log('[PlayerController] 子弹发射, weaponDamage:', state.weaponDamage, 'attackDamageMultiplier:', state.attackDamageMultiplier, 'finalDamage:', finalDamage);
             bullet.setDirection(dir);
-            bullet.init(null, state.weaponDamage * state.attackDamageMultiplier, this.node, false);
+            bullet.init(null, finalDamage, this.node, false);
         }
     }
 
