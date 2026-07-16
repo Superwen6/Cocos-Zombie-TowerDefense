@@ -290,6 +290,7 @@ export class AttributeUpgradePanel extends Component {
     showPanel() {
         this._panelVisible = true;
         this.setHostPanelVisible(true);
+        if (this.confirmPanel) this.confirmPanel.active = false;
         this.refreshPointDisplay();
         this.refreshAllButtons();
     }
@@ -297,6 +298,7 @@ export class AttributeUpgradePanel extends Component {
     hidePanel() {
         this._panelVisible = false;
         this.setHostPanelVisible(false);
+        if (this.confirmPanel) this.confirmPanel.active = false;
         this.exitAllModes();
     }
 
@@ -354,6 +356,8 @@ export class AttributeUpgradePanel extends Component {
             sprite.enabled = visible;
         }
         for (const child of this.node.children) {
+            // 跳过 confirmPanel，它由 Reset 按钮独立控制
+            if (child === this.confirmPanel) continue;
             child.active = visible;
         }
     }
@@ -988,10 +992,7 @@ export class AttributeUpgradePanel extends Component {
         for (const [, state] of this._upgradeStates) {
             totalLevels += state.level;
         }
-        if (totalLevels === 0) {
-            this.showWarning('没有可重置的属性！');
-            return;
-        }
+        if (totalLevels === 0) return;
 
         // 弹出确认面板
         if (!this.confirmPanel || !this.confirmNoticeLabel) return;
@@ -1008,6 +1009,10 @@ export class AttributeUpgradePanel extends Component {
     private bindConfirmPanel() {
         if (this.confirmPanel) {
             this.confirmPanel.active = false;
+        }
+        // 启用富文本以支持颜色标签
+        if (this.confirmNoticeLabel) {
+            this.confirmNoticeLabel.enableRichText = true;
         }
         if (this.confirmButton) {
             const btn = this.confirmButton.getComponent(Button);
@@ -1091,7 +1096,6 @@ export class AttributeUpgradePanel extends Component {
         // 刷新 UI
         this.refreshPointDisplay();
         this.refreshAllButtons();
-        this.showWarning('重置完成！属性点已归还');
     }
 
     /** 取消重置 */
