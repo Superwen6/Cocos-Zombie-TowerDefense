@@ -1,4 +1,4 @@
-import { _decorator, Button, Camera, Color, Component, EventMouse, EventTouch, find, Input, input, Label, Node, Sprite, Vec3, warn } from 'cc';
+import { _decorator, Button, Camera, Color, Component, EventMouse, EventTouch, find, Input, input, Label, Node, RichText, Sprite, Vec3, warn } from 'cc';
 import { PlayerState } from './PlayerState';
 import { PlayerData } from './PlayerData';
 import { TurretPlacementManager } from './TurretPlacementManager';
@@ -206,8 +206,8 @@ export class AttributeUpgradePanel extends Component {
     @property({ type: Node, tooltip: '确认重置面板节点' })
     confirmPanel: Node | null = null;
 
-    @property({ type: Label, tooltip: '确认面板提示文本（notice）' })
-    confirmNoticeLabel: Label | null = null;
+    @property({ type: RichText, tooltip: '确认面板提示文本（notice，使用 RichText 支持颜色标签）' })
+    confirmNoticeLabel: RichText | null = null;
 
     @property({ type: Node, tooltip: '确认按钮' })
     confirmButton: Node | null = null;
@@ -290,7 +290,6 @@ export class AttributeUpgradePanel extends Component {
     showPanel() {
         this._panelVisible = true;
         this.setHostPanelVisible(true);
-        if (this.confirmPanel) this.confirmPanel.active = false;
         this.refreshPointDisplay();
         this.refreshAllButtons();
     }
@@ -298,7 +297,6 @@ export class AttributeUpgradePanel extends Component {
     hidePanel() {
         this._panelVisible = false;
         this.setHostPanelVisible(false);
-        if (this.confirmPanel) this.confirmPanel.active = false;
         this.exitAllModes();
     }
 
@@ -962,10 +960,13 @@ export class AttributeUpgradePanel extends Component {
 
     /** 绑定重置按钮 */
     private bindResetButton() {
+        console.log('[DIAG] bindResetButton, resetButton=', this.resetButton);
         if (!this.resetButton) return;
         const btn = this.resetButton.getComponent(Button);
+        console.log('[DIAG] bindResetButton btn=', btn);
         if (btn) {
             btn.node.on(Button.EventType.CLICK, this.onResetClick, this);
+            console.log('[DIAG] bindResetButton 事件已绑定');
         }
     }
 
@@ -987,32 +988,56 @@ export class AttributeUpgradePanel extends Component {
 
     /** 重置按钮点击 → 弹出确认面板 */
     private onResetClick() {
+        console.log('[DIAG] onResetClick 被调用');
         // 检查是否有升级过的属性
         let totalLevels = 0;
         for (const [, state] of this._upgradeStates) {
             totalLevels += state.level;
         }
+        console.log('[DIAG] onResetClick totalLevels=', totalLevels);
         if (totalLevels === 0) return;
 
-        // 弹出确认面板
-        if (!this.confirmPanel || !this.confirmNoticeLabel) return;
-        this.confirmPanel.active = true;
+        // 确保 confirmPanel 是 Canvas 的子节点（不在 AttributeUpgradePanel 下）
+        let panel = this.confirmPanel;
+        console.log('[DIAG] onResetClick this.confirmPanel=', panel, 'isValid=', panel?.isValid);
+        if (!panel || !panel.isValid) {
+            const canvasNode = find('Canvas');
+            console.log('[DIAG] onResetClick canvasNode=', canvasNode);
+            if (canvasNode) {
+                panel = canvasNode.getChildByName('ConfirmPanel');
+                console.log('[DIAG] onResetClick Canvas.getChildByName ConfirmPanel=', panel);
+                if (panel && panel.isValid) {
+                    this.confirmPanel = panel;
+                }
+            }
+        }
 
         // 动态显示提示文本
         const data = PlayerData.instance;
         const canAfford = data ? data.money >= this.resetCost : false;
         const colorStr = canAfford ? '#FFFFFF' : '#FF3C3C';
-        this.confirmNoticeLabel.string = `是否需要花费<color=${colorStr}>${this.resetCost}</color>重置属性？`;
+        console.log('[DIAG] onResetClick confirmNoticeLabel=', this.confirmNoticeLabel, 'type=', typeof this.confirmNoticeLabel);
+        if (this.confirmNoticeLabel) {
+            this.confirmNoticeLabel.string = `是否需要花费<color=${colorStr}>${this.resetCost}</color>重置属性？`;
+            console.log('[DIAG] onResetClick 文本已设置');
+        }
+
+        // 弹出确认面板，同时确保父节点 Sprite 处于启用状态以便渲染
+        if (panel) {
+            console.log('[DIAG] onResetClick 设置 panel.active=true');
+            // 确保父节点 Sprite 启用（否则 confirmPanel 不可见）
+            const parentSprite = panel.parent?.getComponent(Sprite);
+            if (parentSprite) parentSprite.enabled = true;
+            panel.active = true;
+        } else {
+            warn('[AttributeUpgradePanel] confirmPanel 未绑定，请在编辑器中将其拖到 Canvas 节点下并绑定属性');
+        }
     }
 
     /** 绑定确认面板按钮 */
     private bindConfirmPanel() {
         if (this.confirmPanel) {
             this.confirmPanel.active = false;
-        }
-        // 启用富文本以支持颜色标签
-        if (this.confirmNoticeLabel) {
-            this.confirmNoticeLabel.enableRichText = true;
         }
         if (this.confirmButton) {
             const btn = this.confirmButton.getComponent(Button);
@@ -1037,6 +1062,17 @@ export class AttributeUpgradePanel extends Component {
         if (this.cancelButton?.isValid) {
             const btn = this.cancelButton.getComponent(Button);
             if (btn) btn.node.targetOff(this);
+        }
+    }
+
+    /** 关闭确认面板，并恢复父节点 Sprite 状态 */
+    private closeConfirmPanel() {
+        if (!this.confirmPanel) return;
+        this.confirmPanel.active = false;
+        // 恢复父节点 Sprite 状态（与面板可见性一致）
+        const parentSprite = this.confirmPanel.parent?.getComponent(Sprite);
+        if (parentSprite) {
+            parentSprite.enabled = this._panelVisible;
         }
     }
 
@@ -1091,7 +1127,7 @@ export class AttributeUpgradePanel extends Component {
         if (this.weaponActionBtn) this.weaponActionBtn.active = false;
 
         // 关闭确认面板
-        if (this.confirmPanel) this.confirmPanel.active = false;
+        this.closeConfirmPanel();
 
         // 刷新 UI
         this.refreshPointDisplay();
@@ -1100,9 +1136,7 @@ export class AttributeUpgradePanel extends Component {
 
     /** 取消重置 */
     private onCancelReset() {
-        if (this.confirmPanel) {
-            this.confirmPanel.active = false;
-        }
+        this.closeConfirmPanel();
     }
 
     private refreshPointDisplay() {
