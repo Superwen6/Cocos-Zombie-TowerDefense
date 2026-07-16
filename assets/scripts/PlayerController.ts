@@ -475,10 +475,8 @@ export class PlayerController extends Component {
 
         const bullet = bulletNode.getComponent(Bullet);
         if (bullet) {
-            const finalDamage = state.weaponDamage * state.attackDamageMultiplier;
-            console.log('[PlayerController] 子弹发射, weaponDamage:', state.weaponDamage, 'attackDamageMultiplier:', state.attackDamageMultiplier, 'finalDamage:', finalDamage);
             bullet.setDirection(dir);
-            bullet.init(null, finalDamage, this.node, false);
+            bullet.init(null, state.weaponDamage, this.node, false);
         }
     }
 
