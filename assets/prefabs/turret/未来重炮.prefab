@@ -1012,6 +1012,7 @@
     "colliderHalfH": 40,
     "enableDualShot": false,
     "dualShotSpread": 20,
+    "homingBullet": true,
     "_id": ""
   },
   {

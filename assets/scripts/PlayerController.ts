@@ -10,8 +10,10 @@ import {
     find,
     input,
     Input,
+    instantiate,
     KeyCode,
     Node,
+    Prefab,
     Sprite,
     SpriteFrame,
     UITransform,
@@ -26,6 +28,7 @@ import { ZombieMove } from './ZombieMove';
 import { BaseSystem } from './BaseSystem';
 import { Container } from './Container';
 import { HealthBar } from './HealthBar';
+import { Bullet } from './Bullet';
 import { CollisionWorld, Collider2D, ColliderGroup } from './CollisionWorld';
 
 const { ccclass, property } = _decorator;
@@ -85,6 +88,9 @@ export class PlayerController extends Component {
     @property({ type: CCFloat, tooltip: '地图最大 Y 坐标（相对于 CoordinateReference）' })
     mapMaxY = 3350;
 
+    @property({ type: Prefab, tooltip: '武器模式子弹预制体（TurretBullet）' })
+    weaponBulletPrefab: Prefab | null = null;
+
     /** 从 PlayerState 读取攻击/维修范围（可在属性检查器中调整） */
     private get hitRange(): number {
         return this.playerState?.repairRange ?? 50;
@@ -105,6 +111,9 @@ export class PlayerController extends Component {
     // 攻击动画播放状态
     private attackFrameIndex = 0;
     private attackFrameTimer = 0;
+
+    // 武器模式射击计时
+    private _weaponFireTimer = 0;
 
     onLoad() {
         if (!this.playerState) {
@@ -170,6 +179,11 @@ export class PlayerController extends Component {
     update(dt: number) {
         if (!this.playerState?.isAlive) {
             return;
+        }
+
+        // 武器模式：攻击间隔计时
+        if (this.playerState.weaponMode) {
+            this._weaponFireTimer += dt;
         }
 
         // 攻击动画帧更新
@@ -365,6 +379,14 @@ export class PlayerController extends Component {
             return;
         }
 
+        // 武器模式：发射子弹，禁止采矿
+        if (state.weaponMode) {
+            if (this._weaponFireTimer < state.weaponAttackInterval) return;
+            this._weaponFireTimer = 0;
+            this.fireWeaponBullet();
+            return;
+        }
+
         const playerPos = this.node.worldPosition;
 
         const zombie = this.findClosestZombieInRange(playerPos);
@@ -400,6 +422,26 @@ export class PlayerController extends Component {
 
         // 没有目标也播放攻击动画（空挥）：使用鼠标点击方向
         this.playAttackAnimation(isRight);
+    }
+
+    /** 武器模式：发射子弹到最近僵尸 */
+    private fireWeaponBullet() {
+        const state = this.playerState ?? PlayerState.instance;
+        if (!state || !this.weaponBulletPrefab) return;
+
+        const playerPos = this.node.worldPosition;
+        const zombie = this.findClosestZombieInRange(playerPos);
+        if (!zombie) return;
+
+        const bulletNode = instantiate(this.weaponBulletPrefab);
+        bulletNode.setScale(0, 0, 1);
+        Bullet.attachToWorld(bulletNode, playerPos.clone());
+
+        const bullet = bulletNode.getComponent(Bullet);
+        if (bullet) {
+            const damage = state.attackDamage * state.attackDamageMultiplier;
+            bullet.init(zombie.node, damage, this.node, false);
+        }
     }
 
     /** 检测玩家是否在基地碰撞矩形内，若是则维修基地 */

@@ -119,6 +119,17 @@ export class PlayerState extends Component {
     @property({ tooltip: '全局省电率 (0-0.2，工程面板升级)' })
     powerSaveRate = 0;
 
+    // ---- 武器面板升级 ----
+
+    @property({ tooltip: '攻击力倍率（武器面板升级）' })
+    attackDamageMultiplier = 1.0;
+
+    @property({ tooltip: '是否处于武器模式（可攻击僵尸，不可采矿）' })
+    weaponMode = false;
+
+    @property({ tooltip: '武器攻击间隔（秒），由武器类型决定' })
+    weaponAttackInterval = 0.5;
+
     @property({ tooltip: '基地节点名（用于自动查找）' })
     baseNodeName = 'Base';
 

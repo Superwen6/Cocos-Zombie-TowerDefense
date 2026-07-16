@@ -39,6 +39,12 @@ const AFFECTED_BUTTONS: Record<string, string[]> = {
     MaterialSave: ['MaterialSave', 'PowerSaving'],
     PowerSaving: ['PowerSaving', 'Blast'],
     Blast: ['Blast'],
+    // 武器
+    AttackIncrease: ['AttackIncrease', 'Pistol'],
+    Pistol: ['Pistol', 'Micromsg', 'Rifle', 'Machinegun'],
+    Micromsg: ['Micromsg'],
+    Rifle: ['Rifle'],
+    Machinegun: ['Machinegun'],
 };
 
 /** 炮塔强化消耗 */
@@ -107,12 +113,31 @@ export class AttributeUpgradePanel extends Component {
     @property({ type: Node, tooltip: '爆破按钮（分支二）' })
     blastButton: Node | null = null;
 
+    // ---- 武器选项卡按钮 ----
+    @property({ type: Node, tooltip: '攻击力提升按钮' })
+    attackIncreaseButton: Node | null = null;
+
+    @property({ type: Node, tooltip: '手枪按钮' })
+    pistolButton: Node | null = null;
+
+    @property({ type: Node, tooltip: '微型冲锋枪按钮' })
+    micromsgButton: Node | null = null;
+
+    @property({ type: Node, tooltip: '步枪按钮' })
+    rifleButton: Node | null = null;
+
+    @property({ type: Node, tooltip: '机关枪按钮' })
+    machinegunButton: Node | null = null;
+
     // ---- Canvas 永久操作按钮（升级点亮后显示，独立于面板） ----
     @property({ type: Node, tooltip: '炮塔强化操作按钮（Canvas 下，点亮后永久显示）' })
     reinforceActionBtn: Node | null = null;
 
     @property({ type: Node, tooltip: '爆破操作按钮（Canvas 下，点亮后永久显示）' })
     blastActionBtn: Node | null = null;
+
+    @property({ type: Node, tooltip: '武器模式切换按钮（Canvas 下，点亮后永久显示）' })
+    weaponActionBtn: Node | null = null;
 
     // ---- Camera ----
     @property({ type: Camera, tooltip: '世界相机（用于坐标转换）' })
@@ -141,12 +166,14 @@ export class AttributeUpgradePanel extends Component {
     onLoad() {
         if (this.reinforceActionBtn) this.reinforceActionBtn.active = false;
         if (this.blastActionBtn) this.blastActionBtn.active = false;
+        if (this.weaponActionBtn) this.weaponActionBtn.active = false;
     }
 
     start() {
         this.bindCloseButton();
         this.initSurvivalUpgrades();
         this.initEngineeringUpgrades();
+        this.initWeaponUpgrades();
         this.initCanvasActionButtons();
 
         // 所有分类同时显示（不再使用 Tab 切换）
@@ -272,6 +299,14 @@ export class AttributeUpgradePanel extends Component {
         this.registerUpgrade('Blast', this.blastButton || this.findButtonIn('Blast', this.engineeringContent), 1);
     }
 
+    private initWeaponUpgrades() {
+        this.registerUpgrade('AttackIncrease', this.attackIncreaseButton || this.findButtonIn('AttackIncrease', this.weaponContent), 3);
+        this.registerUpgrade('Pistol', this.pistolButton || this.findButtonIn('Pistol', this.weaponContent), 1);
+        this.registerUpgrade('Micromsg', this.micromsgButton || this.findButtonIn('Micromsg', this.weaponContent), 1);
+        this.registerUpgrade('Rifle', this.rifleButton || this.findButtonIn('Rifle', this.weaponContent), 1);
+        this.registerUpgrade('Machinegun', this.machinegunButton || this.findButtonIn('Machinegun', this.weaponContent), 1);
+    }
+
     private registerUpgrade(name: string, node: Node | null, maxLevel: number) {
         if (!node) return;
         const state: UpgradeState = { node, level: 0, maxLevel };
@@ -349,6 +384,14 @@ export class AttributeUpgradePanel extends Component {
                 return this.getLevel('MaterialSave') >= 3;
             case 'Blast':
                 return this.getLevel('PowerSaving') >= 3;
+            // 武器
+            case 'AttackIncrease': return true;
+            case 'Pistol':
+                return this.getLevel('AttackIncrease') >= 3;
+            case 'Micromsg':
+            case 'Rifle':
+            case 'Machinegun':
+                return this.getLevel('Pistol') >= 1;
             default:
                 return false;
         }
@@ -448,6 +491,22 @@ export class AttributeUpgradePanel extends Component {
                 // 点亮 Canvas 爆破操作按钮
                 this.showCanvasActionBtn(this.blastActionBtn, 'Blast');
                 break;
+            // 武器
+            case 'AttackIncrease':
+                ps.attackDamageMultiplier = [1.5, 3.0, 6.0][level - 1];
+                break;
+            case 'Pistol':
+                this.showCanvasActionBtn(this.weaponActionBtn, 'Pistol');
+                break;
+            case 'Micromsg':
+                ps.weaponAttackInterval = 0.3;
+                break;
+            case 'Rifle':
+                ps.weaponAttackInterval = 0.8;
+                break;
+            case 'Machinegun':
+                ps.weaponAttackInterval = 0.15;
+                break;
         }
     }
 
@@ -510,6 +569,7 @@ export class AttributeUpgradePanel extends Component {
     private initCanvasActionButtons() {
         this.bindCanvasActionBtn(this.reinforceActionBtn, () => this.enterReinforceMode());
         this.bindCanvasActionBtn(this.blastActionBtn, () => this.enterBlastMode());
+        this.bindCanvasActionBtn(this.weaponActionBtn, () => this.toggleWeaponMode());
     }
 
     private bindCanvasActionBtn(btnNode: Node | null, handler: () => void) {
@@ -537,6 +597,14 @@ export class AttributeUpgradePanel extends Component {
         if (!btnNode) return;
         if (this.getLevel(upgradeName) < 1) return;
         btnNode.active = true;
+    }
+
+    /** 切换武器模式：采集 ↔ 攻击僵尸 */
+    private toggleWeaponMode() {
+        if (this.getLevel('Pistol') < 1) return;
+        const ps = PlayerState.instance;
+        if (!ps) return;
+        ps.weaponMode = !ps.weaponMode;
     }
 
     // ==================== 模式输入 ====================
