@@ -67567,6 +67567,10 @@
     "machinegunButton": {
       "__id__": 1908
     },
+    "pistolAttackInterval": 0.5,
+    "micromsgAttackInterval": 0.3,
+    "rifleAttackInterval": 0.8,
+    "machinegunAttackInterval": 0.15,
     "reinforceActionBtn": {
       "__id__": 1495
     },

@@ -142,6 +142,19 @@ export class AttributeUpgradePanel extends Component {
     @property({ tooltip: '机关枪攻击间隔（秒）' })
     machinegunAttackInterval = 0.15;
 
+    // ---- 武器伤害值（属性检查器可调） ----
+    @property({ tooltip: '手枪伤害值' })
+    pistolDamage = 10;
+
+    @property({ tooltip: '微型冲锋枪伤害值' })
+    micromsgDamage = 8;
+
+    @property({ tooltip: '步枪伤害值' })
+    rifleDamage = 20;
+
+    @property({ tooltip: '机关枪伤害值' })
+    machinegunDamage = 5;
+
     // ---- Canvas 永久操作按钮（升级点亮后显示，独立于面板） ----
     @property({ type: Node, tooltip: '炮塔强化操作按钮（Canvas 下，点亮后永久显示）' })
     reinforceActionBtn: Node | null = null;
@@ -510,16 +523,20 @@ export class AttributeUpgradePanel extends Component {
                 break;
             case 'Pistol':
                 ps.weaponAttackInterval = this.pistolAttackInterval;
+                ps.weaponDamage = this.pistolDamage;
                 this.showCanvasActionBtn(this.weaponActionBtn, 'Pistol');
                 break;
             case 'Micromsg':
                 ps.weaponAttackInterval = this.micromsgAttackInterval;
+                ps.weaponDamage = this.micromsgDamage;
                 break;
             case 'Rifle':
                 ps.weaponAttackInterval = this.rifleAttackInterval;
+                ps.weaponDamage = this.rifleDamage;
                 break;
             case 'Machinegun':
                 ps.weaponAttackInterval = this.machinegunAttackInterval;
+                ps.weaponDamage = this.machinegunDamage;
                 break;
         }
     }
