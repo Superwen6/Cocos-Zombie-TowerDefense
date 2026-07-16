@@ -320,8 +320,11 @@ export class ZombieMove extends Component {
                 this._playerTaunted = true;
                 this._lastKnownPlayerPos.set(playerNode.worldPosition);
                 this._memoryTimer = MEMORY_DURATION;
-                this._aiState = 'CHASE_PLAYER';
                 this._buildingTarget = null;
+                // 已经在追击/攻击玩家时不重置状态，避免打断攻击
+                if (this._aiState !== 'CHASE_PLAYER' && this._aiState !== 'ATTACK_PLAYER') {
+                    this._aiState = 'CHASE_PLAYER';
+                }
             }
         }
 

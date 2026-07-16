@@ -743,6 +743,7 @@
     "attackDamageMultiplier": 1,
     "weaponMode": false,
     "weaponAttackInterval": 0.5,
+    "weaponDamage": 10,
     "baseNodeName": "Base",
     "baseNode": {
       "__id__": 6
@@ -59377,7 +59378,7 @@
     "_prefab": null,
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": -574.147,
+      "x": -526.404,
       "y": 125.235,
       "z": 0
     },
@@ -59416,7 +59417,7 @@
     "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 84.51171875,
+      "width": 122.255859375,
       "height": 50.4
     },
     "_anchorPoint": {
@@ -59446,11 +59447,11 @@
       "b": 255,
       "a": 255
     },
-    "_string": "label",
+    "_string": "属性点：label",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
-    "_actualFontSize": 40,
-    "_fontSize": 40,
+    "_actualFontSize": 20,
+    "_fontSize": 20,
     "_fontFamily": "Arial",
     "_lineHeight": 40,
     "_overflow": 0,
@@ -67571,6 +67572,10 @@
     "micromsgAttackInterval": 0.3,
     "rifleAttackInterval": 0.8,
     "machinegunAttackInterval": 0.15,
+    "pistolDamage": 10,
+    "micromsgDamage": 8,
+    "rifleDamage": 20,
+    "machinegunDamage": 5,
     "reinforceActionBtn": {
       "__id__": 1495
     },
