@@ -121,6 +121,18 @@ export class Bullet extends Component {
         const nextX = bulletWP.x + dir.x * step;
         const nextY = bulletWP.y + dir.y * step;
 
+        // 检测当前位置的僵尸碰撞（防止跳过紧贴的僵尸）
+        const zombieHere = CollisionWorld.instance?.checkHit(bulletWP.x, bulletWP.y, 3, 3, [ColliderGroup.Zombie]);
+        if (zombieHere) {
+            const zm = zombieHere.getComponent(ZombieMove);
+            if (zm && !this._hitZombies.has(zm)) {
+                zm.takeDamage(this._damage);
+                this._hitZombies.add(zm);
+                this.node.destroy();
+                return;
+            }
+        }
+
         // 检测墙体碰撞（子弹碰撞体半宽半高设为 3x3）
         const hit = CollisionWorld.instance?.checkHit(nextX, nextY, 3, 3, [ColliderGroup.Wall]);
         if (hit) {
