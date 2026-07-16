@@ -344,14 +344,14 @@ export class PlayerController extends Component {
         const screenPos = event.getLocation();
         const worldPos = this.screenToWorldPos(screenPos);
         const isRight = worldPos ? worldPos.x > this.node.worldPosition.x : false;
-        this.tryAttack(null, isRight);
+        this.tryAttack(new Vec3(screenPos.x, screenPos.y, 0), isRight);
     }
 
     private onTouchStart(event: EventTouch) {
         const screenPos = event.getLocation();
         const worldPos = this.screenToWorldPos(screenPos);
         const isRight = worldPos ? worldPos.x > this.node.worldPosition.x : false;
-        this.tryAttack(null, isRight);
+        this.tryAttack(new Vec3(screenPos.x, screenPos.y, 0), isRight);
     }
 
     private screenToWorldPos(screenPos: { x: number; y: number }): Vec3 | null {
