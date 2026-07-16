@@ -6,6 +6,7 @@ import {
     CCFloat,
     Component,
     EventKeyboard,
+    EventMouse,
     EventTouch,
     find,
     input,
@@ -149,9 +150,11 @@ export class PlayerController extends Component {
         input.on(Input.EventType.KEY_UP, this.onKeyUp, this);
         input.on(Input.EventType.MOUSE_DOWN, this.onMouseDown, this);
         input.on(Input.EventType.MOUSE_UP, this.onMouseUp, this);
+        input.on(Input.EventType.MOUSE_MOVE, this.onMouseMove, this);
         input.on(Input.EventType.TOUCH_START, this.onTouchStart, this);
         input.on(Input.EventType.TOUCH_END, this.onTouchEnd, this);
         input.on(Input.EventType.TOUCH_CANCEL, this.onTouchEnd, this);
+        input.on(Input.EventType.TOUCH_MOVE, this.onTouchMove, this);
     }
 
     start() {
@@ -179,9 +182,11 @@ export class PlayerController extends Component {
         input.off(Input.EventType.KEY_UP, this.onKeyUp, this);
         input.off(Input.EventType.MOUSE_DOWN, this.onMouseDown, this);
         input.off(Input.EventType.MOUSE_UP, this.onMouseUp, this);
+        input.off(Input.EventType.MOUSE_MOVE, this.onMouseMove, this);
         input.off(Input.EventType.TOUCH_START, this.onTouchStart, this);
         input.off(Input.EventType.TOUCH_END, this.onTouchEnd, this);
         input.off(Input.EventType.TOUCH_CANCEL, this.onTouchEnd, this);
+        input.off(Input.EventType.TOUCH_MOVE, this.onTouchMove, this);
         this.keyPressedMap = {};
     }
 
@@ -378,6 +383,19 @@ export class PlayerController extends Component {
 
     private onTouchEnd(_event: EventTouch) {
         this._isFiring = false;
+    }
+
+    /** 鼠标移动：持续发射时实时更新瞄准方向 */
+    private onMouseMove(event: EventMouse) {
+        if (!this._isFiring) return;
+        this._lastFirePos.set(event.getLocationX(), event.getLocationY(), 0);
+    }
+
+    /** 触屏移动：持续发射时实时更新瞄准方向 */
+    private onTouchMove(event: EventTouch) {
+        if (!this._isFiring) return;
+        const loc = event.getLocation();
+        this._lastFirePos.set(loc.x, loc.y, 0);
     }
 
     private screenToWorldPos(screenPos: { x: number; y: number }): Vec3 | null {
