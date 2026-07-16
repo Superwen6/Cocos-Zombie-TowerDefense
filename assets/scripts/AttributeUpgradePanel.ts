@@ -203,6 +203,18 @@ export class AttributeUpgradePanel extends Component {
     @property({ tooltip: '重置属性所需花费（金钱）' })
     resetCost = 50;
 
+    @property({ type: Node, tooltip: '确认重置面板节点' })
+    confirmPanel: Node | null = null;
+
+    @property({ type: Label, tooltip: '确认面板提示文本（notice）' })
+    confirmNoticeLabel: Label | null = null;
+
+    @property({ type: Node, tooltip: '确认按钮' })
+    confirmButton: Node | null = null;
+
+    @property({ type: Node, tooltip: '取消按钮' })
+    cancelButton: Node | null = null;
+
     private _panelVisible = false;
     private static _openPanelBound = false;
     private static _pendingOpen = false;
@@ -238,6 +250,7 @@ export class AttributeUpgradePanel extends Component {
             this.initWeaponUpgrades();
             this.initCanvasActionButtons();
             this.bindResetButton();
+            this.bindConfirmPanel();
 
             // 描述标签初始隐藏
             if (this.attributeDescribeLabel) {
@@ -266,6 +279,7 @@ export class AttributeUpgradePanel extends Component {
                 resetBtn.node.off(Button.EventType.CLICK, this.onResetClick, this);
             }
         }
+        this.unbindConfirmPanel();
         this.unbindAllButtons();
         this.exitAllModes();
         this.unbindCanvasActionButtons();
@@ -967,11 +981,8 @@ export class AttributeUpgradePanel extends Component {
         this.attributeDescribeLabel.node.active = false;
     }
 
-    /** 重置按钮点击 */
+    /** 重置按钮点击 → 弹出确认面板 */
     private onResetClick() {
-        const ps = PlayerState.instance;
-        if (!ps) return;
-
         // 检查是否有升级过的属性
         let totalLevels = 0;
         for (const [, state] of this._upgradeStates) {
@@ -982,16 +993,67 @@ export class AttributeUpgradePanel extends Component {
             return;
         }
 
-        // 检查金钱是否足够
+        // 弹出确认面板
+        if (!this.confirmPanel || !this.confirmNoticeLabel) return;
+        this.confirmPanel.active = true;
+
+        // 动态显示提示文本
+        const data = PlayerData.instance;
+        const canAfford = data ? data.money >= this.resetCost : false;
+        const colorStr = canAfford ? '#FFFFFF' : '#FF3C3C';
+        this.confirmNoticeLabel.string = `是否需要花费<color=${colorStr}>${this.resetCost}</color>重置属性？`;
+    }
+
+    /** 绑定确认面板按钮 */
+    private bindConfirmPanel() {
+        if (this.confirmPanel) {
+            this.confirmPanel.active = false;
+        }
+        if (this.confirmButton) {
+            const btn = this.confirmButton.getComponent(Button);
+            if (btn) {
+                btn.node.on(Button.EventType.CLICK, this.onConfirmReset, this);
+            }
+        }
+        if (this.cancelButton) {
+            const btn = this.cancelButton.getComponent(Button);
+            if (btn) {
+                btn.node.on(Button.EventType.CLICK, this.onCancelReset, this);
+            }
+        }
+    }
+
+    /** 解绑确认面板按钮 */
+    private unbindConfirmPanel() {
+        if (this.confirmButton?.isValid) {
+            const btn = this.confirmButton.getComponent(Button);
+            if (btn) btn.node.targetOff(this);
+        }
+        if (this.cancelButton?.isValid) {
+            const btn = this.cancelButton.getComponent(Button);
+            if (btn) btn.node.targetOff(this);
+        }
+    }
+
+    /** 确认重置 */
+    private onConfirmReset() {
+        const ps = PlayerState.instance;
+        if (!ps) return;
+
         const data = PlayerData.instance;
         if (!data) return;
-        if (data.money < this.resetCost) {
-            this.showWarning(`金钱不足！需要 ${this.resetCost} 金币`);
-            return;
-        }
+
+        // 金钱不足：无反应
+        if (data.money < this.resetCost) return;
 
         // 扣除金钱
         data.money -= this.resetCost;
+
+        // 计算总升级点数
+        let totalLevels = 0;
+        for (const [, state] of this._upgradeStates) {
+            totalLevels += state.level;
+        }
 
         // 重置所有升级状态
         for (const [, state] of this._upgradeStates) {
@@ -1023,10 +1085,20 @@ export class AttributeUpgradePanel extends Component {
         if (this.blastActionBtn) this.blastActionBtn.active = false;
         if (this.weaponActionBtn) this.weaponActionBtn.active = false;
 
+        // 关闭确认面板
+        if (this.confirmPanel) this.confirmPanel.active = false;
+
         // 刷新 UI
         this.refreshPointDisplay();
         this.refreshAllButtons();
-        this.showWarning(`重置完成！属性点已归还`);
+        this.showWarning('重置完成！属性点已归还');
+    }
+
+    /** 取消重置 */
+    private onCancelReset() {
+        if (this.confirmPanel) {
+            this.confirmPanel.active = false;
+        }
     }
 
     private refreshPointDisplay() {
