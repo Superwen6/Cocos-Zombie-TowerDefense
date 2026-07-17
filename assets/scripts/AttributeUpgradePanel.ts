@@ -1007,9 +1007,9 @@ export class AttributeUpgradePanel extends Component {
         // 动态显示提示文本
         const data = PlayerData.instance;
         const canAfford = data ? data.money >= this.resetCost : false;
-        const colorStr = canAfford ? '#FFFFFF' : '#FF3C3C';
         if (this.confirmNoticeLabel) {
-            this.confirmNoticeLabel.string = `是否需要花费<color=${colorStr}>$${this.resetCost}</color>重置属性？`;
+            this.confirmNoticeLabel.string = `是否需要花费$${this.resetCost}重置属性？`;
+            this.confirmNoticeLabel.color = canAfford ? Color.WHITE : new Color(255, 60, 60);
         }
 
         // 弹出确认面板，同时确保父节点 Sprite 处于启用状态以便渲染
@@ -1027,10 +1027,6 @@ export class AttributeUpgradePanel extends Component {
     private bindConfirmPanel() {
         if (this.confirmPanel) {
             this.confirmPanel.active = false;
-        }
-        // 启用富文本以支持颜色标签
-        if (this.confirmNoticeLabel) {
-            this.confirmNoticeLabel.enableRichText = true;
         }
         if (this.confirmButton) {
             const btn = this.confirmButton.getComponent(Button);
