@@ -980,28 +980,25 @@ export class AttributeUpgradePanel extends Component {
         this.attributeDescribeLabel.node.active = false;
     }
 
-    /** 根据当前属性点数动态计算重置花费。
-     * 二次函数 f(x)=a(x-1)²+20，经过 (1, $20) 和 (maxPoints, maxMoney)，先缓后陡。 */
+    /** 根据已升级点数动态计算重置花费。
+     * 每点花费 = maxMoney / maxUpgradePoints，总花费 = 每点花费 × 已升级点数 */
     private getResetCost(): number {
         const ps = PlayerState.instance;
         const data = PlayerData.instance;
         if (!ps || !data) return 999999;
-        const x = ps.upgradePoints;
-        if (x <= 0) return 20;
-        const maxPts = ps.maxUpgradePoints;
-        const mm = data.maxMoney;
-        const a = (mm - 20) / ((maxPts - 1) * (maxPts - 1));
-        return Math.round(a * (x - 1) * (x - 1) + 20);
+        let totalLevels = 0;
+        for (const [, state] of this._upgradeStates) {
+            totalLevels += state.level;
+        }
+        if (totalLevels <= 0) return 0;
+        const costPerPoint = data.maxMoney / ps.maxUpgradePoints;
+        return Math.round(costPerPoint * totalLevels);
     }
 
     /** 重置按钮点击 → 弹出确认面板 */
     private onResetClick() {
         // 检查是否有升级过的属性
-        let totalLevels = 0;
-        for (const [, state] of this._upgradeStates) {
-            totalLevels += state.level;
-        }
-        if (totalLevels === 0) return;
+        if (this.getResetCost() <= 0) return;
 
         // 确保 confirmPanel 是 Canvas 的子节点（不在 AttributeUpgradePanel 下）
         let panel = this.confirmPanel;
@@ -1147,6 +1144,7 @@ export class AttributeUpgradePanel extends Component {
         const ps = PlayerState.instance;
         const points = ps ? ps.upgradePoints : 0;
         this.pointNumberLabel.string = `属性点：${points}`;
+        this.pointNumberLabel.node.active = true;
     }
 
     /** 显示临时警告 */
