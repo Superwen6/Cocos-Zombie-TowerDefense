@@ -1144,7 +1144,10 @@ export class AttributeUpgradePanel extends Component {
         const ps = PlayerState.instance;
         const points = ps ? ps.upgradePoints : 0;
         this.pointNumberLabel.string = `属性点：${points}`;
-        this.pointNumberLabel.node.active = true;
+        // 仅当面板可见时才激活显示，避免关闭面板后仍被 scheduleOnce 回调激活
+        if (this._panelVisible) {
+            this.pointNumberLabel.node.active = true;
+        }
     }
 
     /** 显示临时警告 */

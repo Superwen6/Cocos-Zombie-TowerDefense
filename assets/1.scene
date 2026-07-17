@@ -7720,9 +7720,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 0,
-      "g": 0,
-      "b": 0,
+      "r": 188,
+      "g": 255,
+      "b": 88,
       "a": 255
     },
     "_string": "label",
@@ -9653,8 +9653,8 @@
     "_prefab": null,
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": 28.454,
-      "y": 17.702,
+      "x": 100.107,
+      "y": -2.083,
       "z": 0
     },
     "_lrot": {
@@ -9796,7 +9796,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 25.899,
-      "y": -76.897,
+      "y": -53.369,
       "z": 0
     },
     "_lrot": {
@@ -11058,7 +11058,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": 0,
+      "y": -65.771,
       "z": 0
     },
     "_lrot": {
@@ -11351,7 +11351,7 @@
       "y": 0
     },
     "_fillStart": 0,
-    "_fillRange": 1,
+    "_fillRange": 0.8,
     "_isTrimmedMode": true,
     "_useGrayscale": false,
     "_atlas": null,

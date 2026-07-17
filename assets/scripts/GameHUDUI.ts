@@ -127,9 +127,12 @@ export class GameHUDUI extends Component {
 
         if (this.hpText) {
             if (state) {
-                this.hpText.string = `血量: ${Math.ceil(state.hp)}/${state.maxHp}`;
+                const hp = Math.ceil(state.hp);
+                this.hpText.string = `血量: ${hp}`;
+                this.hpText.color = hp <= 20 ? Color.RED : Color.WHITE;
             } else {
-                this.hpText.string = '血量: --/--';
+                this.hpText.string = '血量: --';
+                this.hpText.color = Color.WHITE;
             }
         }
 
