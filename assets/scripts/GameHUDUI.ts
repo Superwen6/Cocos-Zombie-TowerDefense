@@ -17,7 +17,7 @@ const HUD_REFRESH_INTERVAL = 0.1;
  */
 @ccclass('GameHUDUI')
 export class GameHUDUI extends Component {
-    @property({ type: Label, tooltip: '血量文本' })
+    @property({ type: Label, tooltip: '血量文本（hpText/Text 子节点的 Label）' })
     hpText: Label | null = null;
 
     @property({ type: ProgressBar, tooltip: '疲劳度进度条' })
@@ -128,10 +128,10 @@ export class GameHUDUI extends Component {
         if (this.hpText) {
             if (state) {
                 const hp = Math.ceil(state.hp);
-                this.hpText.string = `血量: ${hp}`;
+                this.hpText.string = `${hp}`;
                 this.hpText.color = hp <= 20 ? Color.RED : Color.WHITE;
             } else {
-                this.hpText.string = '血量: --';
+                this.hpText.string = '--';
                 this.hpText.color = Color.WHITE;
             }
         }
