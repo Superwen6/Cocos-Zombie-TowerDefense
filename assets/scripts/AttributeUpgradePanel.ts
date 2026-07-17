@@ -1,4 +1,4 @@
-import { _decorator, Button, Camera, Color, Component, EventMouse, EventTouch, find, Input, input, Label, Node, Sprite, Vec3, warn } from 'cc';
+import { _decorator, Button, Camera, Color, Component, EventMouse, EventTouch, find, Input, input, Label, Node, RichText, Sprite, Vec3, warn } from 'cc';
 import { PlayerState } from './PlayerState';
 import { PlayerData } from './PlayerData';
 import { TurretPlacementManager } from './TurretPlacementManager';
@@ -206,8 +206,8 @@ export class AttributeUpgradePanel extends Component {
     @property({ type: Node, tooltip: '确认重置面板节点' })
     confirmPanel: Node | null = null;
 
-    @property({ type: Label, tooltip: '确认面板提示文本（notice）' })
-    confirmNoticeLabel: Label | null = null;
+    @property({ type: RichText, tooltip: '确认面板提示文本（notice，使用 RichText 支持颜色标签）' })
+    confirmNoticeLabel: RichText | null = null;
 
     @property({ type: Node, tooltip: '确认按钮' })
     confirmButton: Node | null = null;
@@ -1007,9 +1007,9 @@ export class AttributeUpgradePanel extends Component {
         // 动态显示提示文本
         const data = PlayerData.instance;
         const canAfford = data ? data.money >= this.resetCost : false;
+        const colorStr = canAfford ? '#FFFFFF' : '#FF3C3C';
         if (this.confirmNoticeLabel) {
-            this.confirmNoticeLabel.string = `是否需要花费$${this.resetCost}重置属性？`;
-            this.confirmNoticeLabel.color = canAfford ? Color.WHITE : new Color(255, 60, 60);
+            this.confirmNoticeLabel.string = `是否需要花费<color=${colorStr}>$${this.resetCost}</color>重置属性？`;
         }
 
         // 弹出确认面板，同时确保父节点 Sprite 处于启用状态以便渲染
