@@ -512,11 +512,7 @@ export class AttributeUpgradePanel extends Component {
         }
         if (ps.upgradePoints <= 0) {
             warn(`[AttributeUpgradePanel] 升级点数不足，无法升级 ${name}`);
-            console.log('[DIAG] onUpgradeClick 点数不足, pointNumberLabel.node.active=',
-                this.pointNumberLabel?.node?.active);
             this.showWarning('升级点数不足！');
-            console.log('[DIAG] onUpgradeClick showWarning 之后, pointNumberLabel.node.active=',
-                this.pointNumberLabel?.node?.active);
             return;
         }
 
@@ -1144,25 +1140,15 @@ export class AttributeUpgradePanel extends Component {
     }
 
     private refreshPointDisplay() {
-        console.log('[DIAG] refreshPointDisplay 被调用, pointNumberLabel=', this.pointNumberLabel,
-            'node.active=', this.pointNumberLabel?.node?.active,
-            'node.name=', this.pointNumberLabel?.node?.name);
         if (!this.pointNumberLabel) return;
         const ps = PlayerState.instance;
         const points = ps ? ps.upgradePoints : 0;
         this.pointNumberLabel.string = `属性点：${points}`;
         this.pointNumberLabel.node.active = true;
-        console.log('[DIAG] refreshPointDisplay 完成, node.active=', this.pointNumberLabel.node.active);
     }
 
     /** 显示临时警告 */
     private showWarning(msg: string) {
-        console.log('[DIAG] showWarning 被调用, msg=', msg,
-            'warningLabel.node.name=', this.warningLabel?.node?.name,
-            'warningLabel.node.active=', this.warningLabel?.node?.active,
-            'pointNumberLabel.node.name=', this.pointNumberLabel?.node?.name,
-            'pointNumberLabel.node.active=', this.pointNumberLabel?.node?.active,
-            '是否同一节点=', this.warningLabel?.node === this.pointNumberLabel?.node);
         if (!this.warningLabel) {
             warn(`[AttributeUpgradePanel] 未绑定 WarningLabel，警告：${msg}`);
             return;
@@ -1172,9 +1158,9 @@ export class AttributeUpgradePanel extends Component {
         this.scheduleOnce(() => {
             if (this.warningLabel?.node.isValid) {
                 this.warningLabel.node.active = false;
-                console.log('[DIAG] showWarning scheduleOnce 隐藏 warning, pointNumberLabel.node.active=',
-                    this.pointNumberLabel?.node?.active);
             }
+            // 若 warningLabel 与 pointNumberLabel 绑定同一节点，隐藏后恢复点数显示
+            this.refreshPointDisplay();
         }, 2);
     }
 
