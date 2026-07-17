@@ -200,9 +200,6 @@ export class AttributeUpgradePanel extends Component {
     @property({ type: Node, tooltip: '重置按钮节点' })
     resetButton: Node | null = null;
 
-    @property({ tooltip: '重置属性所需花费（金钱）' })
-    resetCost = 50;
-
     @property({ type: Node, tooltip: '确认重置面板节点' })
     confirmPanel: Node | null = null;
 
@@ -983,6 +980,20 @@ export class AttributeUpgradePanel extends Component {
         this.attributeDescribeLabel.node.active = false;
     }
 
+    /** 根据当前属性点数动态计算重置花费。
+     * 二次函数 f(x)=a(x-1)²+20，经过 (1, $20) 和 (maxPoints, maxMoney)，先缓后陡。 */
+    private getResetCost(): number {
+        const ps = PlayerState.instance;
+        const data = PlayerData.instance;
+        if (!ps || !data) return 999999;
+        const x = ps.upgradePoints;
+        if (x <= 0) return 20;
+        const maxPts = ps.maxUpgradePoints;
+        const mm = data.maxMoney;
+        const a = (mm - 20) / ((maxPts - 1) * (maxPts - 1));
+        return Math.round(a * (x - 1) * (x - 1) + 20);
+    }
+
     /** 重置按钮点击 → 弹出确认面板 */
     private onResetClick() {
         // 检查是否有升级过的属性
@@ -1006,10 +1017,11 @@ export class AttributeUpgradePanel extends Component {
 
         // 动态显示提示文本
         const data = PlayerData.instance;
-        const canAfford = data ? data.money >= this.resetCost : false;
+        const cost = this.getResetCost();
+        const canAfford = data ? data.money >= cost : false;
         const colorStr = canAfford ? '#FFFFFF' : '#FF3C3C';
         if (this.confirmNoticeLabel) {
-            this.confirmNoticeLabel.string = `是否需要花费<color=${colorStr}>$${this.resetCost}</color>重置属性？`;
+            this.confirmNoticeLabel.string = `是否需要花费<color=${colorStr}>$${cost}</color>重置属性？`;
         }
 
         // 弹出确认面板，同时确保父节点 Sprite 处于启用状态以便渲染
@@ -1073,11 +1085,13 @@ export class AttributeUpgradePanel extends Component {
         const data = PlayerData.instance;
         if (!data) return;
 
+        const cost = this.getResetCost();
+
         // 金钱不足：无反应
-        if (data.money < this.resetCost) return;
+        if (data.money < cost) return;
 
         // 扣除金钱
-        data.money -= this.resetCost;
+        data.money -= cost;
 
         // 计算总升级点数
         let totalLevels = 0;

@@ -78,6 +78,12 @@ export class PlayerState extends Component {
     @property({ tooltip: '当前可用的升级点数' })
     upgradePoints = 0;
 
+    @property({ tooltip: '每天获得的属性点数' })
+    upgradePointsPerDay = 1;
+
+    @property({ tooltip: '属性点数上限' })
+    maxUpgradePoints = 20;
+
     @property({ tooltip: '行走速度倍率（生存面板升级）' })
     walkSpeedMultiplier = 1.0;
 
@@ -460,5 +466,13 @@ export class PlayerState extends Component {
         } else {
             this.fatigue = Math.max(0, this.fatigue - FATIGUE_RECOVERY_RATE * clampedDt);
         }
+    }
+
+    /** 每日增加属性点（不超过上限） */
+    addDayUpgradePoints() {
+        this.upgradePoints = Math.min(
+            this.maxUpgradePoints,
+            this.upgradePoints + this.upgradePointsPerDay,
+        );
     }
 }

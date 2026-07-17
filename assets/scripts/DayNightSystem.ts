@@ -11,6 +11,7 @@ import {
 } from 'cc';
 import { GameManager } from './GameManager';
 import { ResourceSpawner } from './ResourceSpawner';
+import { PlayerState } from './PlayerState';
 
 const { ccclass, property } = _decorator;
 
@@ -288,6 +289,11 @@ export class DayNightSystem extends Component {
         this.currentDay += 1;
         this.showDayNotice(`Day ${this.currentDay}`);
         this.spawnDayResources();
+
+        // 每日增加属性点
+        if (PlayerState.instance) {
+            PlayerState.instance.addDayUpgradePoints();
+        }
     }
 
     /** 统一封装资源刷新逻辑 */
