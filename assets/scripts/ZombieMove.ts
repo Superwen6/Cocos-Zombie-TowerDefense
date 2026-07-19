@@ -22,9 +22,6 @@ const STUCK_ESCAPE_DIST = 30;
 
 /** 白天游荡：巡逻点刷新间隔（秒） */
 const WANDER_REPICK_INTERVAL = 4;
-/** 白天游荡：巡逻点半径范围（相对圆心） */
-const WANDER_PATROL_RADIUS_MIN = 700;
-const WANDER_PATROL_RADIUS_MAX = 1000;
 /** 白天游荡：到达巡逻点判定距离 */
 const WANDER_ARRIVE_DIST = 30;
 
@@ -69,6 +66,12 @@ export class ZombieMove extends Component {
 
     @property({ type: CCFloat, tooltip: '游荡僵尸扫描建筑半径（像素），通常比alertRadius大', min: 200, max: 3000 })
     buildingScanRadius = 1200;
+
+    @property({ type: CCFloat, tooltip: '扫描附近地标（Wall 碰撞体）的半径，0=不扫描，找到后作为永久巡逻中心', min: 0, max: 3000 })
+    wanderLandmarkScanRadius = 500;
+
+    @property({ type: CCFloat, tooltip: '巡逻半径（像素），围绕地标/基地在此半径内随机巡逻', min: 100, max: 5000 })
+    wanderPatrolRadius = 800;
 
     /** 白天外围游荡僵尸：不冲基地，仅巡逻 */
     isDayWanderer = false;
@@ -143,6 +146,16 @@ export class ZombieMove extends Component {
     // 白天游荡索敌计时器
     private _wanderScanTimer = 0;
 
+    /** 扫描到的地标节点（Wall 碰撞体所属节点，与僵尸同在 YSortLayer 下，相对位置不变） */
+    private _wanderLandmarkNode: Node | null = null;
+    /** 巡逻目标偏移量（相对 origin），每帧重算 target 以抵消 YSortLayer 移动 */
+    private readonly _wanderTargetOffset = new Vec3();
+
+    // [DZW] 诊断：追踪第一只游荡僵尸
+    private static _debugTargetName: string | null = null;
+    private _isDebugZombie = false;
+    private _debugLogTimer = 0;
+
     // 动画状态
     private _animFrameIndex = 0;
     private _animFrameTimer = 0;
@@ -209,9 +222,19 @@ export class ZombieMove extends Component {
         this._memoryTimer = 0;
         this._hasWanderTarget = false;
         this._aiState = asDayWanderer ? 'WANDER' : 'CHASE_BASE';
+        this._wanderLandmarkNode = null;
 
         if (asDayWanderer) {
+            this.scanNearbyLandmark();
             this.pickNewWanderTarget();
+        }
+
+        // [DZW] 选中第一只游荡僵尸作为调试目标
+        if (asDayWanderer && !ZombieMove._debugTargetName) {
+            ZombieMove._debugTargetName = this.node.name;
+            this._isDebugZombie = true;
+            const origin = this.getWanderOriginWorld();
+            console.log(`[DZW] 选中调试目标: ${this.node.name}, landmark=${this._wanderLandmarkNode?.name ?? 'null'}, origin=(${origin.x.toFixed(0)},${origin.y.toFixed(0)}), base=(${this._baseNode?.worldPosition.x.toFixed(0) ?? '?'},${this._baseNode?.worldPosition.y.toFixed(0) ?? '?'})`);
         }
     }
 
@@ -346,6 +369,33 @@ export class ZombieMove extends Component {
     }
 
     // ========== 白天游荡索敌 ==========
+
+    /** 扫描附近最近的 Wall 碰撞体作为永久巡逻地标（与僵尸同在 YSortLayer 下，相对位置不变） */
+    private scanNearbyLandmark() {
+        if (this.wanderLandmarkScanRadius <= 0) return;
+
+        const cw = CollisionWorld.instance;
+        if (!cw) return;
+
+        const wallColliders = cw.getCollidersByGroup(ColliderGroup.Wall);
+        if (!wallColliders || wallColliders.length === 0) return;
+
+        const selfPos = this.node.worldPosition;
+        let nearestNode: Node | null = null;
+        let nearestDist = this.wanderLandmarkScanRadius;
+
+        for (const col of wallColliders) {
+            if (!col.node?.isValid) continue;
+            // 使用 node.worldPosition 而非 col.x/col.y，因为 YSortLayer 移动时后者是旧值
+            const d = Vec3.distance(selfPos, col.node.worldPosition);
+            if (d < nearestDist) {
+                nearestDist = d;
+                nearestNode = col.node;
+            }
+        }
+
+        this._wanderLandmarkNode = nearestNode;
+    }
 
     /** 白天游荡者：扫描范围内最近的非防御性建筑（发电机/集装箱），锁定并追击 */
     private scanForBuildings() {
@@ -918,11 +968,30 @@ export class ZombieMove extends Component {
 
     /** 白天游荡 */
     private tickDayWander(dt: number) {
+        // [DZW] 诊断日志（每 1.5 秒）
+        if (this._isDebugZombie) {
+            this._debugLogTimer += dt;
+            if (this._debugLogTimer >= 1.5) {
+                this._debugLogTimer = 0;
+                const selfPos = this.node.worldPosition;
+                const origin = this.getWanderOriginWorld();
+                console.log(`[DZW] ${this.node.name} | self=(${selfPos.x.toFixed(0)},${selfPos.y.toFixed(0)}) | origin=(${origin.x.toFixed(0)},${origin.y.toFixed(0)}) | target=(${this._wanderTarget.x.toFixed(0)},${this._wanderTarget.y.toFixed(0)}) | offset=(${this._wanderTargetOffset.x.toFixed(0)},${this._wanderTargetOffset.y.toFixed(0)}) | aiState=${this._aiState} | landmark=${this._wanderLandmarkNode?.name ?? 'null'}`);
+            }
+        }
+
         this._wanderTimer += dt;
         if (!this._hasWanderTarget || this._wanderTimer >= WANDER_REPICK_INTERVAL) {
             this._wanderTimer = 0;
             this.pickNewWanderTarget();
         }
+
+        // 每帧从 origin + offset 重算 target，抵消 YSortLayer 移动
+        const origin = this.getWanderOriginWorld();
+        this._wanderTarget.set(
+            origin.x + this._wanderTargetOffset.x,
+            origin.y + this._wanderTargetOffset.y,
+            0,
+        );
 
         const selfPos = this.node.worldPosition;
         const dist = Vec3.distance(selfPos, this._wanderTarget);
@@ -985,16 +1054,26 @@ export class ZombieMove extends Component {
     private pickNewWanderTarget() {
         const origin = this.getWanderOriginWorld();
         const angle = Math.random() * Math.PI * 2;
-        const radius = randomRange(WANDER_PATROL_RADIUS_MIN, WANDER_PATROL_RADIUS_MAX);
+        const radius = randomRange(0, this.wanderPatrolRadius);
+        // 存储 offset，每帧从 origin + offset 重算 target，抵消 YSortLayer 移动
+        this._wanderTargetOffset.set(
+            Math.cos(angle) * radius,
+            Math.sin(angle) * radius,
+            0,
+        );
         this._wanderTarget.set(
-            origin.x + Math.cos(angle) * radius,
-            origin.y + Math.sin(angle) * radius,
+            origin.x + this._wanderTargetOffset.x,
+            origin.y + this._wanderTargetOffset.y,
             0,
         );
         this._hasWanderTarget = true;
     }
 
     private getWanderOriginWorld(): Vec3 {
+        // 优先使用扫描到的地标节点（与僵尸同在 YSortLayer 下，相对位置不变）
+        if (this._wanderLandmarkNode?.isValid) {
+            return this._wanderLandmarkNode.worldPosition;
+        }
         if (this.wanderOrigin) {
             return this.wanderOrigin.worldPosition;
         }
