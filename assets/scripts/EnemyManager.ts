@@ -76,6 +76,9 @@ export class EnemyManager extends Component {
     @property({ type: [SpawnZone], tooltip: '夜间僵尸生成矩形区域数组（相对于 GameWorld），为空则使用旧圆形生成' })
     spawnZones: SpawnZone[] = [];
 
+    @property({ type: [SpawnZone], tooltip: '白天游荡僵尸生成矩形区域数组（相对于 GameWorld），为空则使用旧环形生成' })
+    dayWanderSpawnZones: SpawnZone[] = [];
+
     @property({ type: Node, tooltip: '生成原点（旧圆形模式使用）' })
     spawnOrigin: Node | null = null;
 
@@ -242,15 +245,24 @@ export class EnemyManager extends Component {
         const finalParent = this.resolveEnemyRoot();
         enemy.setParent(finalParent);
 
-        const origin = this.spawnOrigin?.worldPosition ?? Vec3.ZERO;
-        const angle = Math.random() * Math.PI * 2;
-        const radius = 300 + Math.random() * 600;
-        
-        enemy.setWorldPosition(new Vec3(
-            origin.x + Math.cos(angle) * radius,
-            origin.y + Math.sin(angle) * radius,
-            0
-        ));
+        if (this.dayWanderSpawnZones.length > 0) {
+            // 矩形区域生成：随机选一个区域，在区域内随机坐标
+            const zone = this.dayWanderSpawnZones[Math.floor(Math.random() * this.dayWanderSpawnZones.length)];
+            const gwPos = this._gameWorldRef?.worldPosition ?? Vec3.ZERO;
+            const x = gwPos.x + zone.minX + Math.random() * (zone.maxX - zone.minX);
+            const y = gwPos.y + zone.minY + Math.random() * (zone.maxY - zone.minY);
+            enemy.setWorldPosition(new Vec3(x, y, 0));
+        } else {
+            // 旧环形生成：兜底
+            const origin = this.spawnOrigin?.worldPosition ?? Vec3.ZERO;
+            const angle = Math.random() * Math.PI * 2;
+            const radius = 300 + Math.random() * 600;
+            enemy.setWorldPosition(new Vec3(
+                origin.x + Math.cos(angle) * radius,
+                origin.y + Math.sin(angle) * radius,
+                0
+            ));
+        }
 
         const zombieMove = enemy.getComponent(ZombieMove);
         if (zombieMove) {
