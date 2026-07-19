@@ -290,6 +290,8 @@
     "attackRange": 40,
     "alertRadius": 300,
     "buildingScanRadius": 250,
+    "wanderLandmarkScanRadius": 500,
+    "wanderPatrolRadius": 800,
     "colliderHalfW": 8,
     "colliderHalfH": 8,
     "baseNode": null,
