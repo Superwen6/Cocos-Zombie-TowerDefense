@@ -20,6 +20,21 @@ import { YSortManager } from './YSortManager';
 
 const { ccclass, property } = _decorator;
 
+@ccclass('SpawnZone')
+export class SpawnZone {
+    @property({ type: CCFloat, tooltip: '最小 X 坐标（相对于 GameWorld）' })
+    minX = 0;
+
+    @property({ type: CCFloat, tooltip: '最大 X 坐标（相对于 GameWorld）' })
+    maxX = 0;
+
+    @property({ type: CCFloat, tooltip: '最小 Y 坐标（相对于 GameWorld）' })
+    minY = 0;
+
+    @property({ type: CCFloat, tooltip: '最大 Y 坐标（相对于 GameWorld）' })
+    maxY = 0;
+}
+
 @ccclass('EnemyManager')
 export class EnemyManager extends Component {
     @property({ type: Prefab, tooltip: '僵尸预制体' })
@@ -52,28 +67,23 @@ export class EnemyManager extends Component {
     @property({ tooltip: '白天同时存在的最大游荡僵尸数' })
     maxDayWanderers = 5;
 
-    @property({ type: CCFloat, tooltip: '白天游荡僵尸生成最小半径（像素），相对于 spawnOrigin' })
-    dayWanderSpawnRadiusMin = 300;
-
-    @property({ type: CCFloat, tooltip: '白天游荡僵尸生成最大半径（像素），相对于 spawnOrigin' })
-    dayWanderSpawnRadiusMax = 900;
-
-    @property({ type: CCFloat, tooltip: '夜间僵尸生成半径（像素），相对于 spawnOrigin' })
-    nightSpawnRadius = 900;
-
     @property({ type: Node, tooltip: '基地节点（纯 2D 世界坐标）' })
     baseNode: Node | null = null;
 
     @property({ type: Node, tooltip: '僵尸父节点（EnemyRoot），由编辑器绑定' })
     enemyRoot: Node | null = null;
 
-    @property({ type: Node, tooltip: '出生/游荡圆心，一般为基地或屏幕中心' })
+    @property({ type: [SpawnZone], tooltip: '夜间僵尸生成矩形区域数组（相对于 GameWorld），为空则使用旧圆形生成' })
+    spawnZones: SpawnZone[] = [];
+
+    @property({ type: Node, tooltip: '生成原点（旧圆形模式使用）' })
     spawnOrigin: Node | null = null;
 
     @property({ tooltip: '屏幕同时存在的最大僵尸数' })
     maxZombiesOnScreen = 200;
     private _nightSpawning = false;
     private _dayWanderSpawning = false;
+    private _gameWorldRef: Node | null = null;
 
     onLoad() {
         DayNightSystem.eventTarget.on(
@@ -92,6 +102,8 @@ export class EnemyManager extends Component {
     }
 
     start() {
+        this._gameWorldRef = find('Canvas/GameWorld') ?? find('GameWorld');
+
         const dayNight = DayNightSystem.instance;
         if (dayNight?.isNight) {
             this.startNightSpawning();
@@ -196,15 +208,24 @@ export class EnemyManager extends Component {
         const finalParent = this.resolveEnemyRoot();
         enemy.setParent(finalParent);
 
-        const origin = this.spawnOrigin?.worldPosition ?? Vec3.ZERO;
-        const angle = Math.random() * Math.PI * 2;
-        const radius = this.nightSpawnRadius;
-        
-        enemy.setWorldPosition(new Vec3(
-            origin.x + Math.cos(angle) * radius,
-            origin.y + Math.sin(angle) * radius,
-            0
-        ));
+        if (this.spawnZones.length > 0) {
+            // 矩形区域生成：随机选一个区域，在区域内随机坐标
+            const zone = this.spawnZones[Math.floor(Math.random() * this.spawnZones.length)];
+            const gwPos = this._gameWorldRef?.worldPosition ?? Vec3.ZERO;
+            const x = gwPos.x + zone.minX + Math.random() * (zone.maxX - zone.minX);
+            const y = gwPos.y + zone.minY + Math.random() * (zone.maxY - zone.minY);
+            enemy.setWorldPosition(new Vec3(x, y, 0));
+        } else {
+            // 旧圆形生成：兜底
+            const origin = this.spawnOrigin?.worldPosition ?? Vec3.ZERO;
+            const angle = Math.random() * Math.PI * 2;
+            const radius = 900;
+            enemy.setWorldPosition(new Vec3(
+                origin.x + Math.cos(angle) * radius,
+                origin.y + Math.sin(angle) * radius,
+                0
+            ));
+        }
 
         const zombieMove = enemy.getComponent(ZombieMove);
         if (zombieMove) {
@@ -223,7 +244,7 @@ export class EnemyManager extends Component {
 
         const origin = this.spawnOrigin?.worldPosition ?? Vec3.ZERO;
         const angle = Math.random() * Math.PI * 2;
-        const radius = this.dayWanderSpawnRadiusMin + Math.random() * (this.dayWanderSpawnRadiusMax - this.dayWanderSpawnRadiusMin);
+        const radius = 300 + Math.random() * 600;
         
         enemy.setWorldPosition(new Vec3(
             origin.x + Math.cos(angle) * radius,
