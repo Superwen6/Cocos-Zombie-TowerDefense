@@ -52,6 +52,15 @@ export class EnemyManager extends Component {
     @property({ tooltip: '白天同时存在的最大游荡僵尸数' })
     maxDayWanderers = 5;
 
+    @property({ type: CCFloat, tooltip: '白天游荡僵尸生成最小半径（像素），相对于 spawnOrigin' })
+    dayWanderSpawnRadiusMin = 300;
+
+    @property({ type: CCFloat, tooltip: '白天游荡僵尸生成最大半径（像素），相对于 spawnOrigin' })
+    dayWanderSpawnRadiusMax = 900;
+
+    @property({ type: CCFloat, tooltip: '夜间僵尸生成半径（像素），相对于 spawnOrigin' })
+    nightSpawnRadius = 900;
+
     @property({ type: Node, tooltip: '基地节点（纯 2D 世界坐标）' })
     baseNode: Node | null = null;
 
@@ -189,7 +198,7 @@ export class EnemyManager extends Component {
 
         const origin = this.spawnOrigin?.worldPosition ?? Vec3.ZERO;
         const angle = Math.random() * Math.PI * 2;
-        const radius = 900;
+        const radius = this.nightSpawnRadius;
         
         enemy.setWorldPosition(new Vec3(
             origin.x + Math.cos(angle) * radius,
@@ -214,7 +223,7 @@ export class EnemyManager extends Component {
 
         const origin = this.spawnOrigin?.worldPosition ?? Vec3.ZERO;
         const angle = Math.random() * Math.PI * 2;
-        const radius = 300 + Math.random() * 600;
+        const radius = this.dayWanderSpawnRadiusMin + Math.random() * (this.dayWanderSpawnRadiusMax - this.dayWanderSpawnRadiusMin);
         
         enemy.setWorldPosition(new Vec3(
             origin.x + Math.cos(angle) * radius,
