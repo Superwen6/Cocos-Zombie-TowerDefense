@@ -148,13 +148,10 @@ export class ZombieMove extends Component {
 
     /** 扫描到的地标节点（Wall 碰撞体所属节点，与僵尸同在 YSortLayer 下，相对位置不变） */
     private _wanderLandmarkNode: Node | null = null;
+    /** 是否已尝试过地标扫描（延迟到第一帧，等 MapObstacle.start() 注册碰撞体） */
+    private _landmarkScanned = false;
     /** 巡逻目标偏移量（相对 origin），每帧重算 target 以抵消 YSortLayer 移动 */
     private readonly _wanderTargetOffset = new Vec3();
-
-    // [DZW] 诊断：追踪第一只游荡僵尸
-    private static _debugTargetName: string | null = null;
-    private _isDebugZombie = false;
-    private _debugLogTimer = 0;
 
     // 动画状态
     private _animFrameIndex = 0;
@@ -223,18 +220,10 @@ export class ZombieMove extends Component {
         this._hasWanderTarget = false;
         this._aiState = asDayWanderer ? 'WANDER' : 'CHASE_BASE';
         this._wanderLandmarkNode = null;
+        this._landmarkScanned = false;
 
         if (asDayWanderer) {
-            this.scanNearbyLandmark();
             this.pickNewWanderTarget();
-        }
-
-        // [DZW] 选中第一只游荡僵尸作为调试目标
-        if (asDayWanderer && !ZombieMove._debugTargetName) {
-            ZombieMove._debugTargetName = this.node.name;
-            this._isDebugZombie = true;
-            const origin = this.getWanderOriginWorld();
-            console.log(`[DZW] 选中调试目标: ${this.node.name}, landmark=${this._wanderLandmarkNode?.name ?? 'null'}, origin=(${origin.x.toFixed(0)},${origin.y.toFixed(0)}), base=(${this._baseNode?.worldPosition.x.toFixed(0) ?? '?'},${this._baseNode?.worldPosition.y.toFixed(0) ?? '?'})`);
         }
     }
 
@@ -272,6 +261,11 @@ export class ZombieMove extends Component {
         // 白天游荡者：仅在 WANDER 状态下巡逻 + 索敌
         if (this.isDayWanderer) {
             if (this._aiState === 'WANDER') {
+                // 延迟到第一帧扫描地标（等 MapObstacle.start() 注册完碰撞体）
+                if (!this._landmarkScanned) {
+                    this._landmarkScanned = true;
+                    this.scanNearbyLandmark();
+                }
                 this._wanderScanTimer -= dt;
                 if (this._wanderScanTimer <= 0) {
                     this._wanderScanTimer = 1.0 + Math.random() * 1.0; // 1~2 秒扫描一次
@@ -386,7 +380,6 @@ export class ZombieMove extends Component {
 
         for (const col of wallColliders) {
             if (!col.node?.isValid) continue;
-            // 使用 node.worldPosition 而非 col.x/col.y，因为 YSortLayer 移动时后者是旧值
             const d = Vec3.distance(selfPos, col.node.worldPosition);
             if (d < nearestDist) {
                 nearestDist = d;
@@ -968,17 +961,6 @@ export class ZombieMove extends Component {
 
     /** 白天游荡 */
     private tickDayWander(dt: number) {
-        // [DZW] 诊断日志（每 1.5 秒）
-        if (this._isDebugZombie) {
-            this._debugLogTimer += dt;
-            if (this._debugLogTimer >= 1.5) {
-                this._debugLogTimer = 0;
-                const selfPos = this.node.worldPosition;
-                const origin = this.getWanderOriginWorld();
-                console.log(`[DZW] ${this.node.name} | self=(${selfPos.x.toFixed(0)},${selfPos.y.toFixed(0)}) | origin=(${origin.x.toFixed(0)},${origin.y.toFixed(0)}) | target=(${this._wanderTarget.x.toFixed(0)},${this._wanderTarget.y.toFixed(0)}) | offset=(${this._wanderTargetOffset.x.toFixed(0)},${this._wanderTargetOffset.y.toFixed(0)}) | aiState=${this._aiState} | landmark=${this._wanderLandmarkNode?.name ?? 'null'}`);
-            }
-        }
-
         this._wanderTimer += dt;
         if (!this._hasWanderTarget || this._wanderTimer >= WANDER_REPICK_INTERVAL) {
             this._wanderTimer = 0;
