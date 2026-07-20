@@ -167,7 +167,7 @@
       "a": 255
     },
     "_spriteFrame": {
-      "__uuid__": "c31aed81-271f-48de-8558-45cb23a2b5ce@f9941",
+      "__uuid__": "1a7b0aa1-b391-40c7-8390-8f938f68083d@ebe24",
       "__expectedType__": "cc.SpriteFrame"
     },
     "_type": 0,
@@ -182,7 +182,10 @@
     "_fillRange": 0,
     "_isTrimmedMode": true,
     "_useGrayscale": false,
-    "_atlas": null,
+    "_atlas": {
+      "__uuid__": "1a7b0aa1-b391-40c7-8390-8f938f68083d",
+      "__expectedType__": "cc.SpriteAtlas"
+    },
     "_id": ""
   },
   {

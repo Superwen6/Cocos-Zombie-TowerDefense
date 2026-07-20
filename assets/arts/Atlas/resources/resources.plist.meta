@@ -1,0 +1,293 @@
+{
+  "ver": "1.0.8",
+  "importer": "sprite-atlas",
+  "imported": true,
+  "uuid": "1a7b0aa1-b391-40c7-8390-8f938f68083d",
+  "files": [
+    ".json"
+  ],
+  "subMetas": {
+    "e96b5": {
+      "importer": "sprite-frame",
+      "uuid": "1a7b0aa1-b391-40c7-8390-8f938f68083d@e96b5",
+      "displayName": "",
+      "id": "e96b5",
+      "name": "copper",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": 2,
+        "offsetY": -30,
+        "trimX": 1,
+        "trimY": 1,
+        "width": 1628,
+        "height": 1575,
+        "rawWidth": 2048,
+        "rawHeight": 2048,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "d6c487f8-e52c-4ef6-bdca-5f3c5c8f77a8@6c48a",
+        "atlasUuid": "1a7b0aa1-b391-40c7-8390-8f938f68083d",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "2dfb8": {
+      "importer": "sprite-frame",
+      "uuid": "1a7b0aa1-b391-40c7-8390-8f938f68083d@2dfb8",
+      "displayName": "",
+      "id": "2dfb8",
+      "name": "wood",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": 0,
+        "offsetY": -49,
+        "trimX": 1,
+        "trimY": 1577,
+        "width": 1713,
+        "height": 1423,
+        "rawWidth": 2048,
+        "rawHeight": 2048,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "d6c487f8-e52c-4ef6-bdca-5f3c5c8f77a8@6c48a",
+        "atlasUuid": "1a7b0aa1-b391-40c7-8390-8f938f68083d",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "c9067": {
+      "importer": "sprite-frame",
+      "uuid": "1a7b0aa1-b391-40c7-8390-8f938f68083d@c9067",
+      "displayName": "",
+      "id": "c9067",
+      "name": "Iron",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -5,
+        "offsetY": -7,
+        "trimX": 1630,
+        "trimY": 1,
+        "width": 1439,
+        "height": 1403,
+        "rawWidth": 2048,
+        "rawHeight": 2048,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "d6c487f8-e52c-4ef6-bdca-5f3c5c8f77a8@6c48a",
+        "atlasUuid": "1a7b0aa1-b391-40c7-8390-8f938f68083d",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "a22da": {
+      "importer": "sprite-frame",
+      "uuid": "1a7b0aa1-b391-40c7-8390-8f938f68083d@a22da",
+      "displayName": "",
+      "id": "a22da",
+      "name": "bullet",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -16,
+        "offsetY": -4,
+        "trimX": 1715,
+        "trimY": 1405,
+        "width": 547,
+        "height": 1821,
+        "rawWidth": 2048,
+        "rawHeight": 2048,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "d6c487f8-e52c-4ef6-bdca-5f3c5c8f77a8@6c48a",
+        "atlasUuid": "1a7b0aa1-b391-40c7-8390-8f938f68083d",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "a9cf6": {
+      "importer": "sprite-frame",
+      "uuid": "1a7b0aa1-b391-40c7-8390-8f938f68083d@a9cf6",
+      "displayName": "",
+      "id": "a9cf6",
+      "name": "加农炮弹",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": 4,
+        "offsetY": -11,
+        "trimX": 2263,
+        "trimY": 1405,
+        "width": 446,
+        "height": 1486,
+        "rawWidth": 541,
+        "rawHeight": 1542,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "d6c487f8-e52c-4ef6-bdca-5f3c5c8f77a8@6c48a",
+        "atlasUuid": "1a7b0aa1-b391-40c7-8390-8f938f68083d",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "ebe24": {
+      "importer": "sprite-frame",
+      "uuid": "1a7b0aa1-b391-40c7-8390-8f938f68083d@ebe24",
+      "displayName": "",
+      "id": "ebe24",
+      "name": "镭射子弹",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": 1,
+        "offsetY": -6,
+        "trimX": 2710,
+        "trimY": 1405,
+        "width": 234,
+        "height": 910,
+        "rawWidth": 320,
+        "rawHeight": 986,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "d6c487f8-e52c-4ef6-bdca-5f3c5c8f77a8@6c48a",
+        "atlasUuid": "1a7b0aa1-b391-40c7-8390-8f938f68083d",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "atlasTextureName": "resources.png",
+    "format": 3,
+    "uuid": "1a7b0aa1-b391-40c7-8390-8f938f68083d",
+    "textureUuid": "d6c487f8-e52c-4ef6-bdca-5f3c5c8f77a8@6c48a"
+  }
+}
