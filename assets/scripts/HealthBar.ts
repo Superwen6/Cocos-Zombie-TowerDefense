@@ -123,8 +123,9 @@ export class HealthBar extends Component {
     }
 
     update(dt: number) {
-        // 跟随模式：将目标世界坐标转换为 Canvas 局部坐标
-        if (this.followTarget && this.followTarget.isValid && this.worldCamera) {
+        // 跟随模式：将目标世界坐标转换为 Canvas 局部坐标（Canvas 父节点下跳过跟随，固定位置）
+        if (this.followTarget && this.followTarget.isValid && this.worldCamera
+            && this.node.parent?.name !== 'Canvas') {
             const worldPos = this.followTarget.worldPosition;
 
             if (!this._firstUpdateLogged) {
@@ -165,8 +166,8 @@ export class HealthBar extends Component {
         // 战斗模式：持续同步血量
         this.syncHealth();
 
-        // 自动隐藏：血量 100% 且持续 3 秒未受攻击后隐藏（Base 血条始终显示）
-        if (this._isVisible && this._lastHp >= this._maxHp && this.followTarget?.name !== 'Base') {
+        // 自动隐藏：血量 100% 且持续 3 秒未受攻击后隐藏
+        if (this._isVisible && this._lastHp >= this._maxHp) {
             this._hideTimer += dt;
             if (this._hideTimer >= 3) {
                 this.hideVisuals();

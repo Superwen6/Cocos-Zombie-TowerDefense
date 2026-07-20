@@ -116,6 +116,9 @@ export class BaseSystem extends Component {
     /** 升级血条组件（Base 节点下的子节点，挂载 HealthBar.ts） */
     private _upgradeHealthBar: HealthBar | null = null;
 
+    @property({ type: HealthBar, tooltip: 'Canvas上的Base血条（用于显示升级建造进度和血量）' })
+    canvasHealthBar: HealthBar | null = null;
+
     onLoad() {
         if (BaseSystem.instance && BaseSystem.instance !== this) {
             warn('[BaseSystem] 场景中存在多个 BaseSystem，已销毁重复实例');
@@ -355,9 +358,8 @@ export class BaseSystem extends Component {
             PlayerData.instance.money -= actualMoney;
         }
 
-        // BaseSystem 挂在 GameManagers 上，HealthBar 在 GameWorld/Base 节点下
-        const baseNode = find('GameWorld/Base') ?? this.node;
-        this._upgradeHealthBar = baseNode.getComponentInChildren(HealthBar);
+        // BaseSystem 挂在 GameManagers 上，优先使用 Canvas 上的血条，否则查找 GameWorld/Base 节点下
+        this._upgradeHealthBar = this.canvasHealthBar ?? find('GameWorld/Base')?.getComponentInChildren(HealthBar) ?? null;
         if (!this._upgradeHealthBar) {
             this.finishUpgrade();
             return true;
