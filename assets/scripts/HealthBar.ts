@@ -9,6 +9,7 @@ import {
     UITransform,
     Vec3,
     view,
+    warn,
 } from 'cc';
 import { BaseSystem } from './BaseSystem';
 
@@ -66,13 +67,19 @@ export class HealthBar extends Component {
 
     /** 组件启动时，若跟随目标是 Base，则直接进入战斗模式显示血量 */
     start() {
+        warn(`[HealthBar] start() called. followTarget=${this.followTarget?.name ?? 'null'}, worldCamera=${this.worldCamera ? 'set' : 'null'}, node.active=${this.node.active}, parent=${this.node.parent?.name ?? 'null'}`);
         if (this.followTarget?.name === 'Base') {
+            warn(`[HealthBar] Follow target is Base, entering combat mode`);
             this._started = true;
             this._mode = HealthBarMode.COMBAT;
             this._isVisible = true;
             this.showVisuals();
+        } else {
+            warn(`[HealthBar] Follow target is not Base, _started=${this._started}`);
         }
     }
+
+    private _firstUpdateLogged = false;
 
     /** 启动建造进度 */
     public startBuild(buildTime?: number) {
@@ -119,6 +126,14 @@ export class HealthBar extends Component {
         // 跟随模式：将目标世界坐标转换为 Canvas 局部坐标
         if (this.followTarget && this.followTarget.isValid && this.worldCamera) {
             const worldPos = this.followTarget.worldPosition;
+
+            if (!this._firstUpdateLogged) {
+                this._firstUpdateLogged = true;
+                warn(`[HealthBar] First update frame. followTarget=${this.followTarget.name}, ` +
+                    `worldPos=(${worldPos.x.toFixed(1)}, ${worldPos.y.toFixed(1)}), ` +
+                    `_started=${this._started}, node.active=${this.node.active}, ` +
+                    `node.position=(${this.node.position.x.toFixed(1)}, ${this.node.position.y.toFixed(1)})`);
+            }
             const screenPos = this.worldCamera.worldToScreen(worldPos);
 
             const canvas = this.node.parent;

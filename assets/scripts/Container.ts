@@ -1,6 +1,7 @@
 import { _decorator, CCInteger, CCFloat, Component, EventTouch, Node, Vec3 } from 'cc';
 import { GlobalContainerStorage } from './GlobalContainerStorage';
 import { ContainerPanelUI } from './ContainerPanelUI';
+import { ReinforcementNotice } from './ReinforcementNotice';
 
 const { ccclass, property } = _decorator;
 
@@ -69,6 +70,11 @@ export class Container extends Component {
         this._isPlaced = true;
         this.hp = this.maxHp;
         GlobalContainerStorage.instance?.registerContainer(this);
+
+        // 首个集装箱建造完成时提示
+        if (GlobalContainerStorage.instance?.containerCount === 1) {
+            ReinforcementNotice.show('双击集装箱进入存取面板');
+        }
     }
 
     onDestroy() {

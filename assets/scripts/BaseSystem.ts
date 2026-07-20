@@ -270,7 +270,14 @@ export class BaseSystem extends Component {
         const actualCopper = Math.round(tier.copper * (1 - saveRate));
         const actualIron = Math.round(tier.iron * (1 - saveRate));
         const actualMoney = Math.round(tier.money * (1 - saveRate));
-        return PlayerData.instance?.canAfford(actualWood, actualCopper, actualIron, actualMoney) ?? false;
+
+        // 材料从仓库检查，金钱从背包检查
+        const storage = GlobalContainerStorage.instance;
+        const woodOk = storage ? storage.storedWood >= actualWood : false;
+        const copperOk = storage ? storage.storedCopper >= actualCopper : false;
+        const ironOk = storage ? storage.storedIron >= actualIron : false;
+        const moneyOk = (PlayerData.instance?.money ?? 0) >= actualMoney;
+        return woodOk && copperOk && ironOk && moneyOk;
     }
 
     /** 检查升级到下一级所需的发电机是否已放置 */
@@ -326,10 +333,26 @@ export class BaseSystem extends Component {
         const actualIron = Math.round(tier.iron * (1 - saveRate));
         const actualMoney = Math.round(tier.money * (1 - saveRate));
 
-        if (!PlayerData.instance?.spendUpgradeCost(actualWood, actualCopper, actualIron, actualMoney)) {
+        // 材料从仓库扣除，金钱从背包扣除
+        const storage = GlobalContainerStorage.instance;
+        const woodOk = storage ? storage.storedWood >= actualWood : false;
+        const copperOk = storage ? storage.storedCopper >= actualCopper : false;
+        const ironOk = storage ? storage.storedIron >= actualIron : false;
+        const moneyOk = (PlayerData.instance?.money ?? 0) >= actualMoney;
+
+        if (!woodOk || !copperOk || !ironOk || !moneyOk) {
             this.upgradeWarning = '材料或金钱不足，升级失败';
             warn(`[BaseSystem] ${this.upgradeWarning}`);
             return false;
+        }
+
+        if (storage) {
+            storage.storedWood -= actualWood;
+            storage.storedCopper -= actualCopper;
+            storage.storedIron -= actualIron;
+        }
+        if (PlayerData.instance) {
+            PlayerData.instance.money -= actualMoney;
         }
 
         // BaseSystem 挂在 GameManagers 上，HealthBar 在 GameWorld/Base 节点下
