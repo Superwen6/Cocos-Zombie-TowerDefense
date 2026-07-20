@@ -1,10 +1,12 @@
 import {
     _decorator,
+    Camera,
     CCFloat,
     Color,
     Component,
     Node,
     Sprite,
+    Vec3,
 } from 'cc';
 import { BaseSystem } from './BaseSystem';
 
@@ -34,6 +36,15 @@ export class HealthBar extends Component {
 
     @property({ type: Sprite, tooltip: '填充条（FILLED / HORIZONTAL）' })
     fillSprite: Sprite | null = null;
+
+    @property({ type: Node, tooltip: '跟随目标节点（设为基座节点后血条将跟随其世界坐标显示在 Canvas 上）' })
+    followTarget: Node | null = null;
+
+    @property({ type: Camera, tooltip: '世界相机（用于跟随模式下的坐标转换）' })
+    worldCamera: Camera | null = null;
+
+    @property({ type: Vec3, tooltip: '跟随模式下的屏幕坐标偏移' })
+    screenOffset: Vec3 = new Vec3(0, 80, 0);
 
     private _mode = HealthBarMode.BUILD;
     private _buildTimer = 0;
@@ -93,6 +104,17 @@ export class HealthBar extends Component {
     }
 
     update(dt: number) {
+        // 跟随模式：将目标世界坐标转换为屏幕坐标
+        if (this.followTarget && this.followTarget.isValid && this.worldCamera) {
+            const worldPos = this.followTarget.worldPosition;
+            const screenPos = this.worldCamera.worldToScreen(worldPos);
+            this.node.position = new Vec3(
+                screenPos.x + this.screenOffset.x,
+                screenPos.y + this.screenOffset.y,
+                screenPos.z + this.screenOffset.z,
+            );
+        }
+
         if (!this._started) return;
 
         if (this._mode === HealthBarMode.BUILD) {
@@ -145,7 +167,7 @@ export class HealthBar extends Component {
             }
         }
 
-        if (hp < 0 && this.isBaseNode(parent)) {
+        if (hp < 0 && (this.isBaseNode(parent) || this.followTarget?.name === 'Base')) {
             // BaseSystem 是全局单例，挂在 GameManagers 上而非 Base 节点
             const baseSys = BaseSystem.instance;
             if (baseSys && typeof baseSys.baseHp === 'number') {
