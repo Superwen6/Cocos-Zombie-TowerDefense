@@ -690,7 +690,7 @@ export class AttributeUpgradePanel extends Component {
             if (btn) btn.interactable = false;
         }
         const remain = BLAST_MAX_COUNT - this._blastCount;
-        ReinforcementNotice.show(`进入爆破模式，点击地图元素进行拆除（剩余${remain}次），右键或ESC取消`);
+        ReinforcementNotice.show(`进入爆破模式，点击地图元素拆除（剩余${remain}次），点击空地/右键/ESC取消`);
     }
 
     private exitBlastMode() {
@@ -754,6 +754,11 @@ export class AttributeUpgradePanel extends Component {
         const ps = PlayerState.instance;
         if (!ps) return;
         ps.weaponMode = !ps.weaponMode;
+        if (ps.weaponMode) {
+            ReinforcementNotice.show('武器模式，可以远程攻击敌人');
+        } else {
+            ReinforcementNotice.show('采集模式，可以采集资源');
+        }
     }
 
     // ==================== 模式输入 ====================
@@ -981,7 +986,8 @@ export class AttributeUpgradePanel extends Component {
     private tryBlastTarget(worldPos: Vec3) {
         const target = this.findMapElementAt(worldPos);
         if (!target) {
-            ReinforcementNotice.show('未找到可爆破的地图元素，请点击地图元素');
+            this.exitBlastMode();
+            ReinforcementNotice.show('无目标退出爆破模式');
             return;
         }
 
