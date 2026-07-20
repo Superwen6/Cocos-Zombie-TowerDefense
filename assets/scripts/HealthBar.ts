@@ -165,8 +165,8 @@ export class HealthBar extends Component {
         // 战斗模式：持续同步血量
         this.syncHealth();
 
-        // 自动隐藏：血量 100% 且持续 3 秒未受攻击后隐藏
-        if (this._isVisible && this._lastHp >= this._maxHp) {
+        // 自动隐藏：血量 100% 且持续 3 秒未受攻击后隐藏（Base 血条始终显示）
+        if (this._isVisible && this._lastHp >= this._maxHp && this.followTarget?.name !== 'Base') {
             this._hideTimer += dt;
             if (this._hideTimer >= 3) {
                 this.hideVisuals();
@@ -178,18 +178,19 @@ export class HealthBar extends Component {
     /** 从绑定的建筑节点同步血量 */
     private syncHealth() {
         const parent = this._boundNode;
-        if (!parent) return;
 
         let hp = -1;
         let max = this._maxHp;
 
-        const turret = parent.getComponent('Turret') as any;
-        if (turret && typeof turret.hp === 'number') {
-            hp = turret.hp;
-            max = turret.maxHp || this._maxHp;
+        if (parent) {
+            const turret = parent.getComponent('Turret') as any;
+            if (turret && typeof turret.hp === 'number') {
+                hp = turret.hp;
+                max = turret.maxHp || this._maxHp;
+            }
         }
 
-        if (hp < 0) {
+        if (hp < 0 && parent) {
             const plant = parent.getComponent('PlantGenerator') as any;
             if (plant && typeof plant.hp === 'number') {
                 hp = plant.hp;
@@ -197,7 +198,7 @@ export class HealthBar extends Component {
             }
         }
 
-        if (hp < 0) {
+        if (hp < 0 && parent) {
             const container = parent.getComponent('Container') as any;
             if (container && typeof container.hp === 'number') {
                 hp = container.hp;
