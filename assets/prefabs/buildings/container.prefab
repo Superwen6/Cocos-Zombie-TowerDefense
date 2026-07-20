@@ -442,6 +442,14 @@
     "fillSprite": {
       "__id__": 12
     },
+    "followTarget": null,
+    "worldCamera": null,
+    "screenOffset": {
+      "__type__": "cc.Vec3",
+      "x": 0,
+      "y": 80,
+      "z": 0
+    },
     "_id": ""
   },
   {
@@ -573,7 +581,7 @@
     },
     "maxHp": 200,
     "buildTime": 5,
-    "costWood": 0,
+    "costWood": 1,
     "costCopper": 0,
     "costIron": 0,
     "costMoney": 0,
