@@ -278,17 +278,17 @@ export class HealthBar extends Component {
     }
 
     private showVisuals() {
-        if (this.backgroundSprite) this.backgroundSprite.node.active = true;
-        if (this.fillSprite) this.fillSprite.node.active = true;
-        if (this.borderSprite) this.borderSprite.node.active = true;
-        if (this.titleLabel) this.titleLabel.node.active = true;
+        if (this.backgroundSprite?.isValid) this.backgroundSprite.node.active = true;
+        if (this.fillSprite?.isValid) this.fillSprite.node.active = true;
+        if (this.borderSprite?.isValid) this.borderSprite.node.active = true;
+        if (this.titleLabel?.isValid) this.titleLabel.node.active = true;
     }
 
     private hideVisuals() {
-        if (this.backgroundSprite) this.backgroundSprite.node.active = false;
-        if (this.fillSprite) this.fillSprite.node.active = false;
-        if (this.borderSprite) this.borderSprite.node.active = false;
-        if (this.titleLabel) this.titleLabel.node.active = false;
+        if (this.backgroundSprite?.isValid) this.backgroundSprite.node.active = false;
+        if (this.fillSprite?.isValid) this.fillSprite.node.active = false;
+        if (this.borderSprite?.isValid) this.borderSprite.node.active = false;
+        if (this.titleLabel?.isValid) this.titleLabel.node.active = false;
     }
 }
 
