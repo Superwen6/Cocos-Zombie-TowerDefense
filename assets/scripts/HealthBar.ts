@@ -6,7 +6,9 @@ import {
     Component,
     Node,
     Sprite,
+    UITransform,
     Vec3,
+    view,
 } from 'cc';
 import { BaseSystem } from './BaseSystem';
 
@@ -62,6 +64,16 @@ export class HealthBar extends Component {
         this._boundNode = parentNode;
     }
 
+    /** 组件启动时，若跟随目标是 Base，则直接进入战斗模式显示血量 */
+    start() {
+        if (this.followTarget?.name === 'Base') {
+            this._started = true;
+            this._mode = HealthBarMode.COMBAT;
+            this._isVisible = true;
+            this.showVisuals();
+        }
+    }
+
     /** 启动建造进度 */
     public startBuild(buildTime?: number) {
         if (buildTime != null && buildTime > 0) {
@@ -104,15 +116,26 @@ export class HealthBar extends Component {
     }
 
     update(dt: number) {
-        // 跟随模式：将目标世界坐标转换为屏幕坐标
+        // 跟随模式：将目标世界坐标转换为 Canvas 局部坐标
         if (this.followTarget && this.followTarget.isValid && this.worldCamera) {
             const worldPos = this.followTarget.worldPosition;
             const screenPos = this.worldCamera.worldToScreen(worldPos);
-            this.node.position = new Vec3(
-                screenPos.x + this.screenOffset.x,
-                screenPos.y + this.screenOffset.y,
-                screenPos.z + this.screenOffset.z,
-            );
+
+            const canvas = this.node.parent;
+            if (canvas) {
+                const canvasTransform = canvas.getComponent(UITransform);
+                if (canvasTransform) {
+                    const designSize = canvasTransform.contentSize;
+                    const visibleSize = view.getVisibleSize();
+                    const scaleX = designSize.width / visibleSize.width;
+                    const scaleY = designSize.height / visibleSize.height;
+                    this.node.position = new Vec3(
+                        (screenPos.x - visibleSize.width / 2) * scaleX + this.screenOffset.x,
+                        (screenPos.y - visibleSize.height / 2) * scaleY + this.screenOffset.y,
+                        0,
+                    );
+                }
+            }
         }
 
         if (!this._started) return;

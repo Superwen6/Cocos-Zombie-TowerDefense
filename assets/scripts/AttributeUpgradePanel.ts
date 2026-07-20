@@ -650,7 +650,7 @@ export class AttributeUpgradePanel extends Component {
             const btn = this.reinforceActionBtn.getComponent(Button);
             if (btn) btn.interactable = false;
         }
-        ReinforcementNotice.show('进入炮塔强化模式，点击游戏中的炮塔进行强化，右键或ESC取消');
+        ReinforcementNotice.show('进入炮塔强化模式，点击炮塔强化，点击空地/右键/ESC取消');
     }
 
     private exitReinforceMode() {
@@ -925,7 +925,8 @@ export class AttributeUpgradePanel extends Component {
     private tryReinforceTurret(worldPos: Vec3) {
         const turret = this.findTurretAt(worldPos);
         if (!turret) {
-            ReinforcementNotice.show('未找到炮塔，请点击炮塔');
+            this.exitReinforceMode();
+            ReinforcementNotice.show('无目标退出炮塔强化模式');
             return;
         }
 

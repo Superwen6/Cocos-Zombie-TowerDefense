@@ -10,6 +10,7 @@ import { PlayerData } from './PlayerData';
 import { BaseSystem } from './BaseSystem';
 import { GameHUDUI } from './GameHUDUI';
 import { TurretPlacementManager } from './TurretPlacementManager';
+import { ReinforcementNotice } from './ReinforcementNotice';
 
 const { ccclass, property } = _decorator;
 
@@ -59,6 +60,7 @@ export class DemolishManager extends Component {
         // 取消当前放置模式，防止两个模式冲突
         TurretPlacementManager.instance?.cancelPlacementPublic();
         this._isDemolishMode = true;
+        ReinforcementNotice.show('进入拆除模式，点击建筑拆除返还资源，点击空地/右键/ESC取消');
     }
 
     /** 退出拆除模式 */
@@ -98,6 +100,9 @@ export class DemolishManager extends Component {
             this.demolishBuilding(this._highlightedNode);
             this.clearHighlight();
             this.exitDemolishMode();
+        } else {
+            this.exitDemolishMode();
+            ReinforcementNotice.show('无目标退出拆除模式');
         }
     }
 
