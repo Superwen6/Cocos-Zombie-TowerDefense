@@ -176,7 +176,7 @@ export class NewTurretPanelUI extends Component {
         return PlayerData.canAffordWithWarehouse(cost.wood, cost.copper, cost.iron, cost.money);
     }
 
-    // ── 消耗显示（仓库+背包） ──
+    // ── 消耗显示（RemoteMaterial 感知） ──
 
     private updateCostDisplay(index: number) {
         const label = this.turretCostLabels[index];
@@ -184,9 +184,11 @@ export class NewTurretPanelUI extends Component {
 
         const cost = this.getCosts(index);
 
-        const woodNow = PlayerData.getTotalWood();
-        const copperNow = PlayerData.getTotalCopper();
-        const ironNow = PlayerData.getTotalIron();
+        const ps = PlayerState.instance;
+        const remoteMaterial = ps?.remoteMaterialEnabled ?? false;
+        const woodNow = remoteMaterial ? PlayerData.getTotalWood() : (PlayerData.instance?.woodCount ?? 0);
+        const copperNow = remoteMaterial ? PlayerData.getTotalCopper() : (PlayerData.instance?.copperCount ?? 0);
+        const ironNow = remoteMaterial ? PlayerData.getTotalIron() : (PlayerData.instance?.ironCount ?? 0);
         const moneyNow = PlayerData.instance?.money ?? 0;
 
         const canAfford = woodNow >= cost.wood

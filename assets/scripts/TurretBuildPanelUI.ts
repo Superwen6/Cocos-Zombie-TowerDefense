@@ -69,16 +69,18 @@ export class TurretBuildPanelUI extends Component {
         return PlayerData.canAffordWithWarehouse(cost.wood, cost.copper, cost.iron, cost.money);
     }
 
-    // ---------- 更新物资显示（旧版单行，仓库+背包） ----------
+    // ---------- 更新物资显示（旧版单行，RemoteMaterial 感知） ----------
 
     private updateCostDisplay() {
         if (!this.costLabel) return;
 
         const cost = this.getCosts();
 
-        const ironNow = PlayerData.getTotalIron();
-        const woodNow = PlayerData.getTotalWood();
-        const copperNow = PlayerData.getTotalCopper();
+        const ps = PlayerState.instance;
+        const remoteMaterial = ps?.remoteMaterialEnabled ?? false;
+        const ironNow = remoteMaterial ? PlayerData.getTotalIron() : (PlayerData.instance?.ironCount ?? 0);
+        const woodNow = remoteMaterial ? PlayerData.getTotalWood() : (PlayerData.instance?.woodCount ?? 0);
+        const copperNow = remoteMaterial ? PlayerData.getTotalCopper() : (PlayerData.instance?.copperCount ?? 0);
         const moneyNow = PlayerData.instance?.money ?? 0;
 
         const canAfford = ironNow >= cost.iron
@@ -111,7 +113,7 @@ export class TurretBuildPanelUI extends Component {
         label.color = sufficient ? Color.WHITE : Color.RED;
     }
 
-    /** 刷新所有炮塔按钮的资源消耗和电力显示（仓库+背包） */
+    /** 刷新所有炮塔按钮的资源消耗和电力显示（RemoteMaterial 感知） */
     private refreshTurretCostDisplays() {
         const manager = TurretPlacementManager.instance;
         if (!manager) return;
@@ -125,6 +127,9 @@ export class TurretBuildPanelUI extends Component {
         if (displayCount < prefabCount) {
             warn(`[TurretBuildPanelUI] turretCostDisplays/turretPowerCosts 数组长度(${this.turretCostDisplays.length}/${this.turretPowerCosts.length}) 小于 turretPrefabs 数量(${prefabCount})，部分炮塔将不显示消耗`);
         }
+
+        const ps = PlayerState.instance;
+        const remoteMaterial = ps?.remoteMaterialEnabled ?? false;
 
         for (let i = 0; i < displayCount; i++) {
             const prefab = manager.turretPrefabs[i];
@@ -143,7 +148,6 @@ export class TurretBuildPanelUI extends Component {
             tempNode.destroy();
 
             // 应用省材料/省电率
-            const ps = PlayerState.instance;
             const saveRate = ps ? ps.materialSaveRate : 0;
             const powerSave = ps ? ps.powerSaveRate : 0;
             const actualWood = Math.round(wood * (1 - saveRate));
@@ -151,10 +155,10 @@ export class TurretBuildPanelUI extends Component {
             const actualCopper = Math.round(copper * (1 - saveRate));
             const actualPower = power - Math.round(power * powerSave);
 
-            // 仓库+背包总资源
-            const woodNow = PlayerData.getTotalWood();
-            const ironNow = PlayerData.getTotalIron();
-            const copperNow = PlayerData.getTotalCopper();
+            // RemoteMaterial 激活时显示仓库+背包，否则仅背包
+            const woodNow = remoteMaterial ? PlayerData.getTotalWood() : (PlayerData.instance?.woodCount ?? 0);
+            const ironNow = remoteMaterial ? PlayerData.getTotalIron() : (PlayerData.instance?.ironCount ?? 0);
+            const copperNow = remoteMaterial ? PlayerData.getTotalCopper() : (PlayerData.instance?.copperCount ?? 0);
 
             this.setCostChildValue(costDisplay, 'CostWood', `${actualWood}`, woodNow >= actualWood);
             this.setCostChildValue(costDisplay, 'CostIron', `${actualIron}`, ironNow >= actualIron);

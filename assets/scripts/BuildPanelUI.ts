@@ -387,14 +387,15 @@ export class BuildPanelUI extends Component {
         const actualIron = Math.round(cost.iron * (1 - saveRate));
         const actualCopper = Math.round(cost.copper * (1 - saveRate));
 
-        // 仓库+背包总资源
-        const totalWood = PlayerData.getTotalWood();
-        const totalIron = PlayerData.getTotalIron();
-        const totalCopper = PlayerData.getTotalCopper();
+        // RemoteMaterial 激活时显示仓库+背包，否则仅背包
+        const remoteMaterial = ps?.remoteMaterialEnabled ?? false;
+        const woodNow = remoteMaterial ? PlayerData.getTotalWood() : (data?.woodCount ?? 0);
+        const ironNow = remoteMaterial ? PlayerData.getTotalIron() : (data?.ironCount ?? 0);
+        const copperNow = remoteMaterial ? PlayerData.getTotalCopper() : (data?.copperCount ?? 0);
 
-        this.setCostChildValue(costDisplay, 'CostWood', `${totalWood}/${actualWood}`, totalWood >= actualWood);
-        this.setCostChildValue(costDisplay, 'CostIron', `${totalIron}/${actualIron}`, totalIron >= actualIron);
-        this.setCostChildValue(costDisplay, 'CostCopper', `${totalCopper}/${actualCopper}`, totalCopper >= actualCopper);
+        this.setCostChildValue(costDisplay, 'CostWood', `${woodNow}/${actualWood}`, woodNow >= actualWood);
+        this.setCostChildValue(costDisplay, 'CostIron', `${ironNow}/${actualIron}`, ironNow >= actualIron);
+        this.setCostChildValue(costDisplay, 'CostCopper', `${copperNow}/${actualCopper}`, copperNow >= actualCopper);
 
         if (isGenerator) {
             // 发电机：显示发电量，始终白色
