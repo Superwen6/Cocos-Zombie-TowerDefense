@@ -4,6 +4,7 @@ import { PlayerData } from './PlayerData';
 import { PlayerState } from './PlayerState';
 import { BaseSystem } from './BaseSystem';
 import { BuildPanelUI } from './BuildPanelUI';
+import { GlobalContainerStorage } from './GlobalContainerStorage';
 
 const { ccclass, property } = _decorator;
 
@@ -75,15 +76,14 @@ export class UpgradePanelUI extends Component {
             money: Math.round(cost.money * (1 - saveRate)),
         };
 
-        // 检查资源
-        const data = PlayerData.instance;
-        if (!data || !data.canAfford(actualCost.wood, actualCost.copper, actualCost.iron, actualCost.money)) {
+        // 检查资源（RemoteMaterial 感知）
+        if (!PlayerData.canAffordWithWarehouse(actualCost.wood, actualCost.copper, actualCost.iron, actualCost.money)) {
             warn(`[UpgradePanelUI] 资源不足 | 木${actualCost.wood} 铜${actualCost.copper} 铁${actualCost.iron} 金${actualCost.money}`);
             return;
         }
 
-        // 扣除资源
-        data.spendUpgradeCost(actualCost.wood, actualCost.copper, actualCost.iron, actualCost.money);
+        // 扣除资源（RemoteMaterial 感知：优先仓库再背包）
+        PlayerData.spendWithWarehouse(actualCost.wood, actualCost.copper, actualCost.iron, actualCost.money);
 
         // 关闭面板
         this.hidePanel();

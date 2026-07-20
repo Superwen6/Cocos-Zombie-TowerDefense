@@ -7,6 +7,7 @@ import { PlantPanelUI } from './PlantPanelUI';
 import { UpgradePanelUI } from './UpgradePanelUI';
 import { PlantGenerator } from './PlantGenerator';
 import { Container } from './Container';
+import { GlobalContainerStorage } from './GlobalContainerStorage';
 
 const { ccclass, property } = _decorator;
 
@@ -250,7 +251,7 @@ export class BuildPanelUI extends Component {
         }
     }
 
-    /** 使用独立 Label 更新基地升级资源消耗 */
+    /** 使用独立 Label 更新基地升级资源消耗（仓库资源） */
     private refreshCostLabels(base: BaseSystem | null, data: PlayerData | null) {
         if (!base || !data || base.isMaxLevel) {
             this.setCostLabel(this.costWoodLabel, '0/0', false);
@@ -279,9 +280,15 @@ export class BuildPanelUI extends Component {
         const actualIron = Math.round(tier.iron * (1 - saveRate));
         const actualMoney = Math.round(tier.money * (1 - saveRate));
 
-        this.setCostLabel(this.costWoodLabel, `${data.woodCount}/${actualWood}`, data.woodCount >= actualWood);
-        this.setCostLabel(this.costCopperLabel, `${data.copperCount}/${actualCopper}`, data.copperCount >= actualCopper);
-        this.setCostLabel(this.costIronLabel, `${data.ironCount}/${actualIron}`, data.ironCount >= actualIron);
+        // 基地升级使用仓库资源
+        const storage = GlobalContainerStorage.instance;
+        const whWood = storage?.storedWood ?? 0;
+        const whCopper = storage?.storedCopper ?? 0;
+        const whIron = storage?.storedIron ?? 0;
+
+        this.setCostLabel(this.costWoodLabel, `${whWood}/${actualWood}`, whWood >= actualWood);
+        this.setCostLabel(this.costCopperLabel, `${whCopper}/${actualCopper}`, whCopper >= actualCopper);
+        this.setCostLabel(this.costIronLabel, `${whIron}/${actualIron}`, whIron >= actualIron);
         this.setCostLabel(this.costMoneyLabel, `${data.money}/${actualMoney}`, data.money >= actualMoney);
 
         // 电力消耗：从 levelPowerCosts 读取，应用省电率，显示单数字，不足时变红
@@ -380,9 +387,14 @@ export class BuildPanelUI extends Component {
         const actualIron = Math.round(cost.iron * (1 - saveRate));
         const actualCopper = Math.round(cost.copper * (1 - saveRate));
 
-        this.setCostChildValue(costDisplay, 'CostWood', `${data.woodCount}/${actualWood}`, data.woodCount >= actualWood);
-        this.setCostChildValue(costDisplay, 'CostIron', `${data.ironCount}/${actualIron}`, data.ironCount >= actualIron);
-        this.setCostChildValue(costDisplay, 'CostCopper', `${data.copperCount}/${actualCopper}`, data.copperCount >= actualCopper);
+        // 仓库+背包总资源
+        const totalWood = PlayerData.getTotalWood();
+        const totalIron = PlayerData.getTotalIron();
+        const totalCopper = PlayerData.getTotalCopper();
+
+        this.setCostChildValue(costDisplay, 'CostWood', `${totalWood}/${actualWood}`, totalWood >= actualWood);
+        this.setCostChildValue(costDisplay, 'CostIron', `${totalIron}/${actualIron}`, totalIron >= actualIron);
+        this.setCostChildValue(costDisplay, 'CostCopper', `${totalCopper}/${actualCopper}`, totalCopper >= actualCopper);
 
         if (isGenerator) {
             // 发电机：显示发电量，始终白色

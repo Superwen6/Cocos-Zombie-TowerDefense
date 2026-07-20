@@ -5,6 +5,7 @@ import { PlayerState } from './PlayerState';
 import { PlantGenerator } from './PlantGenerator';
 import { BaseSystem } from './BaseSystem';
 import { BuildPanelUI } from './BuildPanelUI';
+import { GlobalContainerStorage } from './GlobalContainerStorage';
 
 const { ccclass, property } = _decorator;
 
@@ -130,15 +131,14 @@ export class PlantPanelUI extends Component {
             return;
         }
 
-        // 检查资源
-        const data = PlayerData.instance;
-        if (!data || !data.canAfford(actualCost.wood, actualCost.copper, actualCost.iron, actualCost.money)) {
+        // 检查资源（RemoteMaterial 感知）
+        if (!PlayerData.canAffordWithWarehouse(actualCost.wood, actualCost.copper, actualCost.iron, actualCost.money)) {
             warn(`[PlantPanelUI] 资源不足，无法建造发电机 ID=${plantId}`);
             return;
         }
 
-        // 扣除资源
-        data.spendUpgradeCost(actualCost.wood, actualCost.copper, actualCost.iron, actualCost.money);
+        // 扣除资源（RemoteMaterial 感知：优先仓库再背包）
+        PlayerData.spendWithWarehouse(actualCost.wood, actualCost.copper, actualCost.iron, actualCost.money);
 
         // 关闭面板
         this.hidePanel();

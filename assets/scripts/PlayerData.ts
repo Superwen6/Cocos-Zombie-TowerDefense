@@ -1,4 +1,6 @@
 import { _decorator, CCInteger, CCFloat, Component, warn } from 'cc';
+import { GlobalContainerStorage } from './GlobalContainerStorage';
+import { PlayerState } from './PlayerState';
 
 const { ccclass, property } = _decorator;
 
@@ -109,5 +111,102 @@ export class PlayerData extends Component {
                 this.addIron(amount);
                 break;
         }
+    }
+
+    // ── 仓库+背包总资源查询（用于 CostDisplay 显示） ──
+
+    /** 获取木材总量（背包+仓库） */
+    static getTotalWood(): number {
+        const data = PlayerData.instance;
+        const storage = GlobalContainerStorage.instance;
+        return (data?.woodCount ?? 0) + (storage?.storedWood ?? 0);
+    }
+
+    /** 获取铜矿总量（背包+仓库） */
+    static getTotalCopper(): number {
+        const data = PlayerData.instance;
+        const storage = GlobalContainerStorage.instance;
+        return (data?.copperCount ?? 0) + (storage?.storedCopper ?? 0);
+    }
+
+    /** 获取铁矿总量（背包+仓库） */
+    static getTotalIron(): number {
+        const data = PlayerData.instance;
+        const storage = GlobalContainerStorage.instance;
+        return (data?.ironCount ?? 0) + (storage?.storedIron ?? 0);
+    }
+
+    /** 获取仓库木材数量 */
+    static getWarehouseWood(): number {
+        return GlobalContainerStorage.instance?.storedWood ?? 0;
+    }
+
+    /** 获取仓库铜矿数量 */
+    static getWarehouseCopper(): number {
+        return GlobalContainerStorage.instance?.storedCopper ?? 0;
+    }
+
+    /** 获取仓库铁矿数量 */
+    static getWarehouseIron(): number {
+        return GlobalContainerStorage.instance?.storedIron ?? 0;
+    }
+
+    // ── RemoteMaterial 感知的资源检查与扣除 ──
+
+    /**
+     * 检查是否有足够资源（含仓库）。
+     * RemoteMaterial 激活时：仓库+背包；否则：仅背包。
+     */
+    static canAffordWithWarehouse(wood: number, copper: number, iron: number, money: number): boolean {
+        const data = PlayerData.instance;
+        if (!data) return false;
+        const ps = PlayerState.instance;
+        const remoteMaterial = ps?.remoteMaterialEnabled ?? false;
+        const storage = GlobalContainerStorage.instance;
+
+        const wWood = remoteMaterial ? (storage?.storedWood ?? 0) : 0;
+        const wCopper = remoteMaterial ? (storage?.storedCopper ?? 0) : 0;
+        const wIron = remoteMaterial ? (storage?.storedIron ?? 0) : 0;
+
+        return (data.woodCount + wWood) >= wood
+            && (data.copperCount + wCopper) >= copper
+            && (data.ironCount + wIron) >= iron
+            && data.money >= money;
+    }
+
+    /**
+     * 扣除资源（RemoteMaterial 感知）。
+     * RemoteMaterial 激活时：优先扣除仓库，不足部分从背包扣除；
+     * 否则：仅扣除背包。
+     * @returns 是否成功扣除
+     */
+    static spendWithWarehouse(wood: number, copper: number, iron: number, money: number): boolean {
+        if (!PlayerData.canAffordWithWarehouse(wood, copper, iron, money)) return false;
+
+        const data = PlayerData.instance!;
+        const ps = PlayerState.instance;
+        const remoteMaterial = ps?.remoteMaterialEnabled ?? false;
+        const storage = GlobalContainerStorage.instance;
+
+        if (remoteMaterial && storage) {
+            const fromWarehouseWood = Math.min(storage.storedWood, wood);
+            const fromWarehouseCopper = Math.min(storage.storedCopper, copper);
+            const fromWarehouseIron = Math.min(storage.storedIron, iron);
+
+            storage.storedWood -= fromWarehouseWood;
+            storage.storedCopper -= fromWarehouseCopper;
+            storage.storedIron -= fromWarehouseIron;
+
+            data.woodCount -= (wood - fromWarehouseWood);
+            data.copperCount -= (copper - fromWarehouseCopper);
+            data.ironCount -= (iron - fromWarehouseIron);
+        } else {
+            data.woodCount -= wood;
+            data.copperCount -= copper;
+            data.ironCount -= iron;
+        }
+
+        data.money -= money;
+        return true;
     }
 }

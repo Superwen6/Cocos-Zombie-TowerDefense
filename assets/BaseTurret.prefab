@@ -885,6 +885,14 @@
     "fillSprite": {
       "__id__": 30
     },
+    "followTarget": null,
+    "worldCamera": null,
+    "screenOffset": {
+      "__type__": "cc.Vec3",
+      "x": 0,
+      "y": 80,
+      "z": 0
+    },
     "_id": ""
   },
   {
@@ -986,11 +994,11 @@
     "__prefab": {
       "__id__": 43
     },
-    "costWood": 80,
-    "costCopper": 80,
-    "costIron": 80,
+    "costWood": 1,
+    "costCopper": 1,
+    "costIron": 1,
     "costMoney": 0,
-    "powerCost": 20,
+    "powerCost": 0,
     "maxHp": 150,
     "damage": 20,
     "attackInterval": 0.5,

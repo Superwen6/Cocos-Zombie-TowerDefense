@@ -4,6 +4,7 @@ import { PlayerState } from './PlayerState';
 import { TurretPlacementManager } from './TurretPlacementManager';
 import { BaseSystem } from './BaseSystem';
 import { Turret } from './Turret';
+import { GlobalContainerStorage } from './GlobalContainerStorage';
 
 const { ccclass, property } = _decorator;
 
@@ -61,33 +62,24 @@ export class TurretBuildPanelUI extends Component {
         this.refreshTurretCostDisplays();
     }
 
-    // ---------- 资源检测 ----------
+    // ---------- 资源检测（RemoteMaterial 感知） ----------
 
     private checkResources(): boolean {
-        const data = PlayerData.instance;
-        if (!data) {
-            warn('[TurretBuildPanelUI] PlayerData 未初始化');
-            return false;
-        }
         const cost = this.getCosts();
-        return data.ironCount >= cost.iron
-            && data.woodCount >= cost.wood
-            && data.copperCount >= cost.copper
-            && data.money >= cost.money;
+        return PlayerData.canAffordWithWarehouse(cost.wood, cost.copper, cost.iron, cost.money);
     }
 
-    // ---------- 更新物资显示（旧版单行） ----------
+    // ---------- 更新物资显示（旧版单行，仓库+背包） ----------
 
     private updateCostDisplay() {
         if (!this.costLabel) return;
 
-        const data = PlayerData.instance;
         const cost = this.getCosts();
 
-        const ironNow = data?.ironCount ?? 0;
-        const woodNow = data?.woodCount ?? 0;
-        const copperNow = data?.copperCount ?? 0;
-        const moneyNow = data?.money ?? 0;
+        const ironNow = PlayerData.getTotalIron();
+        const woodNow = PlayerData.getTotalWood();
+        const copperNow = PlayerData.getTotalCopper();
+        const moneyNow = PlayerData.instance?.money ?? 0;
 
         const canAfford = ironNow >= cost.iron
             && woodNow >= cost.wood
@@ -119,12 +111,11 @@ export class TurretBuildPanelUI extends Component {
         label.color = sufficient ? Color.WHITE : Color.RED;
     }
 
-    /** 刷新所有炮塔按钮的资源消耗和电力显示 */
+    /** 刷新所有炮塔按钮的资源消耗和电力显示（仓库+背包） */
     private refreshTurretCostDisplays() {
         const manager = TurretPlacementManager.instance;
         if (!manager) return;
 
-        const data = PlayerData.instance;
         const base = BaseSystem.instance;
         const gen = base ? base.totalPowerGen : 0;
 
@@ -160,10 +151,10 @@ export class TurretBuildPanelUI extends Component {
             const actualCopper = Math.round(copper * (1 - saveRate));
             const actualPower = power - Math.round(power * powerSave);
 
-            // 更新资源消耗
-            const woodNow = data?.woodCount ?? 0;
-            const ironNow = data?.ironCount ?? 0;
-            const copperNow = data?.copperCount ?? 0;
+            // 仓库+背包总资源
+            const woodNow = PlayerData.getTotalWood();
+            const ironNow = PlayerData.getTotalIron();
+            const copperNow = PlayerData.getTotalCopper();
 
             this.setCostChildValue(costDisplay, 'CostWood', `${actualWood}`, woodNow >= actualWood);
             this.setCostChildValue(costDisplay, 'CostIron', `${actualIron}`, ironNow >= actualIron);
@@ -283,12 +274,7 @@ export class TurretBuildPanelUI extends Component {
             return;
         }
 
-        const data = PlayerData.instance;
-        if (!data) {
-            warn('[TurretBuildPanelUI] PlayerData 未初始化');
-            return;
-        }
-        if (!data.canAfford(cost.wood, cost.copper, cost.iron, cost.money)) {
+        if (!PlayerData.canAffordWithWarehouse(cost.wood, cost.copper, cost.iron, cost.money)) {
             warn(`[TurretBuildPanelUI] 资源不足 | 木${cost.wood} 铜${cost.copper} 铁${cost.iron} 金${cost.money}`);
             return;
         }

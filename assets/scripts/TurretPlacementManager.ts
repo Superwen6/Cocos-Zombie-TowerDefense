@@ -458,12 +458,13 @@ export class TurretPlacementManager extends Component {
         if (this._justActivatedFrame || event.getButton() !== 0) return;
         if (!this._placementValid) return;
 
-        const data = PlayerData.instance;
-        if (!data) return;
-        if (data.canAfford(this.currentCost.wood, this.currentCost.copper, this.currentCost.iron, this.currentCost.money)) {
-            data.spendUpgradeCost(this.currentCost.wood, this.currentCost.copper, this.currentCost.iron, this.currentCost.money);
-            this.finalizePlacement();
+        // 资源检查（RemoteMaterial 感知）
+        if (!PlayerData.canAffordWithWarehouse(this.currentCost.wood, this.currentCost.copper, this.currentCost.iron, this.currentCost.money)) {
+            return;
         }
+        // 扣除资源（RemoteMaterial 感知：优先仓库再背包）
+        PlayerData.spendWithWarehouse(this.currentCost.wood, this.currentCost.copper, this.currentCost.iron, this.currentCost.money);
+        this.finalizePlacement();
     }
 
     private finalizePlacement() {

@@ -3,6 +3,7 @@ import { PlayerData } from './PlayerData';
 import { PlayerState } from './PlayerState';
 import { TurretPlacementManager, TurretPlacementCost } from './TurretPlacementManager';
 import { BaseSystem } from './BaseSystem';
+import { GlobalContainerStorage } from './GlobalContainerStorage';
 
 const { ccclass, property } = _decorator;
 
@@ -168,34 +169,25 @@ export class NewTurretPanelUI extends Component {
         };
     }
 
-    // ── 资源检测 ──
+    // ── 资源检测（RemoteMaterial 感知） ──
 
     private checkResources(index: number): boolean {
-        const data = PlayerData.instance;
-        if (!data) {
-            warn('[NewTurretPanelUI] PlayerData 未初始化');
-            return false;
-        }
         const cost = this.getCosts(index);
-        return data.woodCount >= cost.wood
-            && data.copperCount >= cost.copper
-            && data.ironCount >= cost.iron
-            && data.money >= cost.money;
+        return PlayerData.canAffordWithWarehouse(cost.wood, cost.copper, cost.iron, cost.money);
     }
 
-    // ── 消耗显示 ──
+    // ── 消耗显示（仓库+背包） ──
 
     private updateCostDisplay(index: number) {
         const label = this.turretCostLabels[index];
         if (!label) return;
 
-        const data = PlayerData.instance;
         const cost = this.getCosts(index);
 
-        const woodNow = data?.woodCount ?? 0;
-        const copperNow = data?.copperCount ?? 0;
-        const ironNow = data?.ironCount ?? 0;
-        const moneyNow = data?.money ?? 0;
+        const woodNow = PlayerData.getTotalWood();
+        const copperNow = PlayerData.getTotalCopper();
+        const ironNow = PlayerData.getTotalIron();
+        const moneyNow = PlayerData.instance?.money ?? 0;
 
         const canAfford = woodNow >= cost.wood
             && copperNow >= cost.copper
