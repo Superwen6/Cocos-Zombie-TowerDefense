@@ -84,7 +84,7 @@
       "__id__": 1
     },
     "_children": [],
-    "_active": true,
+    "_active": false,
     "_components": [
       {
         "__id__": 3
@@ -543,7 +543,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": 71.876,
+      "y": 58,
       "z": 0
     },
     "_lrot": {
@@ -1012,6 +1012,7 @@
     "colliderHalfH": 35,
     "enableDualShot": false,
     "dualShotSpread": 20,
+    "homingBullet": true,
     "_id": ""
   },
   {

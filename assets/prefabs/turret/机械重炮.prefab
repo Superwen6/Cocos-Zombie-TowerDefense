@@ -84,7 +84,7 @@
       "__id__": 1
     },
     "_children": [],
-    "_active": true,
+    "_active": false,
     "_components": [
       {
         "__id__": 3
@@ -1012,6 +1012,7 @@
     "colliderHalfH": 35,
     "enableDualShot": false,
     "dualShotSpread": 20,
+    "homingBullet": true,
     "_id": ""
   },
   {
