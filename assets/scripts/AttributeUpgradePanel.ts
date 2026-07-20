@@ -1,4 +1,4 @@
-import { _decorator, Button, Camera, Color, Component, EventMouse, EventTouch, find, Input, input, Label, Node, RichText, Sprite, Vec3, warn } from 'cc';
+import { _decorator, Button, Camera, Color, Component, EventMouse, EventTouch, find, Input, input, Label, Node, RichText, Sprite, tween, Vec3, warn } from 'cc';
 import { PlayerState } from './PlayerState';
 import { PlayerData } from './PlayerData';
 import { TurretPlacementManager } from './TurretPlacementManager';
@@ -53,6 +53,12 @@ const REINFORCE_COST = { wood: 6, copper: 3, iron: 1 };
 
 /** 爆破最大次数 */
 const BLAST_MAX_COUNT = 10;
+
+/** 爆破冷却时间（毫秒） */
+const BLAST_COOLDOWN_MS = 120000;
+
+/** 爆破悬停颜色：红色 */
+const BLAST_HOVER_COLOR = new Color(255, 0, 0, 200);
 
 /** 按钮悬停描述映射 */
 const BUTTON_DESCRIPTIONS: Record<string, string> = {
@@ -238,6 +244,16 @@ export class AttributeUpgradePanel extends Component {
     /** 已爆破次数 */
     private _blastCount = 0;
 
+    /** 爆破冷却结束时间戳 */
+    private _blastCooldownEndTime = 0;
+
+    /** 爆破模式悬停高亮 */
+    private _highlightedBlastTarget: Node | null = null;
+    private _blastTargetOriginalColors: Map<Node, Color> = new Map();
+
+    /** blastActionBtn 原始颜色（用于冷却恢复） */
+    private _blastBtnOriginalColor: Color | null = null;
+
     /** onLoad 比 start 更早执行，确保第一帧前隐藏按钮 */
     onLoad() {
         if (this.reinforceActionBtn) this.reinforceActionBtn.active = false;
@@ -289,6 +305,7 @@ export class AttributeUpgradePanel extends Component {
         this.unbindConfirmPanel();
         this.unbindAllButtons();
         this.exitAllModes();
+        this.unschedule(this.updateBlastCooldownUI);
         this.unbindCanvasActionButtons();
     }
 
@@ -656,6 +673,14 @@ export class AttributeUpgradePanel extends Component {
             return;
         }
 
+        // 检查冷却
+        const now = Date.now();
+        if (now < this._blastCooldownEndTime) {
+            const remainSec = Math.ceil((this._blastCooldownEndTime - now) / 1000);
+            ReinforcementNotice.show(`爆破冷却中，还剩${remainSec}秒`);
+            return;
+        }
+
         this.exitAllModes();
         this._blastMode = true;
         this.setupModeInput();
@@ -670,6 +695,7 @@ export class AttributeUpgradePanel extends Component {
 
     private exitBlastMode() {
         this._blastMode = false;
+        this.clearBlastHighlight();
         if (this.blastActionBtn) {
             const btn = this.blastActionBtn.getComponent(Button);
             if (btn) btn.interactable = true;
@@ -715,6 +741,11 @@ export class AttributeUpgradePanel extends Component {
         if (!btnNode) return;
         if (this.getLevel(upgradeName) < 1) return;
         btnNode.active = true;
+
+        // 如果是爆破按钮且有冷却，恢复冷却 UI
+        if (upgradeName === 'Blast' && this._blastCooldownEndTime > Date.now()) {
+            this.startBlastCooldownUI();
+        }
     }
 
     /** 切换武器模式：采集 ↔ 攻击僵尸 */
@@ -755,23 +786,37 @@ export class AttributeUpgradePanel extends Component {
         }
     }
 
-    /** 鼠标移动：强化模式下悬停高亮炮塔 */
+    /** 鼠标移动：强化模式下悬停高亮炮塔，爆破模式下悬停高亮地图元素 */
     private onModeMouseMove(event: EventMouse) {
-        if (!this._reinforceMode) return;
+        if (!this._reinforceMode && !this._blastMode) return;
 
         const worldPos = this.screenToWorldPos(event.getLocationX(), event.getLocationY());
         if (!worldPos) {
             this.clearTurretHighlight();
+            this.clearBlastHighlight();
             return;
         }
 
-        const turretNode = this.findTurretNodeAt(worldPos);
-        if (turretNode && turretNode !== this._highlightedTurret) {
-            this.clearTurretHighlight();
-            this._highlightedTurret = turretNode;
-            this.highlightTurretChildren(turretNode, true);
-        } else if (!turretNode) {
-            this.clearTurretHighlight();
+        if (this._reinforceMode) {
+            const turretNode = this.findTurretNodeAt(worldPos);
+            if (turretNode && turretNode !== this._highlightedTurret) {
+                this.clearTurretHighlight();
+                this._highlightedTurret = turretNode;
+                this.highlightTurretChildren(turretNode, true);
+            } else if (!turretNode) {
+                this.clearTurretHighlight();
+            }
+        }
+
+        if (this._blastMode) {
+            const blastTarget = this.findMapElementAt(worldPos);
+            if (blastTarget && blastTarget !== this._highlightedBlastTarget) {
+                this.clearBlastHighlight();
+                this._highlightedBlastTarget = blastTarget;
+                this.highlightBlastTarget(blastTarget, true);
+            } else if (!blastTarget) {
+                this.clearBlastHighlight();
+            }
         }
     }
 
@@ -940,13 +985,23 @@ export class AttributeUpgradePanel extends Component {
             return;
         }
 
-        target.destroy();
-        this._blastCount++;
+        // 播放缩放动画后销毁
+        tween(target)
+            .to(0.3, { scale: new Vec3(0, 0, 0) })
+            .call(() => {
+                if (target.isValid) {
+                    target.destroy();
+                }
+            })
+            .start();
 
+        this._blastCount++;
         const remain = BLAST_MAX_COUNT - this._blastCount;
 
+        // 自动退出爆破模式
+        this.exitBlastMode();
+
         if (this._blastCount >= BLAST_MAX_COUNT) {
-            this.exitBlastMode();
             if (this.blastActionBtn) {
                 this.blastActionBtn.active = false;
             }
@@ -954,6 +1009,10 @@ export class AttributeUpgradePanel extends Component {
         } else {
             ReinforcementNotice.show(`已拆除${this._blastCount}个地图元素（剩余${remain}次）`);
         }
+
+        // 启动冷却
+        this._blastCooldownEndTime = Date.now() + BLAST_COOLDOWN_MS;
+        this.startBlastCooldownUI();
     }
 
     /** 查找点击位置的 MapElement（含 MapObstacle 组件的节点） */
@@ -976,6 +1035,94 @@ export class AttributeUpgradePanel extends Component {
             if (found) return found;
         }
         return null;
+    }
+
+    // ---- 爆破悬停高亮 ----
+
+    /** 高亮/取消高亮爆破目标为红色 */
+    private highlightBlastTarget(targetNode: Node, highlight: boolean) {
+        if (highlight) {
+            this._blastTargetOriginalColors.clear();
+            this.collectBlastTargetColors(targetNode, BLAST_HOVER_COLOR);
+        } else {
+            this.restoreBlastTargetColors();
+        }
+    }
+
+    private collectBlastTargetColors(node: Node, color: Color) {
+        const sprite = node.getComponent(Sprite);
+        if (sprite) {
+            this._blastTargetOriginalColors.set(node, sprite.color.clone());
+            sprite.color = color;
+        }
+        for (const child of node.children) {
+            this.collectBlastTargetColors(child, color);
+        }
+    }
+
+    private restoreBlastTargetColors() {
+        for (const [node, color] of this._blastTargetOriginalColors) {
+            if (node && node.isValid) {
+                const sprite = node.getComponent(Sprite);
+                if (sprite) {
+                    sprite.color = color;
+                }
+            }
+        }
+        this._blastTargetOriginalColors.clear();
+    }
+
+    /** 清除爆破悬停高亮 */
+    private clearBlastHighlight() {
+        if (this._highlightedBlastTarget) {
+            this.restoreBlastTargetColors();
+            this._highlightedBlastTarget = null;
+        }
+    }
+
+    // ---- 爆破冷却 ----
+
+    /** 启动冷却 UI 更新（每1秒检查一次） */
+    private startBlastCooldownUI() {
+        // 保存按钮原始颜色
+        if (this.blastActionBtn && !this._blastBtnOriginalColor) {
+            const sprite = this.blastActionBtn.getComponent(Sprite);
+            if (sprite) {
+                this._blastBtnOriginalColor = sprite.color.clone();
+            }
+        }
+        this.updateBlastCooldownUI();
+        this.schedule(this.updateBlastCooldownUI, 1);
+    }
+
+    /** 更新爆破按钮冷却状态 */
+    private updateBlastCooldownUI() {
+        if (!this.blastActionBtn) return;
+
+        const now = Date.now();
+        const remaining = this._blastCooldownEndTime - now;
+
+        if (remaining <= 0) {
+            // 冷却结束，恢复默认颜色
+            this.restoreBlastBtnColor();
+            this.unschedule(this.updateBlastCooldownUI);
+            return;
+        }
+
+        // 冷却中，按钮变灰
+        const sprite = this.blastActionBtn.getComponent(Sprite);
+        if (sprite) {
+            sprite.color = LOCKED_COLOR;
+        }
+    }
+
+    /** 恢复 blastActionBtn 原始颜色 */
+    private restoreBlastBtnColor() {
+        if (!this.blastActionBtn || !this._blastBtnOriginalColor) return;
+        const sprite = this.blastActionBtn.getComponent(Sprite);
+        if (sprite) {
+            sprite.color = this._blastBtnOriginalColor;
+        }
     }
 
     // ==================== 刷新 ====================
@@ -1158,6 +1305,11 @@ export class AttributeUpgradePanel extends Component {
         // 重置爆破计数和强化记录
         this._blastCount = 0;
         this._reinforcedTurretIds.clear();
+
+        // 重置爆破冷却
+        this._blastCooldownEndTime = 0;
+        this.unschedule(this.updateBlastCooldownUI);
+        this.restoreBlastBtnColor();
 
         // 关闭确认面板
         this.closeConfirmPanel();
