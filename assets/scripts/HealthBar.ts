@@ -10,7 +10,6 @@ import {
     UITransform,
     Vec3,
     view,
-    warn,
 } from 'cc';
 import { BaseSystem } from './BaseSystem';
 
@@ -74,19 +73,13 @@ export class HealthBar extends Component {
 
     /** 组件启动时，若跟随目标是 Base，则直接进入战斗模式显示血量 */
     start() {
-        warn(`[HealthBar] start() called. followTarget=${this.followTarget?.name ?? 'null'}, worldCamera=${this.worldCamera ? 'set' : 'null'}, node.active=${this.node.active}, parent=${this.node.parent?.name ?? 'null'}`);
         if (this.followTarget?.name === 'Base') {
-            warn(`[HealthBar] Follow target is Base, entering combat mode`);
             this._started = true;
             this._mode = HealthBarMode.COMBAT;
             this._isVisible = true;
             this.showVisuals();
-        } else {
-            warn(`[HealthBar] Follow target is not Base, _started=${this._started}`);
         }
     }
-
-    private _firstUpdateLogged = false;
 
     /** 启动建造进度 */
     public startBuild(buildTime?: number) {
@@ -134,14 +127,6 @@ export class HealthBar extends Component {
         if (this.followTarget && this.followTarget.isValid && this.worldCamera
             && this.node.parent?.name !== 'Canvas') {
             const worldPos = this.followTarget.worldPosition;
-
-            if (!this._firstUpdateLogged) {
-                this._firstUpdateLogged = true;
-                warn(`[HealthBar] First update frame. followTarget=${this.followTarget.name}, ` +
-                    `worldPos=(${worldPos.x.toFixed(1)}, ${worldPos.y.toFixed(1)}), ` +
-                    `_started=${this._started}, node.active=${this.node.active}, ` +
-                    `node.position=(${this.node.position.x.toFixed(1)}, ${this.node.position.y.toFixed(1)})`);
-            }
             const screenPos = this.worldCamera.worldToScreen(worldPos);
 
             const canvas = this.node.parent;
@@ -278,17 +263,17 @@ export class HealthBar extends Component {
     }
 
     private showVisuals() {
-        if (this.backgroundSprite?.isValid) this.backgroundSprite.node.active = true;
-        if (this.fillSprite?.isValid) this.fillSprite.node.active = true;
-        if (this.borderSprite?.isValid) this.borderSprite.node.active = true;
-        if (this.titleLabel?.isValid) this.titleLabel.node.active = true;
+        if (this.backgroundSprite && this.backgroundSprite.node) this.backgroundSprite.node.active = true;
+        if (this.fillSprite && this.fillSprite.node) this.fillSprite.node.active = true;
+        if (this.borderSprite && this.borderSprite.node) this.borderSprite.node.active = true;
+        if (this.titleLabel && this.titleLabel.node) this.titleLabel.node.active = true;
     }
 
     private hideVisuals() {
-        if (this.backgroundSprite?.isValid) this.backgroundSprite.node.active = false;
-        if (this.fillSprite?.isValid) this.fillSprite.node.active = false;
-        if (this.borderSprite?.isValid) this.borderSprite.node.active = false;
-        if (this.titleLabel?.isValid) this.titleLabel.node.active = false;
+        if (this.backgroundSprite && this.backgroundSprite.node) this.backgroundSprite.node.active = false;
+        if (this.fillSprite && this.fillSprite.node) this.fillSprite.node.active = false;
+        if (this.borderSprite && this.borderSprite.node) this.borderSprite.node.active = false;
+        if (this.titleLabel && this.titleLabel.node) this.titleLabel.node.active = false;
     }
 }
 
