@@ -458,12 +458,14 @@ export class TurretPlacementManager extends Component {
         if (this._justActivatedFrame || event.getButton() !== 0) return;
         if (!this._placementValid) return;
 
-        // 资源检查（RemoteMaterial 感知）
-        if (!PlayerData.canAffordWithWarehouse(this.currentCost.wood, this.currentCost.copper, this.currentCost.iron, this.currentCost.money)) {
-            return;
+        // plant/container 模式：资源已在面板点击时扣除，此处跳过
+        // turret 模式：资源在此处扣除
+        if (this.buildType === 'turret') {
+            if (!PlayerData.canAffordWithWarehouse(this.currentCost.wood, this.currentCost.copper, this.currentCost.iron, this.currentCost.money)) {
+                return;
+            }
+            PlayerData.spendWithWarehouse(this.currentCost.wood, this.currentCost.copper, this.currentCost.iron, this.currentCost.money);
         }
-        // 扣除资源（RemoteMaterial 感知：优先仓库再背包）
-        PlayerData.spendWithWarehouse(this.currentCost.wood, this.currentCost.copper, this.currentCost.iron, this.currentCost.money);
         this.finalizePlacement();
     }
 
