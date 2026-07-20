@@ -4,6 +4,7 @@ import {
     CCFloat,
     Color,
     Component,
+    Label,
     Node,
     Sprite,
     UITransform,
@@ -39,6 +40,12 @@ export class HealthBar extends Component {
 
     @property({ type: Sprite, tooltip: '填充条（FILLED / HORIZONTAL）' })
     fillSprite: Sprite | null = null;
+
+    @property({ type: Sprite, tooltip: '血条描边框（可选）' })
+    borderSprite: Sprite | null = null;
+
+    @property({ type: Label, tooltip: '标题文本（可选，如"基地"）' })
+    titleLabel: Label | null = null;
 
     @property({ type: Node, tooltip: '跟随目标节点（设为基座节点后血条将跟随其世界坐标显示在 Canvas 上）' })
     followTarget: Node | null = null;
@@ -273,11 +280,15 @@ export class HealthBar extends Component {
     private showVisuals() {
         if (this.backgroundSprite) this.backgroundSprite.node.active = true;
         if (this.fillSprite) this.fillSprite.node.active = true;
+        if (this.borderSprite) this.borderSprite.node.active = true;
+        if (this.titleLabel) this.titleLabel.node.active = true;
     }
 
     private hideVisuals() {
         if (this.backgroundSprite) this.backgroundSprite.node.active = false;
         if (this.fillSprite) this.fillSprite.node.active = false;
+        if (this.borderSprite) this.borderSprite.node.active = false;
+        if (this.titleLabel) this.titleLabel.node.active = false;
     }
 }
 
