@@ -34,8 +34,9 @@ const BLOCK_PAIRS: [ColliderGroup, ColliderGroup][] = [
     [ColliderGroup.Zombie, ColliderGroup.Wall],
     [ColliderGroup.Zombie, ColliderGroup.Zombie],
     [ColliderGroup.Player, ColliderGroup.Zombie],
-    // 放置时互阻：资源不重叠、炮塔不重叠、资源与炮塔不重叠
+    // 放置时互阻：资源不重叠、资源不与建筑重叠、炮塔不重叠、资源与炮塔不重叠
     [ColliderGroup.Resource, ColliderGroup.Resource],
+    [ColliderGroup.Resource, ColliderGroup.Wall],
     [ColliderGroup.Turret, ColliderGroup.Turret],
     [ColliderGroup.Resource, ColliderGroup.Turret],
 ];

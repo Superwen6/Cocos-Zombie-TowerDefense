@@ -68,7 +68,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "base",
+    "_name": "Turnet_foundation",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
@@ -207,7 +207,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "turret",
+    "_name": "Turnet",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
@@ -772,6 +772,7 @@
     "colliderHalfH": 20,
     "enableDualShot": false,
     "dualShotSpread": 15,
+    "homingBullet": true,
     "_id": ""
   },
   {
