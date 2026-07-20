@@ -2,6 +2,7 @@ import { _decorator, Button, Camera, Color, Component, EventMouse, EventTouch, f
 import { PlayerState } from './PlayerState';
 import { PlayerData } from './PlayerData';
 import { TurretPlacementManager } from './TurretPlacementManager';
+import { ReinforcementNotice } from './ReinforcementNotice';
 
 const { ccclass, property } = _decorator;
 
@@ -61,7 +62,7 @@ const BUTTON_DESCRIPTIONS: Record<string, string> = {
     Stealth: 'LV1，降低僵尸感知范围',
     RemoteRepair: 'LV1，远程维修建筑',
     RemoteMaterial: 'LV1，远程用材料维修',
-    TurretReinforcement: 'LV1，强化炮塔属性',
+    TurretReinforcement: 'LV1，强化炮塔属性 (消耗：6木 3铜 1铁)',
     MaterialSave: 'LV3，全局节省材料',
     PowerSaving: 'LV3，全局节省电力',
     Blast: 'LV1，爆破拆除障碍物',
@@ -530,7 +531,7 @@ export class AttributeUpgradePanel extends Component {
         if (data.woodCount < REINFORCE_COST.wood
             || data.copperCount < REINFORCE_COST.copper
             || data.ironCount < REINFORCE_COST.iron) {
-            this.showWarning(`材料不足！需要 ${REINFORCE_COST.wood}木 ${REINFORCE_COST.copper}铜 ${REINFORCE_COST.iron}铁`);
+            ReinforcementNotice.show(`材料不足！需要 ${REINFORCE_COST.wood}木 ${REINFORCE_COST.copper}铜 ${REINFORCE_COST.iron}铁`);
             return false;
         }
         data.addResource('wood', -REINFORCE_COST.wood);
@@ -623,7 +624,7 @@ export class AttributeUpgradePanel extends Component {
             const btn = this.reinforceActionBtn.getComponent(Button);
             if (btn) btn.interactable = false;
         }
-        warn('[AttributeUpgradePanel] 进入炮塔强化模式，点击游戏中的炮塔进行强化，右键或ESC取消');
+        ReinforcementNotice.show('进入炮塔强化模式，点击游戏中的炮塔进行强化，右键或ESC取消');
     }
 
     private exitReinforceMode() {
@@ -858,7 +859,7 @@ export class AttributeUpgradePanel extends Component {
     private tryReinforceTurret(worldPos: Vec3) {
         const turret = this.findTurretAt(worldPos);
         if (!turret) {
-            warn('[AttributeUpgradePanel] 未找到炮塔，请点击炮塔');
+            ReinforcementNotice.show('未找到炮塔，请点击炮塔');
             return;
         }
 
@@ -882,7 +883,7 @@ export class AttributeUpgradePanel extends Component {
         this.refreshAffectedButtons('TurretReinforcement');
 
         this.exitReinforceMode();
-        warn('[AttributeUpgradePanel] 炮塔强化完成！范围/攻速/攻击 ×1.5');
+        ReinforcementNotice.show('炮塔强化完成！范围/攻速/攻击 ×1.5');
     }
 
     /** 对炮塔的 Turnet/Turnet_foundation 子节点永久着色 */

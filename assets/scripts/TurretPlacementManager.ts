@@ -13,6 +13,7 @@ import { NewTurretPanelUI } from './NewTurretPanelUI';
 import { PlantGenerator } from './PlantGenerator';
 import { Container } from './Container';
 import { MapObstacle } from './MapObstacle';
+import { ReinforcementNotice } from './ReinforcementNotice';
 import { CollisionWorld, ColliderGroup } from './CollisionWorld';
 import { YSortManager } from './YSortManager';
 import { HealthBar } from './HealthBar';
@@ -173,11 +174,11 @@ export class TurretPlacementManager extends Component {
 
     public startPlacement(cost: TurretPlacementCost, panel: TurretBuildPanelUI | null = null) {
         if (this._isBuilding) {
-            warn('[TurretPlacementManager] 正在建造中，无法开始新放置');
+            ReinforcementNotice.show('正在建造中，无法开始新放置');
             return;
         }
         if (BaseSystem.instance?.isPowerOutage) {
-            warn('[TurretPlacementManager] 电力不足，无法建造炮塔');
+            ReinforcementNotice.show('电力不足，无法建造炮塔');
             return;
         }
         const prefab = this.turretPrefabs[this.currentTurretIndex];
@@ -195,11 +196,11 @@ export class TurretPlacementManager extends Component {
     /** 进入放置模式（使用指定预制体，供 NewTurretPanelUI 调用） */
     public startPlacementWithPrefab(prefab: Prefab, cost: TurretPlacementCost, panel: NewTurretPanelUI) {
         if (this._isBuilding) {
-            warn('[TurretPlacementManager] 正在建造中，无法开始新放置');
+            ReinforcementNotice.show('正在建造中，无法开始新放置');
             return;
         }
         if (BaseSystem.instance?.isPowerOutage) {
-            warn('[TurretPlacementManager] 电力不足，无法建造炮塔');
+            ReinforcementNotice.show('电力不足，无法建造炮塔');
             return;
         }
         if (!prefab) {
@@ -225,7 +226,7 @@ export class TurretPlacementManager extends Component {
      */
     public startPlantPlacementByNode(targetNode: Node, ghostPrefab: Prefab, cost: TurretPlacementCost, plantId: number) {
         if (this._isBuilding) {
-            warn('[TurretPlacementManager] 正在建造中，无法开始新放置');
+            ReinforcementNotice.show('正在建造中，无法开始新放置');
             return;
         }
         if (!targetNode) {
@@ -282,11 +283,11 @@ export class TurretPlacementManager extends Component {
      */
     public startContainerPlacement(prefab: Prefab, cost: TurretPlacementCost) {
         if (this._isBuilding) {
-            warn('[TurretPlacementManager] 正在建造中，无法开始新放置');
+            ReinforcementNotice.show('正在建造中，无法开始新放置');
             return;
         }
         if (BaseSystem.instance?.isPowerOutage) {
-            warn('[TurretPlacementManager] 电力不足，无法建造集装箱');
+            ReinforcementNotice.show('电力不足，无法建造集装箱');
             return;
         }
         if (!prefab) {
