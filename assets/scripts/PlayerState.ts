@@ -1,5 +1,6 @@
 import { _decorator, Component, Node, Vec3, warn } from 'cc';
 import { BaseSystem } from './BaseSystem';
+import { ReinforcementNotice } from './ReinforcementNotice';
 
 const { ccclass, property } = _decorator;
 
@@ -199,6 +200,9 @@ export class PlayerState extends Component {
         const prevExhausted = this._wasExhausted;
 
         this.updateFatigue(dt, distance, safeRadius);
+        if (!prevExhausted && this.isExhausted) {
+            ReinforcementNotice.show('疲劳度已满，每秒扣除生命值，请返回基地安全区恢复');
+        }
         this.updateBaseHpRegen(dt, distance, safeRadius);
 
         const currMode = this.getFatigueMode(distance, safeRadius);
