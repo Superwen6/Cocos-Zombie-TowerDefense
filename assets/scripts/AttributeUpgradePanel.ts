@@ -51,6 +51,9 @@ const AFFECTED_BUTTONS: Record<string, string[]> = {
 /** 炮塔强化消耗 */
 const REINFORCE_COST = { wood: 6, copper: 3, iron: 1 };
 
+/** 爆破最大次数 */
+const BLAST_MAX_COUNT = 10;
+
 /** 按钮悬停描述映射 */
 const BUTTON_DESCRIPTIONS: Record<string, string> = {
     Walkspeed: 'LV2，移动速度加快',
@@ -65,7 +68,7 @@ const BUTTON_DESCRIPTIONS: Record<string, string> = {
     TurretReinforcement: 'LV1，强化炮塔属性 (消耗：6木 3铜 1铁)',
     MaterialSave: 'LV3，全局节省材料',
     PowerSaving: 'LV3，全局节省电力',
-    Blast: 'LV1，爆破拆除障碍物',
+    Blast: 'LV1，爆破拆除地图元素（最多10次）',
     AttackIncrease: 'LV3，提升攻击力',
     Pistol: 'LV1，切换手枪模式',
     Micromsg: 'LV1，切换微型冲锋枪',
@@ -228,6 +231,12 @@ export class AttributeUpgradePanel extends Component {
     /** 强化模式悬停高亮 */
     private _highlightedTurret: Node | null = null;
     private _turretOriginalColors: Map<Node, Color> = new Map();
+
+    /** 已强化过的炮塔 UUID 集合（每个炮塔只可强化一次） */
+    private _reinforcedTurretIds: Set<string> = new Set();
+
+    /** 已爆破次数 */
+    private _blastCount = 0;
 
     /** onLoad 比 start 更早执行，确保第一帧前隐藏按钮 */
     onLoad() {
@@ -641,6 +650,12 @@ export class AttributeUpgradePanel extends Component {
     private enterBlastMode() {
         if (this.getLevel('Blast') < 1) return;
 
+        if (this._blastCount >= BLAST_MAX_COUNT) {
+            if (this.blastActionBtn) this.blastActionBtn.active = false;
+            ReinforcementNotice.show(`爆破次数已用完（${BLAST_MAX_COUNT}/${BLAST_MAX_COUNT}）`);
+            return;
+        }
+
         this.exitAllModes();
         this._blastMode = true;
         this.setupModeInput();
@@ -649,7 +664,8 @@ export class AttributeUpgradePanel extends Component {
             const btn = this.blastActionBtn.getComponent(Button);
             if (btn) btn.interactable = false;
         }
-        warn('[AttributeUpgradePanel] 进入爆破模式，点击 SchoolBus 进行拆除，右键或ESC取消');
+        const remain = BLAST_MAX_COUNT - this._blastCount;
+        ReinforcementNotice.show(`进入爆破模式，点击地图元素进行拆除（剩余${remain}次），右键或ESC取消`);
     }
 
     private exitBlastMode() {
@@ -863,6 +879,13 @@ export class AttributeUpgradePanel extends Component {
             return;
         }
 
+        // 检查是否已强化过
+        const nodeId = turret.node.uuid;
+        if (this._reinforcedTurretIds.has(nodeId)) {
+            ReinforcementNotice.show('该炮塔已强化过，请选择其他炮塔');
+            return;
+        }
+
         // 消耗材料（确认强化后才扣除）
         if (!this.consumeReinforceMaterials()) return;
 
@@ -872,15 +895,11 @@ export class AttributeUpgradePanel extends Component {
         t.attackInterval = (t.attackInterval ?? 0.5) * (1 / 1.5);
         t.damage = (t.damage ?? 10) * 1.5;
 
+        // 记录已强化
+        this._reinforcedTurretIds.add(nodeId);
+
         // 永久着色：对 Turnet 和 Turnet_foundation 子节点应用 #D99AFD
         this.applyPermanentColorToTurretChildren(turret.node);
-
-        // 标记升级完成
-        const state = this._upgradeStates.get('TurretReinforcement');
-        if (state) {
-            state.level = 1;
-        }
-        this.refreshAffectedButtons('TurretReinforcement');
 
         this.exitReinforceMode();
         ReinforcementNotice.show('炮塔强化完成！范围/攻速/攻击 ×1.5');
@@ -915,40 +934,45 @@ export class AttributeUpgradePanel extends Component {
 
     /** 尝试爆破目标 */
     private tryBlastTarget(worldPos: Vec3) {
-        const target = this.findSchoolBusAt(worldPos);
+        const target = this.findMapElementAt(worldPos);
         if (!target) {
-            warn('[AttributeUpgradePanel] 未找到 SchoolBus，请点击 SchoolBus');
+            ReinforcementNotice.show('未找到可爆破的地图元素，请点击地图元素');
             return;
         }
 
         target.destroy();
+        this._blastCount++;
 
-        const state = this._upgradeStates.get('Blast');
-        if (state) {
-            state.level = 1;
+        const remain = BLAST_MAX_COUNT - this._blastCount;
+
+        if (this._blastCount >= BLAST_MAX_COUNT) {
+            this.exitBlastMode();
+            if (this.blastActionBtn) {
+                this.blastActionBtn.active = false;
+            }
+            ReinforcementNotice.show(`爆破次数已用完！共拆除${BLAST_MAX_COUNT}个地图元素`);
+        } else {
+            ReinforcementNotice.show(`已拆除${this._blastCount}个地图元素（剩余${remain}次）`);
         }
-        this.refreshAffectedButtons('Blast');
-
-        this.exitBlastMode();
-        warn('[AttributeUpgradePanel] SchoolBus 已拆除！');
     }
 
-    /** 查找点击位置的 SchoolBus */
-    private findSchoolBusAt(worldPos: Vec3): Node | null {
+    /** 查找点击位置的 MapElement（含 MapObstacle 组件的节点） */
+    private findMapElementAt(worldPos: Vec3): Node | null {
         const scene = this.node.scene;
         if (!scene) return null;
-        return this.findSchoolBusRecursive(scene, worldPos, 80);
+        return this.findMapElementRecursive(scene, worldPos, 80);
     }
 
-    private findSchoolBusRecursive(root: Node, worldPos: Vec3, threshold: number): Node | null {
-        if (root.name.includes('Bus') || root.name.toLowerCase().includes('schoolbus')) {
+    private findMapElementRecursive(root: Node, worldPos: Vec3, threshold: number): Node | null {
+        const obstacle = root.getComponent('MapObstacle') as Component | null;
+        if (obstacle && root.active) {
             const dist = Vec3.distance(root.worldPosition, worldPos);
             if (dist <= threshold) {
                 return root;
             }
         }
         for (const child of root.children) {
-            const found = this.findSchoolBusRecursive(child, worldPos, threshold);
+            const found = this.findMapElementRecursive(child, worldPos, threshold);
             if (found) return found;
         }
         return null;
@@ -968,7 +992,11 @@ export class AttributeUpgradePanel extends Component {
     /** 按钮悬停：显示描述 */
     private onButtonHover(name: string) {
         if (!this.attributeDescribeLabel) return;
-        const desc = BUTTON_DESCRIPTIONS[name];
+        let desc = BUTTON_DESCRIPTIONS[name];
+        if (name === 'Blast') {
+            const remain = BLAST_MAX_COUNT - this._blastCount;
+            desc = `LV1，爆破拆除地图元素（剩余${remain}/${BLAST_MAX_COUNT}次）`;
+        }
         if (desc) {
             this.attributeDescribeLabel.string = desc;
             this.attributeDescribeLabel.node.active = true;
@@ -1126,6 +1154,10 @@ export class AttributeUpgradePanel extends Component {
         if (this.reinforceActionBtn) this.reinforceActionBtn.active = false;
         if (this.blastActionBtn) this.blastActionBtn.active = false;
         if (this.weaponActionBtn) this.weaponActionBtn.active = false;
+
+        // 重置爆破计数和强化记录
+        this._blastCount = 0;
+        this._reinforcedTurretIds.clear();
 
         // 关闭确认面板
         this.closeConfirmPanel();
