@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Vec3, warn } from 'cc';
+import { _decorator, Color, Component, Node, Sprite, Vec3, warn } from 'cc';
 import { BaseSystem } from './BaseSystem';
 import { ReinforcementNotice } from './ReinforcementNotice';
 
@@ -146,6 +146,9 @@ export class PlayerState extends Component {
     @property({ type: Node, tooltip: '基地节点，不填则按名称在场景中查找' })
     baseNode: Node | null = null;
 
+    @property({ type: Sprite, tooltip: '玩家身体Sprite，用于受击闪红效果' })
+    playerSprite: Sprite | null = null;
+
     @property({ tooltip: '每隔多少秒打印一次状态日志' })
     statusLogInterval = STATUS_LOG_INTERVAL;
 
@@ -155,6 +158,8 @@ export class PlayerState extends Component {
     private _wasExhausted = false;
     private _baseMissingLogged = false;
     private _deathLogged = false;
+    private _flashTimer = 0;
+    private _flashDuration = 0.15;
 
     onLoad() {
         if (PlayerState.instance && PlayerState.instance !== this) {
@@ -182,6 +187,16 @@ export class PlayerState extends Component {
     }
 
     update(dt: number) {
+        // 受击闪红渐变恢复
+        if (this._flashTimer > 0 && this.playerSprite) {
+            this._flashTimer -= dt;
+            const t = 1 - Math.max(0, this._flashTimer) / this._flashDuration;
+            const r = 255;
+            const g = Math.round(150 + 105 * t);
+            const b = Math.round(150 + 105 * t);
+            this.playerSprite.color = new Color(r, g, b, 255);
+        }
+
         if (this.hp <= 0) {
             return;
         }
@@ -260,6 +275,12 @@ export class PlayerState extends Component {
         }
 
         this.hp = Math.max(0, this.hp - amount);
+
+        // 受击闪红
+        if (this.playerSprite) {
+            this.playerSprite.color = new Color(255, 150, 150, 255);
+            this._flashTimer = this._flashDuration;
+        }
 
         if (this.hp <= 0) {
             this.onPlayerDeath();
