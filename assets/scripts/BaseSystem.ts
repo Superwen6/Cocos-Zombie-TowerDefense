@@ -5,6 +5,7 @@ import { PlantGenerator } from './PlantGenerator';
 import { Turret } from './Turret';
 import { GlobalContainerStorage } from './GlobalContainerStorage';
 import { HealthBar } from './HealthBar';
+import { ReinforcementNotice } from './ReinforcementNotice';
 
 const { ccclass, property } = _decorator;
 
@@ -115,6 +116,9 @@ export class BaseSystem extends Component {
     private _upgradeTimer = 0;
     /** 升级血条组件（Base 节点下的子节点，挂载 HealthBar.ts） */
     private _upgradeHealthBar: HealthBar | null = null;
+
+    /** 是否已显示过首次受攻击提示 */
+    private _hasShownAttackWarning = false;
 
     @property({ type: HealthBar, tooltip: 'Canvas上的Base血条（用于显示升级建造进度和血量）' })
     canvasHealthBar: HealthBar | null = null;
@@ -399,6 +403,11 @@ export class BaseSystem extends Component {
             return;
         }
         this.baseHp = Math.max(0, this.baseHp - amount);
+
+        if (!this._hasShownAttackWarning) {
+            this._hasShownAttackWarning = true;
+            ReinforcementNotice.show('基地正在遭受攻击，在基地或其他建筑物附近点击即可维修');
+        }
     }
 
     // ── 电力系统 ──
