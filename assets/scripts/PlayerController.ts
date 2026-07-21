@@ -130,6 +130,7 @@ export class PlayerController extends Component {
 
     // 诊断日志节流
     private _freeCamLogTimer = 0;
+    private _freeCamKeyLogTimer = 0;
 
     // 武器模式射击计时
     private _weaponFireTimer = 0;
@@ -231,9 +232,12 @@ export class PlayerController extends Component {
 
         if (!this.playerState?.isAlive) {
             this._freeCamLogTimer -= dt;
+            this._freeCamKeyLogTimer -= dt;
             if (this._freeCamLogTimer <= 0) {
                 this._freeCamLogTimer = 2.0;
-                console.log('[FreeCam] 进入死亡自由视角模式, canvasNode=', !!this.canvasNode, 'keyPressed=', Object.keys(this.keyPressedMap).filter(k => this.keyPressedMap[Number(k)]).join(','));
+                this._freeCamKeyLogTimer = 2.0;
+                const pressed = [KeyCode.KEY_W, KeyCode.KEY_A, KeyCode.KEY_S, KeyCode.KEY_D].filter(k => this.keyPressedMap[k]).map(k => KeyCode[k]).join(',');
+                console.log(`[FreeCam] 死亡自由视角模式, canvasNode=${!!this.canvasNode}, 按键: ${pressed || '无'}`);
             }
             this.updateCameraFreeMove(dt);
             return;
@@ -302,10 +306,16 @@ export class PlayerController extends Component {
 
     private onKeyDown(event: EventKeyboard) {
         this.keyPressedMap[event.keyCode] = true;
+        if (this._freeCamKeyLogTimer <= 0) {
+            console.log(`[FreeCam] onKeyDown keyCode=${event.keyCode} key=${KeyCode[event.keyCode]}`);
+        }
     }
 
     private onKeyUp(event: EventKeyboard) {
         this.keyPressedMap[event.keyCode] = false;
+        if (this._freeCamKeyLogTimer <= 0) {
+            console.log(`[FreeCam] onKeyUp keyCode=${event.keyCode} key=${KeyCode[event.keyCode]}`);
+        }
     }
 
     private updateMoveDirectionFromKeys() {
