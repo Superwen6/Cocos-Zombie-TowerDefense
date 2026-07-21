@@ -31,6 +31,7 @@ import { Container } from './Container';
 import { HealthBar } from './HealthBar';
 import { Bullet } from './Bullet';
 import { CollisionWorld, Collider2D, ColliderGroup } from './CollisionWorld';
+import { CameraFollow } from './CameraFollow';
 
 const { ccclass, property } = _decorator;
 
@@ -128,10 +129,8 @@ export class PlayerController extends Component {
     private _deathFrameIndex = 0;
     private _deathFrameTimer = 0;
 
-    // 诊断日志节流
-    private _freeCamLogTimer = 0;
-    private _freeCamKeyLogTimer = 0;
-    private _camMoveFrameCount = 0;
+    // CameraFollow 组件引用，用于死亡时禁用/复活时启用
+    private _cameraFollow: CameraFollow | null = null;
 
     // 武器模式射击计时
     private _weaponFireTimer = 0;
@@ -163,7 +162,10 @@ export class PlayerController extends Component {
                 ?? this.node.scene?.getChildByName('GameWorld')?.getChildByName('WorldCamera');
             if (cameraNode) {
                 this.worldCamera = cameraNode.getComponent(Camera);
+                this._cameraFollow = cameraNode.getComponent(CameraFollow);
             }
+        } else {
+            this._cameraFollow = this.worldCamera.node.getComponent(CameraFollow);
         }
 
         if (this.canvasNode) {
@@ -232,14 +234,6 @@ export class PlayerController extends Component {
         }
 
         if (!this.playerState?.isAlive) {
-            this._freeCamLogTimer -= dt;
-            this._freeCamKeyLogTimer -= dt;
-            if (this._freeCamLogTimer <= 0) {
-                this._freeCamLogTimer = 2.0;
-                this._freeCamKeyLogTimer = 2.0;
-                const pressed = [KeyCode.KEY_W, KeyCode.KEY_A, KeyCode.KEY_S, KeyCode.KEY_D].filter(k => this.keyPressedMap[k]).map(k => KeyCode[k]).join(',');
-                console.log(`[FreeCam] 死亡自由视角模式, canvasNode=${!!this.canvasNode}, 按键: ${pressed || '无'}`);
-            }
             this.updateCameraFreeMove(dt);
             return;
         }
@@ -288,9 +282,6 @@ export class PlayerController extends Component {
 
         // 死亡后不跟随玩家，允许自由视角
         if (!this.playerState?.isAlive) {
-            if (this._camMoveFrameCount <= 5) {
-                console.log(`[FreeCam] lateUpdate跳过跟随, canvasPos=(${this.canvasNode.position.x.toFixed(1)},${this.canvasNode.position.y.toFixed(1)})`);
-            }
             return;
         }
 
@@ -310,16 +301,10 @@ export class PlayerController extends Component {
 
     private onKeyDown(event: EventKeyboard) {
         this.keyPressedMap[event.keyCode] = true;
-        if (this._freeCamKeyLogTimer <= 0) {
-            console.log(`[FreeCam] onKeyDown keyCode=${event.keyCode} key=${KeyCode[event.keyCode]}`);
-        }
     }
 
     private onKeyUp(event: EventKeyboard) {
         this.keyPressedMap[event.keyCode] = false;
-        if (this._freeCamKeyLogTimer <= 0) {
-            console.log(`[FreeCam] onKeyUp keyCode=${event.keyCode} key=${KeyCode[event.keyCode]}`);
-        }
     }
 
     private updateMoveDirectionFromKeys() {
@@ -392,64 +377,43 @@ export class PlayerController extends Component {
         this.playWalkAnimation(this._moveDir.x, this._moveDir.y);
     }
 
-    /** 死亡后自由视角移动（WASD移动摄像机Canvas） */
+    /** 死亡后自由视角移动（WASD移动摄像机） */
     private updateCameraFreeMove(dt: number) {
-        if (!this.canvasNode) {
-            if (this._freeCamLogTimer <= 0) console.log('[FreeCam] canvasNode为null，无法移动视角');
-            return;
-        }
+        if (!this.worldCamera) return;
 
+        const camNode = this.worldCamera.node;
         const moveDir = new Vec3(0, 0, 0);
         if (this.keyPressedMap[KeyCode.KEY_W] || this.keyPressedMap[KeyCode.ARROW_UP]) {
-            moveDir.y -= 1; // Canvas反方向：摄像机向上 → Canvas向下
-        }
-        if (this.keyPressedMap[KeyCode.KEY_S] || this.keyPressedMap[KeyCode.ARROW_DOWN]) {
             moveDir.y += 1;
         }
+        if (this.keyPressedMap[KeyCode.KEY_S] || this.keyPressedMap[KeyCode.ARROW_DOWN]) {
+            moveDir.y -= 1;
+        }
         if (this.keyPressedMap[KeyCode.KEY_A] || this.keyPressedMap[KeyCode.ARROW_LEFT]) {
-            moveDir.x += 1;
+            moveDir.x -= 1;
         }
         if (this.keyPressedMap[KeyCode.KEY_D] || this.keyPressedMap[KeyCode.ARROW_RIGHT]) {
-            moveDir.x -= 1;
+            moveDir.x += 1;
         }
 
         if (moveDir.x !== 0 || moveDir.y !== 0) {
             moveDir.normalize();
             moveDir.multiplyScalar(this.cameraFreeMoveSpeed * dt);
 
-            const curPos = this.canvasNode.position.clone();
+            const curPos = camNode.position.clone();
             const newX = curPos.x + moveDir.x;
             const newY = curPos.y + moveDir.y;
 
-            this._camMoveFrameCount++;
-            const shouldLog = this._camMoveFrameCount <= 30;
-            if (shouldLog) {
-                console.log(`[FreeCam] 帧${this._camMoveFrameCount} 移动前: (${curPos.x.toFixed(1)},${curPos.y.toFixed(1)}) dir=(${moveDir.x.toFixed(2)},${moveDir.y.toFixed(2)}) dt=${dt.toFixed(4)} speed=${this.cameraFreeMoveSpeed}`);
-            }
+            camNode.setPosition(newX, newY, curPos.z);
 
-            this.canvasNode.setPosition(newX, newY, curPos.z);
-
-            if (shouldLog) {
-                const afterPos = this.canvasNode.position;
-                console.log(`[FreeCam] 帧${this._camMoveFrameCount} setPosition后: (${afterPos.x.toFixed(1)},${afterPos.y.toFixed(1)})`);
-            }
-
-            // 限制视角在地图边界内
-            const uiTransform = this.canvasNode.getComponent(UITransform);
-            const halfW = uiTransform ? uiTransform.width * 0.5 : 640;
-            const halfH = uiTransform ? uiTransform.height * 0.5 : 360;
-
+            // 限制视角在地图边界内（相机相对于GameWorld的局部坐标）
             const ref = this.coordinateReference;
-            if (ref) {
-                const refPos = ref.worldPosition;
-                const canvasPos = this.canvasNode.position;
-                const clampedX = Math.max(-refPos.x - this.mapMaxX + halfW, Math.min(-refPos.x - this.mapMinX + halfW, canvasPos.x));
-                const clampedY = Math.max(-refPos.y - this.mapMaxY + halfH, Math.min(-refPos.y - this.mapMinY + halfH, canvasPos.y));
-                if (clampedX !== canvasPos.x || clampedY !== canvasPos.y) {
-                    if (shouldLog) {
-                        console.log(`[FreeCam] 帧${this._camMoveFrameCount} 边界限制: (${canvasPos.x.toFixed(1)},${canvasPos.y.toFixed(1)}) → (${clampedX.toFixed(1)},${clampedY.toFixed(1)}) refPos=(${refPos.x.toFixed(0)},${refPos.y.toFixed(0)})`);
-                    }
-                    this.canvasNode.setPosition(clampedX, clampedY, canvasPos.z);
+            if (ref && this.node.parent) {
+                const camPos = camNode.position;
+                const clampedX = Math.max(this.mapMinX, Math.min(this.mapMaxX, camPos.x));
+                const clampedY = Math.max(this.mapMinY, Math.min(this.mapMaxY, camPos.y));
+                if (clampedX !== camPos.x || clampedY !== camPos.y) {
+                    camNode.setPosition(clampedX, clampedY, camPos.z);
                 }
             }
         }
@@ -714,6 +678,11 @@ export class PlayerController extends Component {
 
     /** 播放死亡帧动画 */
     playDeathAnimation() {
+        // 禁用 CameraFollow，允许死亡后自由视角移动
+        if (this._cameraFollow) {
+            this._cameraFollow.enabled = false;
+        }
+
         if (!this.bodySprite || this.deathFrames.length === 0) {
             if (this.bodySprite) this.bodySprite.node.active = false;
             return;
@@ -750,6 +719,11 @@ export class PlayerController extends Component {
         this._deathFrameIndex = 0;
         this._deathFrameTimer = 0;
         this.showIdleFrame();
+
+        // 重新启用 CameraFollow，恢复相机跟随玩家
+        if (this._cameraFollow) {
+            this._cameraFollow.enabled = true;
+        }
     }
 
     private showIdleFrame() {
