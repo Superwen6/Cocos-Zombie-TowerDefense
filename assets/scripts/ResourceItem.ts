@@ -1,4 +1,4 @@
-import { _decorator, assetManager, AudioClip, AudioSource, Component, Sprite, warn } from 'cc';
+import { _decorator, assetManager, AudioClip, AudioSource, Component, Node, Sprite, warn } from 'cc';
 import { PlayerData, ResourceType } from './PlayerData';
 import { PlayerState } from './PlayerState';
 import { CollisionWorld, Collider2D, ColliderGroup } from './CollisionWorld';
@@ -93,19 +93,27 @@ export class ResourceItem extends Component {
             PlayerData.instance.addResource(this.resourceType, totalAmount);
         }
 
-        // 采集木材时播放音效（隐藏Sprite避免视觉残留，延迟销毁节点等音效播完）
+        // 采集木材时播放音效（隐藏所有Sprite避免视觉残留，延迟销毁等音效播完）
         if (this.resourceType === 'wood' && ResourceItem._woodAudioClip) {
             const audioSource = this.node.addComponent(AudioSource);
             audioSource.clip = ResourceItem._woodAudioClip;
             audioSource.play();
-            // 隐藏 Sprite 避免视觉残留，但不能 deactivate 节点（否则 AudioSource 会停）
-            const sprite = this.node.getComponent(Sprite);
-            if (sprite) sprite.enabled = false;
+            // 递归隐藏自身及所有子节点的 Sprite，但不能 deactivate 节点（否则 AudioSource 会停）
+            this.hideAllSprites(this.node);
             this.scheduleOnce(() => {
                 if (this.node?.isValid) this.node.destroy();
-            }, 1.0);
+            }, 0.5);
         } else {
             this.node.destroy();
+        }
+    }
+
+    /** 递归隐藏节点及其子节点上的所有 Sprite */
+    private hideAllSprites(node: Node) {
+        const sprite = node.getComponent(Sprite);
+        if (sprite) sprite.enabled = false;
+        for (const child of node.children) {
+            this.hideAllSprites(child);
         }
     }
 }
