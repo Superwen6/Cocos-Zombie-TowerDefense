@@ -26,7 +26,7 @@
         "rawHeight": 720,
         "borderTop": 0,
         "borderBottom": 0,
-        "borderLeft": 0,
+        "borderLeft": 8,
         "borderRight": 0,
         "packable": true,
         "pixelsToUnit": 100,
@@ -44,7 +44,7 @@
         "isUuid": true,
         "imageUuidOrDatabaseUri": "1d7e0234-ab5c-4c0a-9c02-a06f696cdd9a@6c48a",
         "atlasUuid": "bacbd6cc-6817-44d6-8a38-0649c067b245",
-        "trimType": "auto"
+        "trimType": "custom"
       },
       "ver": "1.0.12",
       "imported": true,
