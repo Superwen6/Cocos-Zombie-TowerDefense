@@ -2,7 +2,7 @@
   "ver": "1.0.27",
   "importer": "image",
   "imported": true,
-  "uuid": "1d7e0234-ab5c-4c0a-9c02-a06f696cdd9a",
+  "uuid": "d29853a3-030c-4b64-866f-c50e2349746e",
   "files": [
     ".json",
     ".png"
@@ -10,14 +10,14 @@
   "subMetas": {
     "6c48a": {
       "importer": "texture",
-      "uuid": "1d7e0234-ab5c-4c0a-9c02-a06f696cdd9a@6c48a",
-      "displayName": "角色痛苦倒地动画生成-frames",
+      "uuid": "d29853a3-030c-4b64-866f-c50e2349746e@6c48a",
+      "displayName": "playerfalldown",
       "id": "6c48a",
       "name": "texture",
       "userData": {
         "wrapModeS": "clamp-to-edge",
         "wrapModeT": "clamp-to-edge",
-        "imageUuidOrDatabaseUri": "1d7e0234-ab5c-4c0a-9c02-a06f696cdd9a",
+        "imageUuidOrDatabaseUri": "d29853a3-030c-4b64-866f-c50e2349746e",
         "isUuid": true,
         "visible": false,
         "minfilter": "linear",
@@ -34,21 +34,21 @@
     },
     "f9941": {
       "importer": "sprite-frame",
-      "uuid": "1d7e0234-ab5c-4c0a-9c02-a06f696cdd9a@f9941",
-      "displayName": "角色痛苦倒地动画生成-frames",
+      "uuid": "d29853a3-030c-4b64-866f-c50e2349746e@f9941",
+      "displayName": "playerfalldown",
       "id": "f9941",
       "name": "spriteFrame",
       "userData": {
         "trimThreshold": 1,
         "rotated": false,
-        "offsetX": -184,
-        "offsetY": 0.5,
+        "offsetX": -84.5,
+        "offsetY": 0,
         "trimX": 1,
         "trimY": 1,
-        "width": 1911,
-        "height": 2278,
-        "rawWidth": 2281,
-        "rawHeight": 2281,
+        "width": 953,
+        "height": 1122,
+        "rawWidth": 1124,
+        "rawHeight": 1124,
         "borderTop": 0,
         "borderBottom": 0,
         "borderLeft": 0,
@@ -60,17 +60,17 @@
         "meshType": 0,
         "vertices": {
           "rawPosition": [
-            -955.5,
-            -1139,
+            -476.5,
+            -561,
             0,
-            955.5,
-            -1139,
+            476.5,
+            -561,
             0,
-            -955.5,
-            1139,
+            -476.5,
+            561,
             0,
-            955.5,
-            1139,
+            476.5,
+            561,
             0
           ],
           "indexes": [
@@ -83,37 +83,37 @@
           ],
           "uv": [
             1,
-            2280,
-            1912,
-            2280,
+            1123,
+            954,
+            1123,
             1,
-            2,
-            1912,
-            2
+            1,
+            954,
+            1
           ],
           "nuv": [
-            0.00043840420868040335,
-            0.0008768084173608067,
-            0.8382288469969311,
-            0.0008768084173608067,
-            0.00043840420868040335,
-            0.9995615957913196,
-            0.8382288469969311,
-            0.9995615957913196
+            0.0008896797153024911,
+            0.0008896797153024911,
+            0.8487544483985765,
+            0.0008896797153024911,
+            0.0008896797153024911,
+            0.9991103202846975,
+            0.8487544483985765,
+            0.9991103202846975
           ],
           "minPos": [
-            -955.5,
-            -1139,
+            -476.5,
+            -561,
             0
           ],
           "maxPos": [
-            955.5,
-            1139,
+            476.5,
+            561,
             0
           ]
         },
         "isUuid": true,
-        "imageUuidOrDatabaseUri": "1d7e0234-ab5c-4c0a-9c02-a06f696cdd9a@6c48a",
+        "imageUuidOrDatabaseUri": "d29853a3-030c-4b64-866f-c50e2349746e@6c48a",
         "atlasUuid": "",
         "trimType": "auto"
       },
@@ -129,6 +129,6 @@
     "type": "sprite-frame",
     "fixAlphaTransparencyArtifacts": false,
     "hasAlpha": true,
-    "redirect": "1d7e0234-ab5c-4c0a-9c02-a06f696cdd9a@6c48a"
+    "redirect": "d29853a3-030c-4b64-866f-c50e2349746e@6c48a"
   }
 }

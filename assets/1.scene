@@ -753,6 +753,9 @@
     "playerSprite": {
       "__id__": 15
     },
+    "playerController": {
+      "__id__": 16
+    },
     "statusLogInterval": 120,
     "_id": "28bYGA5dlGv7vvmo+AD0D7"
   },
@@ -845,6 +848,57 @@
       }
     ],
     "attackFrameDuration": 0.04,
+    "deathFrames": [
+      {
+        "__uuid__": "540f0d4c-1892-45d3-8743-d7ca6ae98cae@c30fb",
+        "__expectedType__": "cc.SpriteFrame"
+      },
+      {
+        "__uuid__": "540f0d4c-1892-45d3-8743-d7ca6ae98cae@c86cc",
+        "__expectedType__": "cc.SpriteFrame"
+      },
+      {
+        "__uuid__": "540f0d4c-1892-45d3-8743-d7ca6ae98cae@e7223",
+        "__expectedType__": "cc.SpriteFrame"
+      },
+      {
+        "__uuid__": "540f0d4c-1892-45d3-8743-d7ca6ae98cae@a795c",
+        "__expectedType__": "cc.SpriteFrame"
+      },
+      {
+        "__uuid__": "540f0d4c-1892-45d3-8743-d7ca6ae98cae@e7d45",
+        "__expectedType__": "cc.SpriteFrame"
+      },
+      {
+        "__uuid__": "540f0d4c-1892-45d3-8743-d7ca6ae98cae@116ec",
+        "__expectedType__": "cc.SpriteFrame"
+      },
+      {
+        "__uuid__": "540f0d4c-1892-45d3-8743-d7ca6ae98cae@855b3",
+        "__expectedType__": "cc.SpriteFrame"
+      },
+      {
+        "__uuid__": "540f0d4c-1892-45d3-8743-d7ca6ae98cae@c959d",
+        "__expectedType__": "cc.SpriteFrame"
+      },
+      {
+        "__uuid__": "540f0d4c-1892-45d3-8743-d7ca6ae98cae@4ce76",
+        "__expectedType__": "cc.SpriteFrame"
+      },
+      {
+        "__uuid__": "540f0d4c-1892-45d3-8743-d7ca6ae98cae@d6710",
+        "__expectedType__": "cc.SpriteFrame"
+      },
+      {
+        "__uuid__": "540f0d4c-1892-45d3-8743-d7ca6ae98cae@6422a",
+        "__expectedType__": "cc.SpriteFrame"
+      },
+      {
+        "__uuid__": "540f0d4c-1892-45d3-8743-d7ca6ae98cae@cdab0",
+        "__expectedType__": "cc.SpriteFrame"
+      }
+    ],
+    "deathFrameDuration": 0.1,
     "colliderHalfW": 15,
     "colliderHalfH": 10,
     "coordinateReference": null,
@@ -856,6 +910,7 @@
       "__uuid__": "1d6466a5-ddf5-4dc3-a7d8-dec9a81c92ba",
       "__expectedType__": "cc.Prefab"
     },
+    "cameraFreeMoveSpeed": 800,
     "_id": "c0RxC7l0tKWKiVtrPlJJ01"
   },
   {
