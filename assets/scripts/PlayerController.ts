@@ -99,6 +99,9 @@ export class PlayerController extends Component {
     @property({ type: Prefab, tooltip: '武器模式子弹预制体（TurretBullet）' })
     weaponBulletPrefab: Prefab | null = null;
 
+    @property({ tooltip: '死亡后自由视角移动速度（像素/秒）' })
+    cameraFreeMoveSpeed = 300;
+
     /** 从 PlayerState 读取攻击/维修范围（可在属性检查器中调整） */
     private get hitRange(): number {
         return this.playerState?.repairRange ?? 50;
@@ -224,6 +227,7 @@ export class PlayerController extends Component {
         }
 
         if (!this.playerState?.isAlive) {
+            this.updateCameraFreeMove(dt);
             return;
         }
 
@@ -267,6 +271,11 @@ export class PlayerController extends Component {
                 this._canvasComponent.alignCanvasWithScreen = false;
             }
             this._widgetDisabled = true;
+        }
+
+        // 死亡后不跟随玩家，允许自由视角
+        if (!this.playerState?.isAlive) {
+            return;
         }
 
         const canvasPos = this.canvasNode.position;
@@ -359,6 +368,51 @@ export class PlayerController extends Component {
         this.node.setWorldPosition(this._tempPos);
 
         this.playWalkAnimation(this._moveDir.x, this._moveDir.y);
+    }
+
+    /** 死亡后自由视角移动（WASD移动摄像机Canvas） */
+    private updateCameraFreeMove(dt: number) {
+        if (!this.canvasNode) return;
+
+        const moveDir = new Vec3(0, 0, 0);
+        if (this.keyPressedMap[KeyCode.KEY_W] || this.keyPressedMap[KeyCode.ARROW_UP]) {
+            moveDir.y -= 1; // Canvas反方向：摄像机向上 → Canvas向下
+        }
+        if (this.keyPressedMap[KeyCode.KEY_S] || this.keyPressedMap[KeyCode.ARROW_DOWN]) {
+            moveDir.y += 1;
+        }
+        if (this.keyPressedMap[KeyCode.KEY_A] || this.keyPressedMap[KeyCode.ARROW_LEFT]) {
+            moveDir.x += 1;
+        }
+        if (this.keyPressedMap[KeyCode.KEY_D] || this.keyPressedMap[KeyCode.ARROW_RIGHT]) {
+            moveDir.x -= 1;
+        }
+
+        if (moveDir.x !== 0 || moveDir.y !== 0) {
+            moveDir.normalize();
+            moveDir.multiplyScalar(this.cameraFreeMoveSpeed * dt);
+
+            const curPos = this.canvasNode.position.clone();
+            this.canvasNode.setPosition(
+                curPos.x + moveDir.x,
+                curPos.y + moveDir.y,
+                curPos.z,
+            );
+
+            // 限制视角在地图边界内
+            const uiTransform = this.canvasNode.getComponent(UITransform);
+            const halfW = uiTransform ? uiTransform.width * 0.5 : 640;
+            const halfH = uiTransform ? uiTransform.height * 0.5 : 360;
+
+            const ref = this.coordinateReference;
+            if (ref) {
+                const refPos = ref.worldPosition;
+                const canvasPos = this.canvasNode.position;
+                const clampedX = Math.max(-refPos.x - this.mapMaxX + halfW, Math.min(-refPos.x - this.mapMinX + halfW, canvasPos.x));
+                const clampedY = Math.max(-refPos.y - this.mapMaxY + halfH, Math.min(-refPos.y - this.mapMinY + halfH, canvasPos.y));
+                this.canvasNode.setPosition(clampedX, clampedY, canvasPos.z);
+            }
+        }
     }
 
     private playWalkAnimation(dx: number, dy: number) {
@@ -647,11 +701,7 @@ export class PlayerController extends Component {
 
     private finishDeathAnimation() {
         this._isDying = false;
-        // 清除最后一帧并禁用Sprite组件
-        if (this.bodySprite) {
-            this.bodySprite.spriteFrame = null;
-            this.bodySprite.enabled = false;
-        }
+        // 保持最后一帧显示，不隐藏
     }
 
     /** 复活时恢复玩家显示 */
@@ -659,9 +709,6 @@ export class PlayerController extends Component {
         this._isDying = false;
         this._deathFrameIndex = 0;
         this._deathFrameTimer = 0;
-        if (this.bodySprite) {
-            this.bodySprite.enabled = true;
-        }
         this.showIdleFrame();
     }
 
