@@ -86,11 +86,17 @@ export class ResourceItem extends Component {
             PlayerData.instance.addResource(this.resourceType, totalAmount);
         }
 
-        // 采集木材时播放音效
+        // 采集木材时播放音效（延迟销毁节点，等音效播完）
         if (this.resourceType === 'wood' && ResourceItem._woodAudioClip) {
-            AudioSource.playOneShot(ResourceItem._woodAudioClip, 1);
+            const audioSource = this.node.addComponent(AudioSource);
+            audioSource.clip = ResourceItem._woodAudioClip;
+            audioSource.play();
+            this.node.active = false; // 立即隐藏，避免视觉残留
+            this.scheduleOnce(() => {
+                if (this.node?.isValid) this.node.destroy();
+            }, 1.0);
+        } else {
+            this.node.destroy();
         }
-
-        this.node.destroy();
     }
 }
