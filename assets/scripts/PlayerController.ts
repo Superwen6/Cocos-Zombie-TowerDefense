@@ -131,6 +131,7 @@ export class PlayerController extends Component {
     // 诊断日志节流
     private _freeCamLogTimer = 0;
     private _freeCamKeyLogTimer = 0;
+    private _camMoveFrameCount = 0;
 
     // 武器模式射击计时
     private _weaponFireTimer = 0;
@@ -287,6 +288,9 @@ export class PlayerController extends Component {
 
         // 死亡后不跟随玩家，允许自由视角
         if (!this.playerState?.isAlive) {
+            if (this._camMoveFrameCount <= 5) {
+                console.log(`[FreeCam] lateUpdate跳过跟随, canvasPos=(${this.canvasNode.position.x.toFixed(1)},${this.canvasNode.position.y.toFixed(1)})`);
+            }
             return;
         }
 
@@ -417,11 +421,18 @@ export class PlayerController extends Component {
             const newX = curPos.x + moveDir.x;
             const newY = curPos.y + moveDir.y;
 
-            if (this._freeCamLogTimer <= 0) {
-                console.log(`[FreeCam] 移动Canvas: (${curPos.x.toFixed(0)},${curPos.y.toFixed(0)}) → (${newX.toFixed(0)},${newY.toFixed(0)}) dir=(${moveDir.x.toFixed(2)},${moveDir.y.toFixed(2)})`);
+            this._camMoveFrameCount++;
+            const shouldLog = this._camMoveFrameCount <= 30;
+            if (shouldLog) {
+                console.log(`[FreeCam] 帧${this._camMoveFrameCount} 移动前: (${curPos.x.toFixed(1)},${curPos.y.toFixed(1)}) dir=(${moveDir.x.toFixed(2)},${moveDir.y.toFixed(2)}) dt=${dt.toFixed(4)} speed=${this.cameraFreeMoveSpeed}`);
             }
 
             this.canvasNode.setPosition(newX, newY, curPos.z);
+
+            if (shouldLog) {
+                const afterPos = this.canvasNode.position;
+                console.log(`[FreeCam] 帧${this._camMoveFrameCount} setPosition后: (${afterPos.x.toFixed(1)},${afterPos.y.toFixed(1)})`);
+            }
 
             // 限制视角在地图边界内
             const uiTransform = this.canvasNode.getComponent(UITransform);
@@ -435,8 +446,8 @@ export class PlayerController extends Component {
                 const clampedX = Math.max(-refPos.x - this.mapMaxX + halfW, Math.min(-refPos.x - this.mapMinX + halfW, canvasPos.x));
                 const clampedY = Math.max(-refPos.y - this.mapMaxY + halfH, Math.min(-refPos.y - this.mapMinY + halfH, canvasPos.y));
                 if (clampedX !== canvasPos.x || clampedY !== canvasPos.y) {
-                    if (this._freeCamLogTimer <= 0) {
-                        console.log(`[FreeCam] 边界限制: (${canvasPos.x.toFixed(0)},${canvasPos.y.toFixed(0)}) → (${clampedX.toFixed(0)},${clampedY.toFixed(0)})`);
+                    if (shouldLog) {
+                        console.log(`[FreeCam] 帧${this._camMoveFrameCount} 边界限制: (${canvasPos.x.toFixed(1)},${canvasPos.y.toFixed(1)}) → (${clampedX.toFixed(1)},${clampedY.toFixed(1)}) refPos=(${refPos.x.toFixed(0)},${refPos.y.toFixed(0)})`);
                     }
                     this.canvasNode.setPosition(clampedX, clampedY, canvasPos.z);
                 }
