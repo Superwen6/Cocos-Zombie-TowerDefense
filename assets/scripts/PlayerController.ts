@@ -1,7 +1,6 @@
 import {
     _decorator,
     Animation,
-    assetManager,
     Camera,
     Canvas,
     CCFloat,
@@ -125,7 +124,6 @@ export class PlayerController extends Component {
     private _isDying = false;
     private _deathFrameIndex = 0;
     private _deathFrameTimer = 0;
-    private _deathFramesLoaded = false;
 
     // 武器模式射击计时
     private _weaponFireTimer = 0;
@@ -190,11 +188,6 @@ export class PlayerController extends Component {
             group: ColliderGroup.Player,
         };
         CollisionWorld.instance?.register(this._collider);
-
-        // 自动加载死亡帧（如果编辑器中未手动绑定）
-        if (this.deathFrames.length === 0) {
-            this.loadDeathFrames();
-        }
     }
 
     onDestroy() {
@@ -215,20 +208,7 @@ export class PlayerController extends Component {
     }
 
     update(dt: number) {
-        if (!this.playerState?.isAlive) {
-            return;
-        }
-
-        // 武器模式：攻击间隔计时 + 持续发射
-        if (this.playerState.weaponMode) {
-            this._weaponFireTimer += dt;
-            if (this._isFiring && this._weaponFireTimer >= this.playerState.weaponAttackInterval) {
-                this._weaponFireTimer = 0;
-                this.fireWeaponBullet(this._lastFirePos);
-            }
-        }
-
-        // 死亡动画播放中
+        // 死亡动画播放中（优先级最高，HP为0时也需播放）
         if (this._isDying) {
             this._deathFrameTimer += dt;
             if (this._deathFrameTimer >= this.deathFrameDuration) {
@@ -241,6 +221,19 @@ export class PlayerController extends Component {
                 }
             }
             return; // 死亡时停止所有操作
+        }
+
+        if (!this.playerState?.isAlive) {
+            return;
+        }
+
+        // 武器模式：攻击间隔计时 + 持续发射
+        if (this.playerState.weaponMode) {
+            this._weaponFireTimer += dt;
+            if (this._isFiring && this._weaponFireTimer >= this.playerState.weaponAttackInterval) {
+                this._weaponFireTimer = 0;
+                this.fireWeaponBullet(this._lastFirePos);
+            }
         }
 
         // 攻击动画帧更新
@@ -625,46 +618,9 @@ export class PlayerController extends Component {
 
     // ── 死亡动画 ──
 
-    /** 死亡帧图集UUID和后缀，按1-12顺序 */
-    private static readonly DEATH_FRAME_UUIDS: string[] = [
-        'bacbd6cc-6817-44d6-8a38-0649c067b245@c30fb',
-        'bacbd6cc-6817-44d6-8a38-0649c067b245@c86cc',
-        'bacbd6cc-6817-44d6-8a38-0649c067b245@e7223',
-        'bacbd6cc-6817-44d6-8a38-0649c067b245@a795c',
-        'bacbd6cc-6817-44d6-8a38-0649c067b245@e7d45',
-        'bacbd6cc-6817-44d6-8a38-0649c067b245@116ec',
-        'bacbd6cc-6817-44d6-8a38-0649c067b245@855b3',
-        'bacbd6cc-6817-44d6-8a38-0649c067b245@c959d',
-        'bacbd6cc-6817-44d6-8a38-0649c067b245@4ce76',
-        'bacbd6cc-6817-44d6-8a38-0649c067b245@d6710',
-        'bacbd6cc-6817-44d6-8a38-0649c067b245@6422a',
-        'bacbd6cc-6817-44d6-8a38-0649c067b245@cdab0',
-    ];
-
-    /** 自动加载死亡帧（从图集加载12帧） */
-    private loadDeathFrames() {
-        this.deathFrames = new Array(PlayerController.DEATH_FRAME_UUIDS.length);
-        let loaded = 0;
-
-        PlayerController.DEATH_FRAME_UUIDS.forEach((uuid, i) => {
-            assetManager.loadAny({ uuid }, (err, asset) => {
-                if (err) {
-                    warn(`[PlayerController] 加载死亡帧 ${i + 1} 失败: ${err}`);
-                } else {
-                    this.deathFrames[i] = asset as SpriteFrame;
-                }
-                loaded++;
-                if (loaded >= PlayerController.DEATH_FRAME_UUIDS.length) {
-                    this._deathFramesLoaded = true;
-                }
-            });
-        });
-    }
-
     /** 播放死亡帧动画 */
     playDeathAnimation() {
-        if (!this.bodySprite || !this._deathFramesLoaded) {
-            // 无死亡帧或未加载完成时直接隐藏
+        if (!this.bodySprite || this.deathFrames.length === 0) {
             if (this.bodySprite) this.bodySprite.node.active = false;
             return;
         }
@@ -684,11 +640,8 @@ export class PlayerController extends Component {
     }
 
     private showDeathFrame() {
-        if (this._deathFrameIndex < this.deathFrames.length && this.bodySprite) {
-            const frame = this.deathFrames[this._deathFrameIndex];
-            if (frame) {
-                this.bodySprite.spriteFrame = frame;
-            }
+        if (this._deathFrameIndex < this.deathFrames.length) {
+            this.bodySprite.spriteFrame = this.deathFrames[this._deathFrameIndex];
         }
     }
 
