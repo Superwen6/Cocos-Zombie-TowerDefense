@@ -6,6 +6,7 @@ import { CollisionWorld, Collider2D, ColliderGroup } from './CollisionWorld';
 import { PlantGenerator } from './PlantGenerator';
 import { Container } from './Container';
 import { Turret } from './Turret';
+import { DayNightEvents, DayNightPhase, DayNightSystem } from './DayNightSystem';
 
 const { ccclass, property } = _decorator;
 
@@ -168,6 +169,7 @@ export class ZombieMove extends Component {
         this.resolveBaseNode();
         this.syncHpFromMaxHp();
         this._aiState = this.isDayWanderer ? 'WANDER' : 'CHASE_BASE';
+        DayNightSystem.eventTarget.on(DayNightEvents.PHASE_CHANGED, this.onPhaseChanged, this);
     }
 
     start() {
@@ -195,9 +197,24 @@ export class ZombieMove extends Component {
     }
 
     onDestroy() {
+        DayNightSystem.eventTarget.off(DayNightEvents.PHASE_CHANGED, this.onPhaseChanged, this);
         if (this._collider) {
             CollisionWorld.instance?.unregister(this._collider);
             this._collider = null;
+        }
+    }
+
+    /** 昼夜切换时，游荡僵尸调整行为 */
+    private onPhaseChanged(detail: { phase: DayNightPhase }) {
+        if (this.isDead || !this.isDayWanderer) return;
+
+        if (detail.phase === DayNightPhase.NIGHT) {
+            // 进入夜间：游荡僵尸切换为追击玩家
+            this._aiState = 'CHASE_PLAYER';
+            this._hasWanderTarget = false;
+        } else {
+            // 进入白天：恢复游荡巡逻
+            this.returnToDefaultTarget();
         }
     }
 

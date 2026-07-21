@@ -5,7 +5,7 @@ const { ccclass, property } = _decorator;
 /**
  * 炮塔强化通知组件。
  * 挂载在 Canvas/ReinforcementLabel 节点上，默认隐藏。
- * 其他脚本通过静态方法 ReinforcementNotice.show(msg) 显示通知，3秒后自动隐藏。
+ * 其他脚本通过静态方法 ReinforcementNotice.show(msg) 显示通知，默认5秒后自动隐藏。
  */
 @ccclass('ReinforcementNotice')
 export class ReinforcementNotice extends Component {
@@ -25,11 +25,11 @@ export class ReinforcementNotice extends Component {
     }
 
     /**
-     * 显示通知文本，默认显示3秒后自动隐藏。
+     * 显示通知文本，默认显示5秒后自动隐藏。
      * @param msg 通知文本
-     * @param duration 显示时长（秒），默认3秒
+     * @param duration 显示时长（秒），默认5秒
      */
-    static show(msg: string, duration = 3) {
+    static show(msg: string, duration = 5) {
         const inst = ReinforcementNotice._instance;
         if (!inst || !inst._label) return;
         inst._label.string = msg;
