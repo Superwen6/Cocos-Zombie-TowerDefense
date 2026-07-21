@@ -151,7 +151,7 @@ export class PlayerState extends Component {
     @property({ type: Sprite, tooltip: '玩家身体Sprite，用于受击闪红效果' })
     playerSprite: Sprite | null = null;
 
-    @property({ type: PlayerController, tooltip: '玩家控制器组件，用于死亡动画和复活' })
+    @property({ type: 'PlayerController', tooltip: '玩家控制器组件，用于死亡动画和复活' })
     playerController: PlayerController | null = null;
 
     @property({ tooltip: '每隔多少秒打印一次状态日志' })
@@ -169,6 +169,7 @@ export class PlayerState extends Component {
     // 死亡与复活
     private _deathCount = 0;
     private _respawnTimer = 0;
+    private _respawnLabelTimer = 0;
     private _isDead = false;
 
     onLoad() {
@@ -210,6 +211,14 @@ export class PlayerState extends Component {
         // 死亡复活倒计时
         if (this._isDead) {
             this._respawnTimer -= dt;
+            this._respawnLabelTimer -= dt;
+            if (this._respawnLabelTimer <= 0) {
+                this._respawnLabelTimer = 1.0;
+                const remaining = Math.ceil(this._respawnTimer);
+                if (remaining > 0) {
+                    ReinforcementNotice.show(`复活倒计时: ${remaining}秒`);
+                }
+            }
             if (this._respawnTimer <= 0) {
                 this.respawn();
             }

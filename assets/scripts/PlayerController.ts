@@ -41,7 +41,7 @@ const { ccclass, property } = _decorator;
  */
 @ccclass('PlayerController')
 export class PlayerController extends Component {
-    @property({ type: PlayerState, tooltip: '主角状态组件，不填则从本节点获取' })
+    @property({ type: 'PlayerState', tooltip: '主角状态组件，不填则从本节点获取' })
     playerState: PlayerState | null = null;
 
     @property({ type: Node, tooltip: '搜索资源/僵尸的根节点，不填则搜索整个场景' })
@@ -125,6 +125,7 @@ export class PlayerController extends Component {
     private _isDying = false;
     private _deathFrameIndex = 0;
     private _deathFrameTimer = 0;
+    private _deathFramesLoaded = false;
 
     // 武器模式射击计时
     private _weaponFireTimer = 0;
@@ -643,6 +644,7 @@ export class PlayerController extends Component {
     /** 自动加载死亡帧（从图集加载12帧） */
     private loadDeathFrames() {
         this.deathFrames = new Array(PlayerController.DEATH_FRAME_UUIDS.length);
+        let loaded = 0;
 
         PlayerController.DEATH_FRAME_UUIDS.forEach((uuid, i) => {
             assetManager.loadAny({ uuid }, (err, asset) => {
@@ -651,14 +653,18 @@ export class PlayerController extends Component {
                 } else {
                     this.deathFrames[i] = asset as SpriteFrame;
                 }
+                loaded++;
+                if (loaded >= PlayerController.DEATH_FRAME_UUIDS.length) {
+                    this._deathFramesLoaded = true;
+                }
             });
         });
     }
 
     /** 播放死亡帧动画 */
     playDeathAnimation() {
-        if (!this.bodySprite || this.deathFrames.length === 0) {
-            // 没有死亡帧时直接隐藏
+        if (!this.bodySprite || !this._deathFramesLoaded) {
+            // 无死亡帧或未加载完成时直接隐藏
             if (this.bodySprite) this.bodySprite.node.active = false;
             return;
         }
