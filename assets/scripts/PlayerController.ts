@@ -647,9 +647,10 @@ export class PlayerController extends Component {
 
     private finishDeathAnimation() {
         this._isDying = false;
-        // 播放完后隐藏玩家贴图
+        // 清除最后一帧并禁用Sprite组件
         if (this.bodySprite) {
-            this.bodySprite.node.active = false;
+            this.bodySprite.spriteFrame = null;
+            this.bodySprite.enabled = false;
         }
     }
 
@@ -659,7 +660,7 @@ export class PlayerController extends Component {
         this._deathFrameIndex = 0;
         this._deathFrameTimer = 0;
         if (this.bodySprite) {
-            this.bodySprite.node.active = true;
+            this.bodySprite.enabled = true;
         }
         this.showIdleFrame();
     }
