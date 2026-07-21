@@ -1,4 +1,4 @@
-import { _decorator, Component } from 'cc';
+import { _decorator, assetManager, AudioClip, AudioSource, Component } from 'cc';
 import { PlayerData, ResourceType } from './PlayerData';
 import { PlayerState } from './PlayerState';
 import { CollisionWorld, Collider2D, ColliderGroup } from './CollisionWorld';
@@ -24,7 +24,13 @@ export class ResourceItem extends Component {
 
     private _collider: Collider2D | null = null;
 
+    // 木材采集音效（静态共享，避免重复加载）
+    private static _woodAudioClip: AudioClip | null = null;
+    private static _woodAudioLoaded = false;
+
     start() {
+        ResourceItem.loadWoodAudio();
+
         const wp = this.node.worldPosition;
         this._collider = {
             node: this.node,
@@ -35,6 +41,20 @@ export class ResourceItem extends Component {
             group: ColliderGroup.Resource,
         };
         CollisionWorld.instance?.register(this._collider);
+    }
+
+    /** 加载木材采集音效（仅第一次调用时加载） */
+    private static loadWoodAudio() {
+        if (ResourceItem._woodAudioLoaded) return;
+        ResourceItem._woodAudioLoaded = true;
+        assetManager.loadAny(
+            { uuid: '65aeade2-399e-4601-9b5a-d948617e29e2' },
+            (_err, asset) => {
+                if (asset instanceof AudioClip) {
+                    ResourceItem._woodAudioClip = asset;
+                }
+            },
+        );
     }
 
     onDestroy() {
@@ -64,6 +84,11 @@ export class ResourceItem extends Component {
 
         if (PlayerData.instance) {
             PlayerData.instance.addResource(this.resourceType, totalAmount);
+        }
+
+        // 采集木材时播放音效
+        if (this.resourceType === 'wood' && ResourceItem._woodAudioClip) {
+            AudioSource.playOneShot(ResourceItem._woodAudioClip, 1);
         }
 
         this.node.destroy();
