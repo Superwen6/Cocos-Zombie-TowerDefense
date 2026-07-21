@@ -128,6 +128,9 @@ export class PlayerController extends Component {
     private _deathFrameIndex = 0;
     private _deathFrameTimer = 0;
 
+    // 诊断日志节流
+    private _freeCamLogTimer = 0;
+
     // 武器模式射击计时
     private _weaponFireTimer = 0;
     // 持续发射：按住鼠标/触屏时持续射击
@@ -227,6 +230,11 @@ export class PlayerController extends Component {
         }
 
         if (!this.playerState?.isAlive) {
+            this._freeCamLogTimer -= dt;
+            if (this._freeCamLogTimer <= 0) {
+                this._freeCamLogTimer = 2.0;
+                console.log('[FreeCam] 进入死亡自由视角模式, canvasNode=', !!this.canvasNode, 'keyPressed=', Object.keys(this.keyPressedMap).filter(k => this.keyPressedMap[Number(k)]).join(','));
+            }
             this.updateCameraFreeMove(dt);
             return;
         }
@@ -372,7 +380,10 @@ export class PlayerController extends Component {
 
     /** 死亡后自由视角移动（WASD移动摄像机Canvas） */
     private updateCameraFreeMove(dt: number) {
-        if (!this.canvasNode) return;
+        if (!this.canvasNode) {
+            if (this._freeCamLogTimer <= 0) console.log('[FreeCam] canvasNode为null，无法移动视角');
+            return;
+        }
 
         const moveDir = new Vec3(0, 0, 0);
         if (this.keyPressedMap[KeyCode.KEY_W] || this.keyPressedMap[KeyCode.ARROW_UP]) {
@@ -393,11 +404,14 @@ export class PlayerController extends Component {
             moveDir.multiplyScalar(this.cameraFreeMoveSpeed * dt);
 
             const curPos = this.canvasNode.position.clone();
-            this.canvasNode.setPosition(
-                curPos.x + moveDir.x,
-                curPos.y + moveDir.y,
-                curPos.z,
-            );
+            const newX = curPos.x + moveDir.x;
+            const newY = curPos.y + moveDir.y;
+
+            if (this._freeCamLogTimer <= 0) {
+                console.log(`[FreeCam] 移动Canvas: (${curPos.x.toFixed(0)},${curPos.y.toFixed(0)}) → (${newX.toFixed(0)},${newY.toFixed(0)}) dir=(${moveDir.x.toFixed(2)},${moveDir.y.toFixed(2)})`);
+            }
+
+            this.canvasNode.setPosition(newX, newY, curPos.z);
 
             // 限制视角在地图边界内
             const uiTransform = this.canvasNode.getComponent(UITransform);
@@ -410,7 +424,12 @@ export class PlayerController extends Component {
                 const canvasPos = this.canvasNode.position;
                 const clampedX = Math.max(-refPos.x - this.mapMaxX + halfW, Math.min(-refPos.x - this.mapMinX + halfW, canvasPos.x));
                 const clampedY = Math.max(-refPos.y - this.mapMaxY + halfH, Math.min(-refPos.y - this.mapMinY + halfH, canvasPos.y));
-                this.canvasNode.setPosition(clampedX, clampedY, canvasPos.z);
+                if (clampedX !== canvasPos.x || clampedY !== canvasPos.y) {
+                    if (this._freeCamLogTimer <= 0) {
+                        console.log(`[FreeCam] 边界限制: (${canvasPos.x.toFixed(0)},${canvasPos.y.toFixed(0)}) → (${clampedX.toFixed(0)},${clampedY.toFixed(0)})`);
+                    }
+                    this.canvasNode.setPosition(clampedX, clampedY, canvasPos.z);
+                }
             }
         }
     }
