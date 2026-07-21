@@ -151,7 +151,7 @@ export class PlayerState extends Component {
     @property({ type: Sprite, tooltip: '玩家身体Sprite，用于受击闪红效果' })
     playerSprite: Sprite | null = null;
 
-    @property({ type: 'PlayerController', tooltip: '玩家控制器组件，用于死亡动画和复活' })
+    @property({ tooltip: '玩家控制器组件，用于死亡动画和复活' })
     playerController: PlayerController | null = null;
 
     @property({ tooltip: '每隔多少秒打印一次状态日志' })

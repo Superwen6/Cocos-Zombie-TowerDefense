@@ -41,7 +41,7 @@ const { ccclass, property } = _decorator;
  */
 @ccclass('PlayerController')
 export class PlayerController extends Component {
-    @property({ type: 'PlayerState', tooltip: '主角状态组件，不填则从本节点获取' })
+    @property({ tooltip: '主角状态组件，不填则从本节点获取' })
     playerState: PlayerState | null = null;
 
     @property({ type: Node, tooltip: '搜索资源/僵尸的根节点，不填则搜索整个场景' })
