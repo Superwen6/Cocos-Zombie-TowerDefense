@@ -585,10 +585,10 @@
         "__id__": 19
       },
       {
-        "__id__": 17
+        "__id__": 15
       },
       {
-        "__id__": 16
+        "__id__": 17
       }
     ],
     "_prefab": null,
@@ -643,7 +643,7 @@
         "__id__": 14
       },
       {
-        "__id__": 15
+        "__id__": 16
       },
       {
         "__id__": 18
@@ -750,8 +750,47 @@
     "baseNode": {
       "__id__": 6
     },
+    "playerSprite": {
+      "__id__": 15
+    },
     "statusLogInterval": 120,
     "_id": "28bYGA5dlGv7vvmo+AD0D7"
+  },
+  {
+    "__type__": "cc.Sprite",
+    "_name": "",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "node": {
+      "__id__": 11
+    },
+    "_enabled": true,
+    "__prefab": null,
+    "_customMaterial": null,
+    "_srcBlendFactor": 2,
+    "_dstBlendFactor": 4,
+    "_color": {
+      "__type__": "cc.Color",
+      "r": 255,
+      "g": 255,
+      "b": 255,
+      "a": 255
+    },
+    "_spriteFrame": null,
+    "_type": 0,
+    "_fillType": 0,
+    "_sizeMode": 1,
+    "_fillCenter": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "_fillStart": 0,
+    "_fillRange": 0,
+    "_isTrimmedMode": true,
+    "_useGrayscale": false,
+    "_atlas": null,
+    "_id": "a91P8zBbJCgbof2+EdPRjX"
   },
   {
     "__type__": "00249EqzVdDm4f7fCpkVzef",
@@ -770,10 +809,10 @@
     "canvasNode": null,
     "worldCamera": null,
     "bodyAnim": {
-      "__id__": 16
+      "__id__": 17
     },
     "bodySprite": {
-      "__id__": 17
+      "__id__": 15
     },
     "idleSpriteFrame": {
       "__uuid__": "15ad0099-c837-41fa-964f-86baa6445ea8@cd573",
@@ -850,42 +889,6 @@
     ],
     "_defaultClip": null,
     "_id": "2dgmT0+dhG1LsreMVB/BId"
-  },
-  {
-    "__type__": "cc.Sprite",
-    "_name": "",
-    "_objFlags": 0,
-    "__editorExtras__": {},
-    "node": {
-      "__id__": 11
-    },
-    "_enabled": true,
-    "__prefab": null,
-    "_customMaterial": null,
-    "_srcBlendFactor": 2,
-    "_dstBlendFactor": 4,
-    "_color": {
-      "__type__": "cc.Color",
-      "r": 255,
-      "g": 255,
-      "b": 255,
-      "a": 255
-    },
-    "_spriteFrame": null,
-    "_type": 0,
-    "_fillType": 0,
-    "_sizeMode": 1,
-    "_fillCenter": {
-      "__type__": "cc.Vec2",
-      "x": 0,
-      "y": 0
-    },
-    "_fillStart": 0,
-    "_fillRange": 0,
-    "_isTrimmedMode": true,
-    "_useGrayscale": false,
-    "_atlas": null,
-    "_id": "a91P8zBbJCgbof2+EdPRjX"
   },
   {
     "__type__": "37338dALwFPC7WckbZQSzBj",

@@ -1,6 +1,8 @@
 import { _decorator, Color, Component, Node, Sprite, Vec3, warn } from 'cc';
 import { BaseSystem } from './BaseSystem';
 import { ReinforcementNotice } from './ReinforcementNotice';
+import { PlayerController } from './PlayerController';
+import { PlayerData } from './PlayerData';
 
 const { ccclass, property } = _decorator;
 
@@ -149,6 +151,9 @@ export class PlayerState extends Component {
     @property({ type: Sprite, tooltip: '玩家身体Sprite，用于受击闪红效果' })
     playerSprite: Sprite | null = null;
 
+    @property({ type: PlayerController, tooltip: '玩家控制器组件，用于死亡动画和复活' })
+    playerController: PlayerController | null = null;
+
     @property({ tooltip: '每隔多少秒打印一次状态日志' })
     statusLogInterval = STATUS_LOG_INTERVAL;
 
@@ -160,6 +165,11 @@ export class PlayerState extends Component {
     private _deathLogged = false;
     private _flashTimer = 0;
     private _flashDuration = 0.15;
+
+    // 死亡与复活
+    private _deathCount = 0;
+    private _respawnTimer = 0;
+    private _isDead = false;
 
     onLoad() {
         if (PlayerState.instance && PlayerState.instance !== this) {
@@ -195,6 +205,15 @@ export class PlayerState extends Component {
             const g = Math.round(150 + 105 * t);
             const b = Math.round(150 + 105 * t);
             this.playerSprite.color = new Color(r, g, b, 255);
+        }
+
+        // 死亡复活倒计时
+        if (this._isDead) {
+            this._respawnTimer -= dt;
+            if (this._respawnTimer <= 0) {
+                this.respawn();
+            }
+            return;
         }
 
         if (this.hp <= 0) {
@@ -391,6 +410,50 @@ export class PlayerState extends Component {
             return;
         }
         this._deathLogged = true;
+        this._isDead = true;
+        this._deathCount++;
+
+        // 播放死亡动画
+        if (this.playerController) {
+            this.playerController.playDeathAnimation();
+        }
+
+        // 背包资源与金钱清零
+        const data = PlayerData.instance;
+        if (data) {
+            data.woodCount = 0;
+            data.copperCount = 0;
+            data.ironCount = 0;
+            data.money = 0;
+        }
+
+        // 计算复活时间（15s → 30s → 60s → 90s 上限）
+        this._respawnTimer = Math.min(15 * Math.pow(2, this._deathCount - 1), 90);
+        ReinforcementNotice.show(`你已死亡，${this._respawnTimer}秒后在基地复活，背包资源已清零`);
+    }
+
+    /** 复活：恢复血量、移动到基地、恢复玩家显示 */
+    private respawn() {
+        this._isDead = false;
+        this._deathLogged = false;
+        this._respawnTimer = 0;
+
+        // 恢复血量与疲劳
+        this.hp = this.getEffectiveMaxHp();
+        this.fatigue = 0;
+
+        // 移动到基地位置
+        if (this._baseNode) {
+            const basePos = this._baseNode.worldPosition.clone();
+            this.node.setWorldPosition(basePos.x, basePos.y, 0);
+        }
+
+        // 恢复玩家显示
+        if (this.playerController) {
+            this.playerController.respawn();
+        }
+
+        ReinforcementNotice.show('你已在基地复活');
     }
 
     private updateBaseHpRegen(dt: number, distance: number, safeRadius: number) {

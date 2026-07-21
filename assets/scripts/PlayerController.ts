@@ -1,6 +1,7 @@
 import {
     _decorator,
     Animation,
+    assetManager,
     Camera,
     Canvas,
     CCFloat,
@@ -68,6 +69,13 @@ export class PlayerController extends Component {
     @property({ tooltip: '攻击动画每帧持续时间（秒），越小越快' })
     attackFrameDuration = 0.083;
 
+    // 死亡动画帧（在编辑器中将 playerfalldown 图集的12张图片拖入）
+    @property({ type: [SpriteFrame], tooltip: '死亡动画帧序列，按顺序拖入12张倒地图片' })
+    deathFrames: SpriteFrame[] = [];
+
+    @property({ tooltip: '死亡动画每帧持续时间（秒）' })
+    deathFrameDuration = 0.1;
+
     @property({ tooltip: '碰撞框半宽（碰撞体总宽度 = 此值 × 2）' })
     colliderHalfW = 15;
 
@@ -113,11 +121,21 @@ export class PlayerController extends Component {
     private attackFrameIndex = 0;
     private attackFrameTimer = 0;
 
+    // 死亡动画播放状态
+    private _isDying = false;
+    private _deathFrameIndex = 0;
+    private _deathFrameTimer = 0;
+
     // 武器模式射击计时
     private _weaponFireTimer = 0;
     // 持续发射：按住鼠标/触屏时持续射击
     private _isFiring = false;
     private _lastFirePos = new Vec3();
+
+    /** 是否正在播放死亡动画 */
+    get isDying(): boolean {
+        return this._isDying;
+    }
 
     onLoad() {
         if (!this.playerState) {
@@ -171,6 +189,11 @@ export class PlayerController extends Component {
             group: ColliderGroup.Player,
         };
         CollisionWorld.instance?.register(this._collider);
+
+        // 自动加载死亡帧（如果编辑器中未手动绑定）
+        if (this.deathFrames.length === 0) {
+            this.loadDeathFrames();
+        }
     }
 
     onDestroy() {
@@ -202,6 +225,21 @@ export class PlayerController extends Component {
                 this._weaponFireTimer = 0;
                 this.fireWeaponBullet(this._lastFirePos);
             }
+        }
+
+        // 死亡动画播放中
+        if (this._isDying) {
+            this._deathFrameTimer += dt;
+            if (this._deathFrameTimer >= this.deathFrameDuration) {
+                this._deathFrameTimer = 0;
+                this._deathFrameIndex++;
+                if (this._deathFrameIndex >= this.deathFrames.length) {
+                    this.finishDeathAnimation();
+                } else {
+                    this.showDeathFrame();
+                }
+            }
+            return; // 死亡时停止所有操作
         }
 
         // 攻击动画帧更新
@@ -582,6 +620,89 @@ export class PlayerController extends Component {
             // 静止时显示 idle 帧（朝下第一帧）
             this.showIdleFrame();
         }
+    }
+
+    // ── 死亡动画 ──
+
+    /** 死亡帧图集UUID和后缀，按1-12顺序 */
+    private static readonly DEATH_FRAME_UUIDS: string[] = [
+        'bacbd6cc-6817-44d6-8a38-0649c067b245@c30fb',
+        'bacbd6cc-6817-44d6-8a38-0649c067b245@c86cc',
+        'bacbd6cc-6817-44d6-8a38-0649c067b245@e7223',
+        'bacbd6cc-6817-44d6-8a38-0649c067b245@a795c',
+        'bacbd6cc-6817-44d6-8a38-0649c067b245@e7d45',
+        'bacbd6cc-6817-44d6-8a38-0649c067b245@116ec',
+        'bacbd6cc-6817-44d6-8a38-0649c067b245@855b3',
+        'bacbd6cc-6817-44d6-8a38-0649c067b245@c959d',
+        'bacbd6cc-6817-44d6-8a38-0649c067b245@4ce76',
+        'bacbd6cc-6817-44d6-8a38-0649c067b245@d6710',
+        'bacbd6cc-6817-44d6-8a38-0649c067b245@6422a',
+        'bacbd6cc-6817-44d6-8a38-0649c067b245@cdab0',
+    ];
+
+    /** 自动加载死亡帧（从图集加载12帧） */
+    private loadDeathFrames() {
+        this.deathFrames = new Array(PlayerController.DEATH_FRAME_UUIDS.length);
+
+        PlayerController.DEATH_FRAME_UUIDS.forEach((uuid, i) => {
+            assetManager.loadAny({ uuid }, (err, asset) => {
+                if (err) {
+                    warn(`[PlayerController] 加载死亡帧 ${i + 1} 失败: ${err}`);
+                } else {
+                    this.deathFrames[i] = asset as SpriteFrame;
+                }
+            });
+        });
+    }
+
+    /** 播放死亡帧动画 */
+    playDeathAnimation() {
+        if (!this.bodySprite || this.deathFrames.length === 0) {
+            // 没有死亡帧时直接隐藏
+            if (this.bodySprite) this.bodySprite.node.active = false;
+            return;
+        }
+
+        this._isDying = true;
+        this.isAttacking = false;
+
+        // 停止行走动画
+        if (this.bodyAnim) {
+            this.bodyAnim.stop();
+            this._currentClip = '';
+        }
+
+        this._deathFrameIndex = 0;
+        this._deathFrameTimer = 0;
+        this.showDeathFrame();
+    }
+
+    private showDeathFrame() {
+        if (this._deathFrameIndex < this.deathFrames.length && this.bodySprite) {
+            const frame = this.deathFrames[this._deathFrameIndex];
+            if (frame) {
+                this.bodySprite.spriteFrame = frame;
+            }
+        }
+    }
+
+    private finishDeathAnimation() {
+        this._isDying = false;
+        // 播放完后隐藏玩家贴图
+        if (this.bodySprite) {
+            this.bodySprite.node.active = false;
+        }
+    }
+
+    /** 复活时恢复玩家显示 */
+    respawn() {
+        this._isDying = false;
+        this._deathFrameIndex = 0;
+        this._deathFrameTimer = 0;
+        if (this.bodySprite) {
+            this.bodySprite.node.active = true;
+        }
+        this.showIdleFrame();
     }
 
     private showIdleFrame() {
