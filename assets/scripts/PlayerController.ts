@@ -1,6 +1,8 @@
 import {
     _decorator,
     Animation,
+    AudioClip,
+    AudioSource,
     Camera,
     Canvas,
     CCFloat,
@@ -103,6 +105,21 @@ export class PlayerController extends Component {
     @property({ tooltip: '死亡后自由视角移动速度（像素/秒）' })
     cameraFreeMoveSpeed = 300;
 
+    @property({ type: AudioClip, tooltip: '玩家行走音效' })
+    walkSound: AudioClip | null = null;
+
+    @property({ type: AudioClip, tooltip: '空挥攻击音效（未命中任何目标）' })
+    waveSound: AudioClip | null = null;
+
+    @property({ type: AudioClip, tooltip: '攻击命中音效（僵尸/资源/建筑）' })
+    attackHitSound: AudioClip | null = null;
+
+    @property({ type: AudioClip, tooltip: '玩家受伤音效' })
+    hurtSound: AudioClip | null = null;
+
+    @property({ type: AudioClip, tooltip: '玩家死亡音效' })
+    deathSound: AudioClip | null = null;
+
     /** 从 PlayerState 读取攻击/维修范围（可在属性检查器中调整） */
     private get hitRange(): number {
         return this.playerState?.repairRange ?? 50;
@@ -131,6 +148,10 @@ export class PlayerController extends Component {
 
     // CameraFollow 组件引用，用于死亡时禁用/复活时启用
     private _cameraFollow: CameraFollow | null = null;
+
+    // 玩家音效
+    private _audioSource: AudioSource | null = null;
+    private _walkSoundPlaying = false;
 
     // 武器模式射击计时
     private _weaponFireTimer = 0;
@@ -167,6 +188,10 @@ export class PlayerController extends Component {
         } else {
             this._cameraFollow = this.worldCamera.node.getComponent(CameraFollow);
         }
+
+        // 初始化音效
+        this._audioSource = this.node.addComponent(AudioSource);
+        this._audioSource.loop = false;
 
         if (this.canvasNode) {
             this._canvasWidget = this.canvasNode.getComponent(Widget);
@@ -341,6 +366,7 @@ export class PlayerController extends Component {
         if (!this.playerState || this._moveDir.lengthSqr() < 1e-6) {
             // 停止移动：停止动画，显示当前方向第一帧
             this.stopWalkAnimation();
+            this.stopWalkSound();
             return;
         }
 
@@ -375,6 +401,7 @@ export class PlayerController extends Component {
         this.node.setWorldPosition(this._tempPos);
 
         this.playWalkAnimation(this._moveDir.x, this._moveDir.y);
+        this.playWalkSound();
     }
 
     /** 死亡后自由视角移动（WASD移动摄像机） */
@@ -530,6 +557,7 @@ export class PlayerController extends Component {
             // 有目标时：根据目标与玩家的相对位置决定方向
             const targetIsRight = zombie.node.worldPosition.x > playerPos.x;
             this.playAttackAnimation(targetIsRight);
+            this.playAttackHitSound();
             return;
         }
 
@@ -539,6 +567,7 @@ export class PlayerController extends Component {
             // 有目标时：根据目标与玩家的相对位置决定方向
             const targetIsRight = resource.node.worldPosition.x > playerPos.x;
             this.playAttackAnimation(targetIsRight);
+            this.playAttackHitSound();
             return;
         }
 
@@ -547,16 +576,19 @@ export class PlayerController extends Component {
             this.repairBuilding(building);
             const targetIsRight = building.worldPosition.x > playerPos.x;
             this.playAttackAnimation(targetIsRight);
+            this.playAttackHitSound();
             return;
         }
 
         // Fallback: 玩家在基地碰撞矩形内则维修基地
         if (this.tryRepairBaseInRange(playerPos)) {
+            this.playAttackHitSound();
             return;
         }
 
         // 没有目标也播放攻击动画（空挥）：使用鼠标点击方向
         this.playAttackAnimation(isRight);
+        this.playWaveSound();
     }
 
     /** 武器模式：向点击位置发射子弹 */
@@ -683,6 +715,9 @@ export class PlayerController extends Component {
             this._cameraFollow.enabled = false;
         }
 
+        // 播放死亡音效
+        this.playDeathSound();
+
         if (!this.bodySprite || this.deathFrames.length === 0) {
             if (this.bodySprite) this.bodySprite.node.active = false;
             return;
@@ -732,6 +767,53 @@ export class PlayerController extends Component {
             this.bodySprite.spriteFrame = this.idleSpriteFrame;
         }
     }
+
+    // ── 音效辅助 ──
+
+    private playWalkSound() {
+        if (!this._audioSource || !this.walkSound || this._walkSoundPlaying) return;
+        this._audioSource.clip = this.walkSound;
+        this._audioSource.loop = true;
+        this._audioSource.play();
+        this._walkSoundPlaying = true;
+    }
+
+    private stopWalkSound() {
+        if (!this._audioSource || !this._walkSoundPlaying) return;
+        this._audioSource.stop();
+        this._walkSoundPlaying = false;
+    }
+
+    private playWaveSound() {
+        if (!this._audioSource || !this.waveSound) return;
+        this._audioSource.loop = false;
+        this._audioSource.clip = this.waveSound;
+        this._audioSource.play();
+    }
+
+    private playAttackHitSound() {
+        if (!this._audioSource || !this.attackHitSound) return;
+        this._audioSource.loop = false;
+        this._audioSource.clip = this.attackHitSound;
+        this._audioSource.play();
+    }
+
+    /** 由 PlayerState 调用，播放玩家受伤音效 */
+    playHurtSound() {
+        if (!this._audioSource || !this.hurtSound) return;
+        this._audioSource.loop = false;
+        this._audioSource.clip = this.hurtSound;
+        this._audioSource.play();
+    }
+
+    private playDeathSound() {
+        if (!this._audioSource || !this.deathSound) return;
+        this._audioSource.loop = false;
+        this._audioSource.clip = this.deathSound;
+        this._audioSource.play();
+    }
+
+    // ── 搜索辅助 ──
 
     private findClosestZombieInRange(playerPos: Vec3): ZombieMove | null {
         const zombies = this.collectZombies();

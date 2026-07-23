@@ -208,12 +208,17 @@ export class ZombieMove extends Component {
     private onPhaseChanged(detail: { phase: DayNightPhase }) {
         if (this.isDead || !this.isDayWanderer) return;
 
+        const phaseName = DayNightPhase[detail.phase];
+        console.log(`[ZombieMove] ${this.node.name} onPhaseChanged: ${phaseName}, 当前状态=${this._aiState}`);
+
         if (detail.phase === DayNightPhase.NIGHT) {
             // 进入夜间：游荡僵尸切换为追击玩家
+            console.log(`[ZombieMove] ${this.node.name} 进入夜间，切换为CHASE_PLAYER`);
             this._aiState = 'CHASE_PLAYER';
             this._hasWanderTarget = false;
         } else {
             // 进入白天：恢复游荡巡逻
+            console.log(`[ZombieMove] ${this.node.name} 进入白天，恢复游荡`);
             this.returnToDefaultTarget();
         }
     }
@@ -292,6 +297,16 @@ export class ZombieMove extends Component {
                 return;
             }
             // 其他状态（追击玩家/建筑/炮塔）：走通用状态机
+            // 诊断日志：每秒打印一次当前状态
+            if (this._aiState !== 'WANDER') {
+                this._wanderScanTimer -= dt;
+                if (this._wanderScanTimer <= 0) {
+                    this._wanderScanTimer = 1.0;
+                    const playerNode = this.getPlayerNode();
+                    const dist = playerNode ? Vec3.distance(this.node.worldPosition, playerNode.worldPosition) : -1;
+                    console.log(`[ZombieMove] ${this.node.name} 状态=${this._aiState}, 距玩家=${dist.toFixed(0)}, isDayWanderer=${this.isDayWanderer}`);
+                }
+            }
             this.updateAIState();
             this.tickMoveByState(dt);
             return;
@@ -496,6 +511,7 @@ export class ZombieMove extends Component {
         if (this._aiState === 'CHASE_PLAYER' || this._aiState === 'ATTACK_PLAYER') {
             // 玩家超出拉扯范围 → 放弃追击，回到预定目标
             if (distToPlayer > LEASH_RADIUS) {
+                console.log(`[ZombieMove] ${this.node.name} 玩家超出LEASH_RADIUS(350), dist=${distToPlayer.toFixed(0)}, 回到默认目标`);
                 this.returnToDefaultTarget();
                 return;
             }

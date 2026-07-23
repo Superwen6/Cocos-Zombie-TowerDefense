@@ -1,4 +1,4 @@
-import { _decorator, assetManager, AudioClip, AudioSource, Component, Node, Sprite, warn } from 'cc';
+import { _decorator, AudioClip, AudioSource, Component, Node, Sprite } from 'cc';
 import { PlayerData, ResourceType } from './PlayerData';
 import { PlayerState } from './PlayerState';
 import { CollisionWorld, Collider2D, ColliderGroup } from './CollisionWorld';
@@ -22,15 +22,18 @@ export class ResourceItem extends Component {
     @property({ tooltip: '碰撞框半高（碰撞体总高度 = 此值 × 2）' })
     colliderHalfH = 20;
 
+    @property({ type: AudioClip, tooltip: '采集木材音效' })
+    woodSound: AudioClip | null = null;
+
+    @property({ type: AudioClip, tooltip: '采集铁矿音效' })
+    ironSound: AudioClip | null = null;
+
+    @property({ type: AudioClip, tooltip: '采集铜矿音效' })
+    copperSound: AudioClip | null = null;
+
     private _collider: Collider2D | null = null;
 
-    // 木材采集音效（静态共享，避免重复加载）
-    private static _woodAudioClip: AudioClip | null = null;
-    private static _woodAudioLoaded = false;
-
     start() {
-        ResourceItem.loadWoodAudio();
-
         const wp = this.node.worldPosition;
         this._collider = {
             node: this.node,
@@ -41,27 +44,6 @@ export class ResourceItem extends Component {
             group: ColliderGroup.Resource,
         };
         CollisionWorld.instance?.register(this._collider);
-    }
-
-    /** 加载木材采集音效（仅第一次调用时加载） */
-    private static loadWoodAudio() {
-        if (ResourceItem._woodAudioLoaded) return;
-        ResourceItem._woodAudioLoaded = true;
-        assetManager.loadAny(
-            { uuid: '65aeade2-399e-4601-9b5a-d948617e29e2' },
-            (err, asset) => {
-                if (err) {
-                    warn(`[ResourceItem] 加载木材音效失败: ${err.message}`);
-                    return;
-                }
-                if (asset instanceof AudioClip) {
-                    ResourceItem._woodAudioClip = asset;
-                    console.log('[ResourceItem] 木材音效加载成功');
-                } else {
-                    warn(`[ResourceItem] 加载的资产不是AudioClip: ${typeof asset}`);
-                }
-            },
-        );
     }
 
     onDestroy() {
@@ -93,18 +75,28 @@ export class ResourceItem extends Component {
             PlayerData.instance.addResource(this.resourceType, totalAmount);
         }
 
-        // 采集木材时播放音效（隐藏所有Sprite避免视觉残留，延迟销毁等音效播完）
-        if (this.resourceType === 'wood' && ResourceItem._woodAudioClip) {
-            const audioSource = this.node.addComponent(AudioSource);
-            audioSource.clip = ResourceItem._woodAudioClip;
-            audioSource.play();
-            // 递归隐藏自身及所有子节点的 Sprite，但不能 deactivate 节点（否则 AudioSource 会停）
+        // 根据资源类型播放对应采集音效
+        const clip = this.getCollectSound();
+        if (clip) {
             this.hideAllSprites(this.node);
+            const audioSource = this.node.addComponent(AudioSource);
+            audioSource.clip = clip;
+            audioSource.play();
             this.scheduleOnce(() => {
                 if (this.node?.isValid) this.node.destroy();
             }, 0.5);
         } else {
             this.node.destroy();
+        }
+    }
+
+    /** 获取当前资源类型对应的采集音效 */
+    private getCollectSound(): AudioClip | null {
+        switch (this.resourceType) {
+            case 'wood':   return this.woodSound;
+            case 'iron':   return this.ironSound;
+            case 'copper': return this.copperSound;
+            default:       return null;
         }
     }
 

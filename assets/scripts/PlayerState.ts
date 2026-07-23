@@ -310,6 +310,11 @@ export class PlayerState extends Component {
             this._flashTimer = this._flashDuration;
         }
 
+        // 播放受伤音效
+        if (this.playerController) {
+            this.playerController.playHurtSound();
+        }
+
         if (this.hp <= 0) {
             this.onPlayerDeath();
         }
