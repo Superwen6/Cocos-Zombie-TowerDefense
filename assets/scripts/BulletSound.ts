@@ -3,8 +3,8 @@ import { _decorator, AudioClip, AudioSource, CCFloat, Component, find, Vec3 } fr
 const { ccclass, property } = _decorator;
 
 /**
- * 子弹发射音效组件，挂载到任意子弹预制体上即可。
- * 子弹实例化时自动播放 fireSound，根据与玩家距离衰减音量。
+ * 子弹发射音效组件，挂载到炮塔节点上。
+ * 由炮塔在发射子弹时调用 play()，根据与玩家距离衰减音量。
  */
 @ccclass('BulletSound')
 export class BulletSound extends Component {
@@ -21,14 +21,12 @@ export class BulletSound extends Component {
         this._audioSource.loop = false;
     }
 
-    start() {
+    /** 播放发射音效，根据与玩家距离衰减音量 */
+    play() {
         if (!this._audioSource || !this.fireSound) return;
 
-        // 查找玩家节点获取位置（Player 在 GameWorld/YSortLayer 下）
         const playerNode = find('GameWorld/YSortLayer/Player');
-        if (!playerNode) {
-            return;
-        }
+        if (!playerNode) return;
 
         const dist = Vec3.distance(this.node.worldPosition, playerNode.worldPosition);
         if (dist >= this.maxDistance) return;

@@ -11,6 +11,7 @@ import {
     warn,
 } from 'cc';
 import { Bullet } from './Bullet';
+import { BulletSound } from './BulletSound';
 import { ZombieMove } from './ZombieMove';
 import { CollisionWorld, Collider2D, ColliderGroup } from './CollisionWorld';
 import { BaseSystem } from './BaseSystem';
@@ -273,6 +274,9 @@ export class Turret extends Component {
         if (!this.bulletPrefab) {
             return;
         }
+
+        // 播放发射音效（距离衰减）
+        this.getComponent(BulletSound)?.play();
 
         // 计算子弹发射位置：沿炮管视觉方向偏移 muzzleOffset 距离
         // 如果没有muzzleNode，从节点中心发射
