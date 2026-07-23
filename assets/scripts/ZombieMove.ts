@@ -154,6 +154,9 @@ export class ZombieMove extends Component {
     /** 巡逻目标偏移量（相对 origin），每帧重算 target 以抵消 YSortLayer 移动 */
     private readonly _wanderTargetOffset = new Vec3();
 
+    /** 是否处于夜间（游荡僵尸改为扫描玩家而非建筑） */
+    private _isNight = false;
+
     // 动画状态
     private _animFrameIndex = 0;
     private _animFrameTimer = 0;
@@ -208,17 +211,17 @@ export class ZombieMove extends Component {
     private onPhaseChanged(detail: { phase: DayNightPhase }) {
         if (this.isDead || !this.isDayWanderer) return;
 
-        const phaseName = DayNightPhase[detail.phase];
-        console.log(`[ZombieMove] ${this.node.name} onPhaseChanged: ${phaseName}, 当前状态=${this._aiState}`);
-
         if (detail.phase === DayNightPhase.NIGHT) {
-            // 进入夜间：游荡僵尸切换为追击玩家
-            console.log(`[ZombieMove] ${this.node.name} 进入夜间，切换为CHASE_PLAYER`);
-            this._aiState = 'CHASE_PLAYER';
+            // 进入夜间：游荡僵尸改为扫描玩家（玩家与发电机/集装箱同级目标）
+            this._isNight = true;
+            this._buildingTarget = null;
+            this._hatedTurret = null;
+            this._aiState = 'WANDER';
             this._hasWanderTarget = false;
+            this.pickNewWanderTarget();
         } else {
-            // 进入白天：恢复游荡巡逻
-            console.log(`[ZombieMove] ${this.node.name} 进入白天，恢复游荡`);
+            // 进入白天：恢复游荡巡逻（扫描建筑）
+            this._isNight = false;
             this.returnToDefaultTarget();
         }
     }
@@ -243,6 +246,7 @@ export class ZombieMove extends Component {
         this._aiState = asDayWanderer ? 'WANDER' : 'CHASE_BASE';
         this._wanderLandmarkNode = null;
         this._landmarkScanned = false;
+        this._isNight = false;
 
         if (asDayWanderer) {
             this.pickNewWanderTarget();
@@ -291,22 +295,17 @@ export class ZombieMove extends Component {
                 this._wanderScanTimer -= dt;
                 if (this._wanderScanTimer <= 0) {
                     this._wanderScanTimer = 1.0 + Math.random() * 1.0; // 1~2 秒扫描一次
-                    this.scanForBuildings();
+                    if (this._isNight) {
+                        // 夜间：扫描玩家（玩家与发电机/集装箱同级目标）
+                        this.scanForPlayer();
+                    } else {
+                        this.scanForBuildings();
+                    }
                 }
                 this.tickDayWander(dt);
                 return;
             }
             // 其他状态（追击玩家/建筑/炮塔）：走通用状态机
-            // 诊断日志：每秒打印一次当前状态
-            if (this._aiState !== 'WANDER') {
-                this._wanderScanTimer -= dt;
-                if (this._wanderScanTimer <= 0) {
-                    this._wanderScanTimer = 1.0;
-                    const playerNode = this.getPlayerNode();
-                    const dist = playerNode ? Vec3.distance(this.node.worldPosition, playerNode.worldPosition) : -1;
-                    console.log(`[ZombieMove] ${this.node.name} 状态=${this._aiState}, 距玩家=${dist.toFixed(0)}, isDayWanderer=${this.isDayWanderer}`);
-                }
-            }
             this.updateAIState();
             this.tickMoveByState(dt);
             return;
@@ -319,7 +318,7 @@ export class ZombieMove extends Component {
 
     // ========== 受击系统 ==========
 
-    /** 回到预定目标：游荡僵尸→WANDER（会自动扫建筑），夜间僵尸→CHASE_BASE */
+    /** 回到预定目标：游荡僵尸→WANDER（会自动扫建筑/玩家），夜间僵尸→CHASE_BASE */
     private returnToDefaultTarget() {
         this._hatedTurret = null;
         this._buildingTarget = null;
@@ -443,6 +442,29 @@ export class ZombieMove extends Component {
         }
     }
 
+    /** 夜间游荡：扫描玩家，在视野内且距离<=alertRadius时锁定追击 */
+    private scanForPlayer() {
+        const playerNode = this.getPlayerNode();
+        if (!playerNode || !this.isPlayerAlive()) return;
+
+        const selfPos = this.node.worldPosition;
+        const distToPlayer = Vec3.distance(selfPos, playerNode.worldPosition);
+        if (distToPlayer > this.alertRadius * PlayerState.zombieAlertRadiusMultiplier) return;
+
+        // 检查视线是否被墙阻挡
+        const lineClear = CollisionWorld.instance?.isLineOfSightClear(
+            selfPos, playerNode.worldPosition, [ColliderGroup.Wall],
+        );
+        if (!lineClear) return;
+
+        // 发现玩家，切换追击
+        this._lastKnownPlayerPos.set(playerNode.worldPosition);
+        this._memoryTimer = MEMORY_DURATION;
+        this._buildingTarget = null;
+        this._hatedTurret = null;
+        this._aiState = 'CHASE_PLAYER';
+    }
+
     /** 递归查找场景中已建成的非防御性建筑：发电机、集装箱（游荡僵尸预定目标） */
     private findNonDefensiveBuildings(root: Node, callback: (node: Node) => void) {
         if (!root || !root.isValid) return;
@@ -511,7 +533,6 @@ export class ZombieMove extends Component {
         if (this._aiState === 'CHASE_PLAYER' || this._aiState === 'ATTACK_PLAYER') {
             // 玩家超出拉扯范围 → 放弃追击，回到预定目标
             if (distToPlayer > LEASH_RADIUS) {
-                console.log(`[ZombieMove] ${this.node.name} 玩家超出LEASH_RADIUS(350), dist=${distToPlayer.toFixed(0)}, 回到默认目标`);
                 this.returnToDefaultTarget();
                 return;
             }

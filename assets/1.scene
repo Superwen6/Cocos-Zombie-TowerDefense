@@ -911,6 +911,11 @@
       "__expectedType__": "cc.Prefab"
     },
     "cameraFreeMoveSpeed": 800,
+    "walkSound": null,
+    "waveSound": null,
+    "attackHitSound": null,
+    "hurtSound": null,
+    "deathSound": null,
     "_id": "c0RxC7l0tKWKiVtrPlJJ01"
   },
   {
@@ -17235,8 +17240,8 @@
     ],
     "value": {
       "__type__": "cc.Vec3",
-      "x": -487.543,
-      "y": -658.955,
+      "x": -918.142,
+      "y": -1050.993,
       "z": 0
     }
   },
@@ -17457,8 +17462,8 @@
     ],
     "value": {
       "__type__": "cc.Vec3",
-      "x": 9.46000000000015,
-      "y": -713.1889999999999,
+      "x": 194.002,
+      "y": -1054.73,
       "z": 0
     }
   },
