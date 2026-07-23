@@ -82456,8 +82456,8 @@
     "darkMask": {
       "__id__": 52
     },
-    "dayDuration": 20,
-    "nightDuration": 20,
+    "dayDuration": 60,
+    "nightDuration": 60,
     "transitionTime": 10,
     "maxNightAlpha": 0.66,
     "enableLog": true,
@@ -82466,6 +82466,18 @@
     "resourceSpawner": null,
     "dayNoticeLabel": {
       "__id__": 1724
+    },
+    "dayBgMusic": {
+      "__uuid__": "01a36a8d-8df2-428a-ad18-1c0935920081",
+      "__expectedType__": "cc.AudioClip"
+    },
+    "nightZombieSound": {
+      "__uuid__": "d19ed8c7-7978-4d9e-b8dc-94cbb79e889e",
+      "__expectedType__": "cc.AudioClip"
+    },
+    "nightBgMusic": {
+      "__uuid__": "ffe92a53-464a-4011-9efb-3de77b86d77a",
+      "__expectedType__": "cc.AudioClip"
     },
     "_id": "08XJ/zs6BGSIeno2eTtiCe"
   },
