@@ -783,31 +783,23 @@ export class PlayerController extends Component {
 
     private playWaveSound() {
         if (!this._audioSource || !this.waveSound) return;
-        this._audioSource.loop = false;
-        this._audioSource.clip = this.waveSound;
-        this._audioSource.play();
+        this._audioSource.playOneShot(this.waveSound, 1);
     }
 
     private playAttackHitSound() {
         if (!this._audioSource || !this.attackHitSound) return;
-        this._audioSource.loop = false;
-        this._audioSource.clip = this.attackHitSound;
-        this._audioSource.play();
+        this._audioSource.playOneShot(this.attackHitSound, 1);
     }
 
     /** 由 PlayerState 调用，播放玩家受伤音效 */
     playHurtSound() {
         if (!this._audioSource || !this.hurtSound) return;
-        this._audioSource.loop = false;
-        this._audioSource.clip = this.hurtSound;
-        this._audioSource.play();
+        this._audioSource.playOneShot(this.hurtSound, 1);
     }
 
     private playDeathSound() {
         if (!this._audioSource || !this.deathSound) return;
-        this._audioSource.loop = false;
-        this._audioSource.clip = this.deathSound;
-        this._audioSource.play();
+        this._audioSource.playOneShot(this.deathSound, 1);
     }
 
     // ── 搜索辅助 ──
