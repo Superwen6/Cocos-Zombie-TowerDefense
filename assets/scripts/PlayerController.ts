@@ -635,6 +635,7 @@ export class PlayerController extends Component {
             const state = this.playerState ?? PlayerState.instance;
             if (!state) return false;
             base.repairBase(state.repairPerHit);
+            this.playRepairSound();
             this.showBuildingHealthBar(baseNode);
             return true;
         }
@@ -901,6 +902,7 @@ export class PlayerController extends Component {
         if (turret && typeof turret.hp === 'number' && typeof turret.maxHp === 'number') {
             if (turret.hp >= turret.maxHp) return;
             turret.hp = Math.min(turret.maxHp, turret.hp + repairAmount);
+            this.playRepairSound();
             this.showBuildingHealthBar(buildingNode);
             return;
         }
@@ -910,6 +912,7 @@ export class PlayerController extends Component {
         if (plant && typeof plant.hp === 'number' && typeof plant.maxHp === 'number') {
             if (plant.hp >= plant.maxHp) return;
             plant.hp = Math.min(plant.maxHp, plant.hp + repairAmount);
+            this.playRepairSound();
             this.showBuildingHealthBar(buildingNode);
             return;
         }
@@ -918,6 +921,7 @@ export class PlayerController extends Component {
         const container = buildingNode.getComponent(Container);
         if (container && container.hp < container.maxHp) {
             container.repair(repairAmount);
+            this.playRepairSound();
             this.showBuildingHealthBar(buildingNode);
             return;
         }
@@ -926,6 +930,7 @@ export class PlayerController extends Component {
         const base = BaseSystem.instance;
         if (base && this.isBaseOrDescendant(buildingNode) && base.baseHp < base.maxBaseHp) {
             base.repairBase(repairAmount);
+            this.playRepairSound();
             // 查找 Base 节点以显示其血条
             const baseNode = this.findBaseAncestor(buildingNode);
             if (baseNode) {
