@@ -1,4 +1,4 @@
-import { _decorator, Button, Camera, Color, Component, EventMouse, EventTouch, find, Input, input, Label, Node, RichText, Sprite, tween, Vec3, warn } from 'cc';
+import { _decorator, AudioClip, AudioSource, Button, Camera, Color, Component, EventMouse, EventTouch, find, Input, input, Label, Node, RichText, Sprite, tween, Vec3, warn } from 'cc';
 import { PlayerState } from './PlayerState';
 import { PlayerData } from './PlayerData';
 import { TurretPlacementManager } from './TurretPlacementManager';
@@ -194,6 +194,9 @@ export class AttributeUpgradePanel extends Component {
     @property({ type: Node, tooltip: '爆破操作按钮（Canvas 下，点亮后永久显示）' })
     blastActionBtn: Node | null = null;
 
+    @property({ type: AudioClip, tooltip: '地图元素爆破音效' })
+    blastSound: AudioClip | null = null;
+
     @property({ type: Node, tooltip: '武器模式切换按钮（Canvas 下，点亮后永久显示）' })
     weaponActionBtn: Node | null = null;
 
@@ -253,9 +256,12 @@ export class AttributeUpgradePanel extends Component {
 
     /** blastActionBtn 原始颜色（用于冷却恢复） */
     private _blastBtnOriginalColor: Color | null = null;
+    private _audioSource: AudioSource | null = null;
 
     /** onLoad 比 start 更早执行，确保第一帧前隐藏按钮 */
     onLoad() {
+        this._audioSource = this.node.addComponent(AudioSource);
+        this._audioSource.loop = false;
         if (this.reinforceActionBtn) this.reinforceActionBtn.active = false;
         if (this.blastActionBtn) this.blastActionBtn.active = false;
         if (this.weaponActionBtn) this.weaponActionBtn.active = false;
@@ -990,6 +996,11 @@ export class AttributeUpgradePanel extends Component {
             this.exitBlastMode();
             ReinforcementNotice.show('无目标退出爆破模式');
             return;
+        }
+
+        // 播放爆破音效
+        if (this._audioSource && this.blastSound) {
+            this._audioSource.playOneShot(this.blastSound, 1);
         }
 
         // 播放缩放动画后销毁

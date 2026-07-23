@@ -1,4 +1,4 @@
-import { _decorator, CCFloat, CCInteger, Color, Component, Node, Sprite, find, warn } from 'cc';
+import { _decorator, AudioClip, AudioSource, CCFloat, CCInteger, Color, Component, Node, Sprite, find, warn } from 'cc';
 import { PlayerData } from './PlayerData';
 import { PlayerState } from './PlayerState';
 import { PlantGenerator } from './PlantGenerator';
@@ -6,6 +6,7 @@ import { Turret } from './Turret';
 import { GlobalContainerStorage } from './GlobalContainerStorage';
 import { HealthBar } from './HealthBar';
 import { ReinforcementNotice } from './ReinforcementNotice';
+import { TurretPlacementManager } from './TurretPlacementManager';
 
 const { ccclass, property } = _decorator;
 
@@ -119,6 +120,7 @@ export class BaseSystem extends Component {
 
     /** 是否已显示过首次受攻击提示 */
     private _hasShownAttackWarning = false;
+    private _audioSource: AudioSource | null = null;
 
     @property({ type: HealthBar, tooltip: 'Canvas上的Base血条（用于显示升级建造进度和血量）' })
     canvasHealthBar: HealthBar | null = null;
@@ -130,6 +132,8 @@ export class BaseSystem extends Component {
             return;
         }
         BaseSystem.instance = this;
+        this._audioSource = this.node.addComponent(AudioSource);
+        this._audioSource.loop = false;
         this.syncMaxBaseHpFromLevel();
         this.clampBaseHp();
     }
@@ -396,6 +400,12 @@ export class BaseSystem extends Component {
         }
         this._isUpgrading = false;
         this._upgradeTimer = 0;
+
+        // 播放建造完成音效（复用 TurretPlacementManager 的 buildCompleteSound）
+        const sound = TurretPlacementManager.instance?.buildCompleteSound;
+        if (this._audioSource && sound) {
+            this._audioSource.playOneShot(sound, 1);
+        }
     }
 
     damageBase(amount: number) {
