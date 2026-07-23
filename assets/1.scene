@@ -911,11 +911,26 @@
       "__expectedType__": "cc.Prefab"
     },
     "cameraFreeMoveSpeed": 800,
-    "walkSound": null,
-    "waveSound": null,
-    "attackHitSound": null,
-    "hurtSound": null,
-    "deathSound": null,
+    "walkSound": {
+      "__uuid__": "f56c9c97-36dd-4d1f-9e24-19541079c17a",
+      "__expectedType__": "cc.AudioClip"
+    },
+    "waveSound": {
+      "__uuid__": "bd8adc35-4511-4e7c-96db-f29470c8f41d",
+      "__expectedType__": "cc.AudioClip"
+    },
+    "attackHitSound": {
+      "__uuid__": "ad134e62-7879-4615-8d1e-d5ec24b3ce71",
+      "__expectedType__": "cc.AudioClip"
+    },
+    "hurtSound": {
+      "__uuid__": "43049957-7728-490a-9e52-6938c7d4f55e",
+      "__expectedType__": "cc.AudioClip"
+    },
+    "deathSound": {
+      "__uuid__": "24bc2e44-236c-4cf2-be6d-aab726e26fee",
+      "__expectedType__": "cc.AudioClip"
+    },
     "_id": "c0RxC7l0tKWKiVtrPlJJ01"
   },
   {

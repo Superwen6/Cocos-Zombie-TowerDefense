@@ -292,6 +292,18 @@
     "hp": 1,
     "colliderHalfW": 16,
     "colliderHalfH": 16,
+    "woodSound": {
+      "__uuid__": "65aeade2-399e-4601-9b5a-d948617e29e2",
+      "__expectedType__": "cc.AudioClip"
+    },
+    "ironSound": {
+      "__uuid__": "d03f071a-35fd-43fd-9aab-97eb77bb08e6",
+      "__expectedType__": "cc.AudioClip"
+    },
+    "copperSound": {
+      "__uuid__": "84fe7a83-75b6-4b80-bc00-9d41cb05aeff",
+      "__expectedType__": "cc.AudioClip"
+    },
     "_id": ""
   },
   {
