@@ -1,5 +1,7 @@
 import {
     _decorator,
+    AudioClip,
+    AudioSource,
     CCFloat,
     Color,
     Component,
@@ -71,6 +73,15 @@ export class DayNightSystem extends Component {
     @property({ type: Label, tooltip: '屏幕中央天数大字报 Label' })
     dayNoticeLabel: Label | null = null;
 
+    @property({ type: AudioClip, tooltip: '白天背景音乐' })
+    dayBgMusic: AudioClip | null = null;
+
+    @property({ type: AudioClip, tooltip: '进入夜晚时先播放的僵尸音效' })
+    nightZombieSound: AudioClip | null = null;
+
+    @property({ type: AudioClip, tooltip: '夜晚背景音乐（僵尸音效播完后）' })
+    nightBgMusic: AudioClip | null = null;
+
     static readonly eventTarget = new EventTarget();
 
     private static _instance: DayNightSystem | null = null;
@@ -78,6 +89,7 @@ export class DayNightSystem extends Component {
     private _phase: DayNightPhase = DayNightPhase.DAY;
     private _elapsed = 0;
     private _maskOpacity: UIOpacity | null = null;
+    private _audioSource: AudioSource | null = null;
 
     static get instance(): DayNightSystem | null {
         return DayNightSystem._instance;
@@ -143,6 +155,7 @@ export class DayNightSystem extends Component {
         this._elapsed = 0;
         this.initDarkMask();
         this.initDayNoticeHidden();
+        this.initAudio();
     }
 
     onEnable() {
@@ -158,6 +171,7 @@ export class DayNightSystem extends Component {
     start() {
         this.showDayNotice(`Day ${this.currentDay}`);
         this.spawnDayResources();
+        this.playDayMusic();
     }
 
     update(dt: number) {
@@ -275,6 +289,9 @@ export class DayNightSystem extends Component {
 
         this.node.emit(DayNightEvents.PHASE_CHANGED, detail);
         DayNightSystem.eventTarget.emit(DayNightEvents.PHASE_CHANGED, detail);
+
+        // 阶段切换音乐
+        this.onPhaseMusicChanged(this._phase);
     }
 
     /** 进入新的一天 */
@@ -321,6 +338,69 @@ export class DayNightSystem extends Component {
         // 遮罩固定为黑色，仅通过 UIOpacity 控制透明度
         this.darkMask.color = Color.BLACK;
         this._maskOpacity.opacity = 0;
+    }
+
+    private initAudio() {
+        this._audioSource = this.node.getComponent(AudioSource);
+        if (!this._audioSource) {
+            this._audioSource = this.node.addComponent(AudioSource);
+        }
+        this._audioSource.loop = true;
+    }
+
+    /** 播放白天背景音乐 */
+    private playDayMusic() {
+        if (!this._audioSource || !this.dayBgMusic) return;
+        this._audioSource.stop();
+        this._audioSource.clip = this.dayBgMusic;
+        this._audioSource.play();
+    }
+
+    /** 切换到夜晚：先播僵尸音效，再播夜晚背景音乐 */
+    private playNightMusic() {
+        if (!this._audioSource) return;
+
+        // 停止当前音乐
+        this._audioSource.stop();
+
+        // 先播僵尸音效
+        if (this.nightZombieSound) {
+            this._audioSource.loop = false;
+            this._audioSource.clip = this.nightZombieSound;
+            this._audioSource.play();
+        } else {
+            // 没有僵尸音效，直接播夜晚背景音乐
+            this._playNightBgMusic();
+            return;
+        }
+
+        // 僵尸音效播完后，切换为夜晚背景音乐
+        const delay = this.nightZombieSound.getDuration() || 3;
+        this.scheduleOnce(() => {
+            this._playNightBgMusic();
+        }, delay);
+    }
+
+    /** 播放夜晚背景音乐（循环） */
+    private _playNightBgMusic() {
+        if (!this._audioSource || !this.nightBgMusic) return;
+        this._audioSource.stop();
+        this._audioSource.loop = true;
+        this._audioSource.clip = this.nightBgMusic;
+        this._audioSource.play();
+    }
+
+    /** 根据阶段切换音乐 */
+    private onPhaseMusicChanged(phase: DayNightPhase) {
+        switch (phase) {
+            case DayNightPhase.DAY:
+                this.playDayMusic();
+                break;
+            case DayNightPhase.NIGHT:
+                this.playNightMusic();
+                break;
+            // DUSK/DAWN 过渡阶段不切换音乐，保持当前音乐
+        }
     }
 
     /** 每帧根据当前阶段计算遮罩透明度（纯 Alpha 方案，无颜色插值） */
