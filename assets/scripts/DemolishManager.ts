@@ -1,4 +1,4 @@
-import { _decorator, Color, Component, Node, Vec3, input, Input, EventMouse, EventKeyboard, KeyCode, tween, Sprite, director, Camera, warn } from 'cc';
+import { _decorator, AudioClip, AudioSource, Color, Component, Node, Vec3, input, Input, EventMouse, EventKeyboard, KeyCode, tween, Sprite, director, Camera, warn } from 'cc';
 import { CollisionWorld, ColliderGroup } from './CollisionWorld';
 import { Turret } from './Turret';
 import { PlantGenerator } from './PlantGenerator';
@@ -20,13 +20,19 @@ export class DemolishManager extends Component {
     @property({ type: Camera, tooltip: '世界相机（用于屏幕坐标转世界坐标）' })
     worldCamera: Camera | null = null;
 
+    @property({ type: AudioClip, tooltip: '建筑拆除音效（炮塔/发电机/集装箱通用）' })
+    demolishSound: AudioClip | null = null;
+
     private _isDemolishMode = false;
     private _highlightedNode: Node | null = null;
     private _originalColors: Map<Node, Color> = new Map();
     private readonly _screenVec = new Vec3();
     private readonly _worldVec = new Vec3();
+    private _audioSource: AudioSource | null = null;
 
     start() {
+        this._audioSource = this.node.addComponent(AudioSource);
+        this._audioSource.loop = false;
         input.on(Input.EventType.MOUSE_MOVE, this.onMouseMove, this);
         input.on(Input.EventType.MOUSE_DOWN, this.onMouseDown, this);
         input.on(Input.EventType.KEY_DOWN, this.onKeyDown, this);
@@ -156,6 +162,11 @@ export class DemolishManager extends Component {
         let costCopper = 0;
         let costIron = 0;
         let costMoney = 0;
+
+        // 播放拆除音效
+        if (this._audioSource && this.demolishSound) {
+            this._audioSource.playOneShot(this.demolishSound, 1);
+        }
 
         if (turret) {
             costWood = turret.costWood;
