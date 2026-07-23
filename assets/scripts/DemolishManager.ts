@@ -1,7 +1,4 @@
-import {
-    _decorator, Color, Component, Node, Vec3, input, Input, EventMouse,
-    EventKeyboard, KeyCode, tween, Sprite, director, Camera, warn,
-} from 'cc';
+import { _decorator, Color, Component, Node, Vec3, input, Input, EventMouse, EventKeyboard, KeyCode, tween, Sprite, director, Camera, warn } from 'cc';
 import { CollisionWorld, ColliderGroup } from './CollisionWorld';
 import { Turret } from './Turret';
 import { PlantGenerator } from './PlantGenerator';

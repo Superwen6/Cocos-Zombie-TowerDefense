@@ -220,7 +220,7 @@ export class AttributeUpgradePanel extends Component {
     confirmButton: Node | null = null;
 
     @property({ type: Node, tooltip: '取消按钮' })
-    cancelButton: Node | null = null;
+    cancelResetButtonNode: Node | null = null;
 
     private _panelVisible = false;
     private static _openPanelBound = false;
