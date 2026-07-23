@@ -81561,6 +81561,10 @@
       "__uuid__": "9fca4d7a-1d2a-4ae8-be61-3f74b67ef345",
       "__expectedType__": "cc.AudioClip"
     },
+    "reinforceSound": {
+      "__uuid__": "59ca2a92-df1c-48be-a352-9eacda4e49f9",
+      "__expectedType__": "cc.AudioClip"
+    },
     "weaponActionBtn": {
       "__id__": 2372
     },

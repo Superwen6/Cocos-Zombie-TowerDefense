@@ -197,6 +197,9 @@ export class AttributeUpgradePanel extends Component {
     @property({ type: AudioClip, tooltip: '地图元素爆破音效' })
     blastSound: AudioClip | null = null;
 
+    @property({ type: AudioClip, tooltip: '炮塔强化完成音效' })
+    reinforceSound: AudioClip | null = null;
+
     @property({ type: Node, tooltip: '武器模式切换按钮（Canvas 下，点亮后永久显示）' })
     weaponActionBtn: Node | null = null;
 
@@ -957,6 +960,11 @@ export class AttributeUpgradePanel extends Component {
 
         // 永久着色：对 Turnet 和 Turnet_foundation 子节点应用 #D99AFD
         this.applyPermanentColorToTurretChildren(turret.node);
+
+        // 播放强化完成音效
+        if (this._audioSource && this.reinforceSound) {
+            this._audioSource.playOneShot(this.reinforceSound, 1);
+        }
 
         this.exitReinforceMode();
         ReinforcementNotice.show('炮塔强化完成！范围/攻速/攻击 ×1.5');
