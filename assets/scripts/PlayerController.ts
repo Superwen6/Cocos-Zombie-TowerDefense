@@ -111,7 +111,7 @@ export class PlayerController extends Component {
     @property({ type: AudioClip, tooltip: '空挥攻击音效（未命中任何目标）' })
     waveSound: AudioClip | null = null;
 
-    @property({ type: AudioClip, tooltip: '攻击命中音效（僵尸/资源/建筑）' })
+    @property({ type: AudioClip, tooltip: '攻击命中僵尸音效' })
     attackHitSound: AudioClip | null = null;
 
     @property({ type: AudioClip, tooltip: '玩家受伤音效' })
@@ -567,7 +567,6 @@ export class PlayerController extends Component {
             // 有目标时：根据目标与玩家的相对位置决定方向
             const targetIsRight = resource.node.worldPosition.x > playerPos.x;
             this.playAttackAnimation(targetIsRight);
-            this.playAttackHitSound();
             return;
         }
 
@@ -576,13 +575,11 @@ export class PlayerController extends Component {
             this.repairBuilding(building);
             const targetIsRight = building.worldPosition.x > playerPos.x;
             this.playAttackAnimation(targetIsRight);
-            this.playAttackHitSound();
             return;
         }
 
         // Fallback: 玩家在基地碰撞矩形内则维修基地
         if (this.tryRepairBaseInRange(playerPos)) {
-            this.playAttackHitSound();
             return;
         }
 

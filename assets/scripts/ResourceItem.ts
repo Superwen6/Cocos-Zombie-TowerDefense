@@ -32,6 +32,7 @@ export class ResourceItem extends Component {
     copperSound: AudioClip | null = null;
 
     private _collider: Collider2D | null = null;
+    private _audioSource: AudioSource | null = null;
 
     start() {
         const wp = this.node.worldPosition;
@@ -44,6 +45,7 @@ export class ResourceItem extends Component {
             group: ColliderGroup.Resource,
         };
         CollisionWorld.instance?.register(this._collider);
+        this._audioSource = this.node.addComponent(AudioSource);
     }
 
     onDestroy() {
@@ -60,6 +62,13 @@ export class ResourceItem extends Component {
 
         this.hp -= 1;
 
+        // 每次击打都播放对应资源音效
+        const clip = this.getCollectSound();
+        if (clip && this._audioSource) {
+            this._audioSource.clip = clip;
+            this._audioSource.play();
+        }
+
         if (this.hp <= 0) {
             this.collectAndDestroy();
         }
@@ -75,13 +84,10 @@ export class ResourceItem extends Component {
             PlayerData.instance.addResource(this.resourceType, totalAmount);
         }
 
-        // 根据资源类型播放对应采集音效
+        // 隐藏所有 Sprite 并延迟销毁，让音效有足够时间播放完毕
         const clip = this.getCollectSound();
         if (clip) {
             this.hideAllSprites(this.node);
-            const audioSource = this.node.addComponent(AudioSource);
-            audioSource.clip = clip;
-            audioSource.play();
             this.scheduleOnce(() => {
                 if (this.node?.isValid) this.node.destroy();
             }, 0.5);
