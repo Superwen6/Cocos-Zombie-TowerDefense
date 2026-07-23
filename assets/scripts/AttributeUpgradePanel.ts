@@ -1226,8 +1226,8 @@ export class AttributeUpgradePanel extends Component {
                 btn.node.on(Button.EventType.CLICK, this.onConfirmReset, this);
             }
         }
-        if (this.cancelButton) {
-            const btn = this.cancelButton.getComponent(Button);
+        if (this.cancelResetButtonNode) {
+            const btn = this.cancelResetButtonNode.getComponent(Button);
             if (btn) {
                 btn.node.on(Button.EventType.CLICK, this.onCancelReset, this);
             }
@@ -1240,8 +1240,8 @@ export class AttributeUpgradePanel extends Component {
             const btn = this.confirmButton.getComponent(Button);
             if (btn) btn.node.targetOff(this);
         }
-        if (this.cancelButton?.isValid) {
-            const btn = this.cancelButton.getComponent(Button);
+        if (this.cancelResetButtonNode?.isValid) {
+            const btn = this.cancelResetButtonNode.getComponent(Button);
             if (btn) btn.node.targetOff(this);
         }
     }

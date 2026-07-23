@@ -975,7 +975,7 @@
     },
     "_enabled": true,
     "__prefab": null,
-    "money": 0,
+    "money": 300,
     "woodCount": 0,
     "copperCount": 0,
     "ironCount": 0,
@@ -79683,7 +79683,10 @@
     },
     "_enabled": true,
     "__prefab": null,
-    "clickSound": null,
+    "clickSound": {
+      "__uuid__": "1f0464e5-757f-4061-8840-c557a6ee1b5f",
+      "__expectedType__": "cc.AudioClip"
+    },
     "_id": "3cRqrFuQlNKYPDu8bMcFx+"
   },
   {
@@ -81551,7 +81554,9 @@
     "confirmButton": {
       "__id__": 2825
     },
-    "cancelResetButtonNode": null,
+    "cancelResetButtonNode": {
+      "__id__": 2832
+    },
     "_id": "3eQqYMr6xIwbXjo/wZ8Mg4"
   },
   {
