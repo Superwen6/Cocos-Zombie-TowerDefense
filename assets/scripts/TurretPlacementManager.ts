@@ -1,5 +1,5 @@
 import {
-    _decorator, Color, Component, Camera, Collider2D, EventKeyboard, EventMouse,
+    _decorator, AudioClip, AudioSource, Color, Component, Camera, Collider2D, EventKeyboard, EventMouse,
     instantiate, input, Input, KeyCode, Layers, Node, Prefab, Sprite,
     RenderRoot2D, UIOpacity, Vec3, director, warn,
 } from 'cc';
@@ -47,6 +47,9 @@ export class TurretPlacementManager extends Component {
     @property({ type: Prefab, tooltip: '集装箱预制体' })
     containerPrefab: Prefab | null = null;
 
+    @property({ type: AudioClip, tooltip: '建筑建造完成音效（炮塔/发电机/集装箱通用）' })
+    buildCompleteSound: AudioClip | null = null;
+
     @property({ type: Camera }) worldCamera: Camera | null = null;
     @property({ type: Node, tooltip: '炮塔/发电机挂载父节点，默认 GameWorld' })
     placementRoot: Node | null = null;
@@ -79,9 +82,12 @@ export class TurretPlacementManager extends Component {
 
     private readonly _screenVec = new Vec3();
     private readonly _worldVec = new Vec3();
+    private _audioSource: AudioSource | null = null;
 
     onLoad() {
         TurretPlacementManager.instance = this;
+        this._audioSource = this.node.addComponent(AudioSource);
+        this._audioSource.loop = false;
     }
 
     start() {
@@ -710,6 +716,11 @@ export class TurretPlacementManager extends Component {
 
         this.unregisterInput();
         this.refreshHud();
+
+        // 播放建造完成音效
+        if (this._audioSource && this.buildCompleteSound) {
+            this._audioSource.playOneShot(this.buildCompleteSound, 1);
+        }
     }
 
     /** 取消建造进度：退还资源，销毁虚影 */
