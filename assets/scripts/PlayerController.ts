@@ -120,6 +120,9 @@ export class PlayerController extends Component {
     @property({ type: AudioClip, tooltip: '玩家死亡音效' })
     deathSound: AudioClip | null = null;
 
+    @property({ type: AudioClip, tooltip: '维修建筑/基地/发电机/集装箱音效' })
+    repairSound: AudioClip | null = null;
+
     /** 从 PlayerState 读取攻击/维修范围（可在属性检查器中调整） */
     private get hitRange(): number {
         return this.playerState?.repairRange ?? 50;
@@ -800,6 +803,11 @@ export class PlayerController extends Component {
     private playDeathSound() {
         if (!this._audioSource || !this.deathSound) return;
         this._audioSource.playOneShot(this.deathSound, 1);
+    }
+
+    private playRepairSound() {
+        if (!this._audioSource || !this.repairSound) return;
+        this._audioSource.playOneShot(this.repairSound, 1);
     }
 
     // ── 搜索辅助 ──
