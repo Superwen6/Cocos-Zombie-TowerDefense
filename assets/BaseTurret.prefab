@@ -898,6 +898,10 @@
       "y": 80,
       "z": 0
     },
+    "buildProgressSound": {
+      "__uuid__": "0ff0b1f0-3ae2-4e46-9cce-a2b07c7faf6a",
+      "__expectedType__": "cc.AudioClip"
+    },
     "_id": ""
   },
   {

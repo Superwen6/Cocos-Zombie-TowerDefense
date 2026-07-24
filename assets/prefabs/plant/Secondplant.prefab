@@ -442,6 +442,20 @@
     "fillSprite": {
       "__id__": 12
     },
+    "borderSprite": null,
+    "titleLabel": null,
+    "followTarget": null,
+    "worldCamera": null,
+    "screenOffset": {
+      "__type__": "cc.Vec3",
+      "x": 0,
+      "y": 80,
+      "z": 0
+    },
+    "buildProgressSound": {
+      "__uuid__": "0ff0b1f0-3ae2-4e46-9cce-a2b07c7faf6a",
+      "__expectedType__": "cc.AudioClip"
+    },
     "_id": ""
   },
   {
@@ -575,6 +589,7 @@
     "maxHp": 100,
     "buildTime": 4,
     "powerGenerate": 10,
+    "powerCost": 0,
     "placeCenter": {
       "__type__": "cc.Vec3",
       "x": 980,

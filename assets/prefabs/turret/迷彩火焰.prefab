@@ -885,6 +885,17 @@
     "fillSprite": {
       "__id__": 30
     },
+    "borderSprite": null,
+    "titleLabel": null,
+    "followTarget": null,
+    "worldCamera": null,
+    "screenOffset": {
+      "__type__": "cc.Vec3",
+      "x": 0,
+      "y": 80,
+      "z": 0
+    },
+    "buildProgressSound": null,
     "_id": ""
   },
   {
