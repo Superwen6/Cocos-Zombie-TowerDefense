@@ -1,5 +1,7 @@
 import {
     _decorator,
+    AudioClip,
+    AudioSource,
     Camera,
     CCFloat,
     Color,
@@ -55,7 +57,11 @@ export class HealthBar extends Component {
     @property({ type: Vec3, tooltip: '跟随模式下的屏幕坐标偏移' })
     screenOffset: Vec3 = new Vec3(0, 80, 0);
 
+    @property({ type: AudioClip, tooltip: '建造进度音效（循环播放直到建造完成）' })
+    buildProgressSound: AudioClip | null = null;
+
     private _mode = HealthBarMode.BUILD;
+    private _progressAudioSource: AudioSource | null = null;
     private _buildTimer = 0;
     private _hideTimer = 0;
     private _lastHp = -1;
@@ -69,6 +75,11 @@ export class HealthBar extends Component {
     /** 绑定建筑节点，之后血条将读取该节点的 hp/maxHp */
     public bindParent(parentNode: Node) {
         this._boundNode = parentNode;
+    }
+
+    onLoad() {
+        this._progressAudioSource = this.node.addComponent(AudioSource);
+        this._progressAudioSource.loop = true;
     }
 
     /** 组件启动时，若跟随目标是 Base，则直接进入战斗模式显示血量 */
@@ -93,6 +104,12 @@ export class HealthBar extends Component {
         this._isVisible = true;
         this.showVisuals();
         this.updateProgress(0);
+
+        // 播放建造进度音效
+        if (this.buildProgressSound && this._progressAudioSource) {
+            this._progressAudioSource.clip = this.buildProgressSound;
+            this._progressAudioSource.play();
+        }
     }
 
     /** 更新建造进度（0~1） */
@@ -111,6 +128,9 @@ export class HealthBar extends Component {
         this._hideTimer = 0;
         this._isVisible = true;
         this.showVisuals();
+
+        // 停止建造进度音效
+        this._progressAudioSource?.stop();
     }
 
     /** 显示血条（外部调用，如受到攻击时） */
@@ -152,6 +172,11 @@ export class HealthBar extends Component {
             this._buildTimer += dt;
             const progress = Math.min(1, this._buildTimer / this.buildTime);
             this.updateProgress(progress);
+
+            // 进度达到100%时停止音效
+            if (progress >= 1 && this._progressAudioSource?.playing) {
+                this._progressAudioSource.stop();
+            }
             return;
         }
 
