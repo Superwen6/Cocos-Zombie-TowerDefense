@@ -808,6 +808,8 @@ export class PlayerController extends Component {
             this.bodyAnim.stop();
             this._currentClip = '';
         }
+        // 停止行走音效（修复：行走途中死亡音效持续播放的bug）
+        this.stopWalkSound();
 
         this._deathFrameIndex = 0;
         this._deathFrameTimer = 0;
