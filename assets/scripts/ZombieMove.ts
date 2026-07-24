@@ -212,18 +212,19 @@ export class ZombieMove extends Component {
         if (this.isDead || !this.isDayWanderer) return;
 
         if (detail.phase === DayNightPhase.NIGHT) {
-            // 进入夜间：游荡僵尸改为扫描玩家（玩家与发电机/集装箱同级目标）
+            // 进入夜间：游荡僵尸改为扫描玩家和建筑（发电机/集装箱）
             this._isNight = true;
             this._buildingTarget = null;
             this._hatedTurret = null;
             this._aiState = 'WANDER';
             this._hasWanderTarget = false;
             this.pickNewWanderTarget();
-        } else {
+        } else if (detail.phase === DayNightPhase.DAY) {
             // 进入白天：恢复游荡巡逻（扫描建筑）
             this._isNight = false;
             this.returnToDefaultTarget();
         }
+        // DUSK / DAWN 过渡阶段：保持当前目标不变
     }
 
     /**
@@ -509,6 +510,35 @@ export class ZombieMove extends Component {
         }
     }
 
+    /** 夜间进攻型僵尸：扫描范围内最近的炮塔，返回节点或 null */
+    private findNearestTurret(): Node | null {
+        const selfPos = this.node.worldPosition;
+        let nearest: Node | null = null;
+        let nearestDist = this.buildingScanRadius;
+
+        this.walkSceneForTurrets(this.node.scene ?? this.node, (node) => {
+            const d = Vec3.distance(selfPos, node.worldPosition);
+            if (d < nearestDist) {
+                nearestDist = d;
+                nearest = node;
+            }
+        });
+
+        return nearest;
+    }
+
+    /** 递归遍历场景查找已建成的炮塔 */
+    private walkSceneForTurrets(root: Node, callback: (node: Node) => void) {
+        if (!root || !root.isValid) return;
+        const turret = root.getComponent(Turret);
+        if (turret && turret.enabled) {
+            callback(root);
+        }
+        for (const child of root.children) {
+            this.walkSceneForTurrets(child, callback);
+        }
+    }
+
     // ========== AI 状态更新 ==========
 
     /** 根据当前环境更新 AI 状态 */
@@ -648,6 +678,18 @@ export class ZombieMove extends Component {
             }
             if (this._attackCooldown > 0) return;
             return;
+        }
+
+        // ===== 夜间进攻型僵尸：扫描附近炮塔，优先攻击 =====
+        if (this._aiState === 'CHASE_BASE' || this._aiState === 'ATTACK_BASE') {
+            const nearestTurret = this.findNearestTurret();
+            if (nearestTurret) {
+                this._buildingTarget = nearestTurret;
+                this._hatedTurret = nearestTurret;
+                this._aiState = 'CHASE_TURRET';
+                this._memoryTimer = 0;
+                return;
+            }
         }
 
         // ===== 夜间僵尸：看到玩家就追击（视觉发现，非玩家攻击，优先级低于炮塔） =====
