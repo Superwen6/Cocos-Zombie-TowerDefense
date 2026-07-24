@@ -398,7 +398,7 @@
     "__prefab": {
       "__id__": 15
     },
-    "woodDropChance": 0.08,
+    "woodDropChance": 1,
     "copperDropChance": 0.04,
     "ironDropChance": 0.02,
     "moneyDropChance": 0.3,

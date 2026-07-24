@@ -462,7 +462,10 @@ export class TurretPlacementManager extends Component {
         }
 
         if (this._justActivatedFrame || event.getButton() !== 0) return;
-        if (!this._placementValid) return;
+        if (!this._placementValid) {
+            this.cancelPlacement();
+            return;
+        }
 
         // plant/container 模式：资源已在面板点击时扣除，此处跳过
         // turret 模式：资源在此处扣除
