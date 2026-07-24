@@ -1,4 +1,4 @@
-import { _decorator, Color, Component, Label, ProgressBar, Sprite, SpriteFrame } from 'cc';
+import { _decorator, Color, Component, director, Label, ProgressBar, Sprite, SpriteFrame } from 'cc';
 import { PlayerData } from './PlayerData';
 import { PlayerState } from './PlayerState';
 import { BaseSystem } from './BaseSystem';
@@ -10,6 +10,8 @@ import { DayNightSystem, DayNightPhase } from './DayNightSystem';
 const { ccclass, property } = _decorator;
 
 const HUD_REFRESH_INTERVAL = 0.1;
+const FLASH_GREEN_DURATION = 0.5;
+const FLASH_GREEN = new Color(0, 255, 0, 255);
 
 /**
  * 常驻 HUD：实时显示玩家血量、疲劳与资源。
@@ -95,6 +97,9 @@ export class GameHUDUI extends Component {
     private _isFlashing = false;
     private _flashRed = true;
 
+    /** 资源掉落闪绿状态：Label → 剩余闪绿时间 */
+    private readonly _greenFlashTimers = new Map<Label, number>();
+
     start() {
         // 确保打开面板按钮绑定（即使 UpgradePanel 未激活）
         BuildPanelUI.ensureOpenPanelBinding();
@@ -115,6 +120,19 @@ export class GameHUDUI extends Component {
         if (this._refreshTimer >= HUD_REFRESH_INTERVAL) {
             this._refreshTimer = 0;
             this.refreshHUD();
+        }
+
+        // 更新资源掉落闪绿计时器
+        for (const [label, remaining] of this._greenFlashTimers) {
+            const newRemaining = remaining - dt;
+            if (newRemaining <= 0) {
+                if (label.isValid) {
+                    label.color = Color.WHITE;
+                }
+                this._greenFlashTimers.delete(label);
+            } else {
+                this._greenFlashTimers.set(label, newRemaining);
+            }
         }
 
         // 每帧刷新时间和昼夜图标
@@ -282,5 +300,33 @@ export class GameHUDUI extends Component {
                 }
             }
         }
+    }
+
+    // ── 资源掉落闪绿 ──
+
+    /** 资源掉落时对应 Label 闪绿 */
+    public static flashResourceGreen(type: 'wood' | 'copper' | 'iron' | 'money') {
+        // 从场景中查找 GameHUDUI 实例
+        const scene = director.getScene();
+        if (!scene) return;
+        const hud = scene.getComponentInChildren(GameHUDUI);
+        if (!hud) return;
+
+        let label: Label | null = null;
+        switch (type) {
+            case 'wood': label = hud.woodInfoLabel; break;
+            case 'copper': label = hud.copperInfoLabel; break;
+            case 'iron': label = hud.ironInfoLabel; break;
+            case 'money': label = hud.moneyText; break;
+        }
+        if (!label) return;
+
+        hud.flashLabelGreen(label);
+    }
+
+    /** 对指定 Label 执行闪绿效果 */
+    private flashLabelGreen(label: Label) {
+        label.color = FLASH_GREEN;
+        this._greenFlashTimers.set(label, FLASH_GREEN_DURATION);
     }
 }

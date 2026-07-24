@@ -1,6 +1,7 @@
 import { _decorator, Component } from 'cc';
 import { PlayerData } from './PlayerData';
 import { GlobalContainerStorage } from './GlobalContainerStorage';
+import { GameHUDUI } from './GameHUDUI';
 
 const { ccclass, property } = _decorator;
 
@@ -38,6 +39,7 @@ export class ZombieDrop extends Component {
             } else if (data) {
                 data.addWood(1);
             }
+            GameHUDUI.flashResourceGreen('wood');
         }
 
         // 铜矿 → 优先存入仓库，仓库不可用时存入背包
@@ -47,6 +49,7 @@ export class ZombieDrop extends Component {
             } else if (data) {
                 data.addCopper(1);
             }
+            GameHUDUI.flashResourceGreen('copper');
         }
 
         // 铁矿 → 优先存入仓库，仓库不可用时存入背包
@@ -56,11 +59,13 @@ export class ZombieDrop extends Component {
             } else if (data) {
                 data.addIron(1);
             }
+            GameHUDUI.flashResourceGreen('iron');
         }
 
         // 金钱 → 直接加给玩家
         if (Math.random() < this.moneyDropChance) {
             data?.addMoney(this.moneyAmount);
+            GameHUDUI.flashResourceGreen('money');
         }
     }
 }
