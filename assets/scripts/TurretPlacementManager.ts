@@ -50,6 +50,9 @@ export class TurretPlacementManager extends Component {
     @property({ type: AudioClip, tooltip: '建筑建造完成音效（炮塔/发电机/集装箱通用）' })
     buildCompleteSound: AudioClip | null = null;
 
+    @property({ type: AudioClip, tooltip: '取消放置音效' })
+    cancelPlacementSound: AudioClip | null = null;
+
     @property({ type: Camera }) worldCamera: Camera | null = null;
     @property({ type: Node, tooltip: '炮塔/发电机挂载父节点，默认 GameWorld' })
     placementRoot: Node | null = null;
@@ -567,6 +570,7 @@ export class TurretPlacementManager extends Component {
     }
 
     private cancelPlacement() {
+        this.playCancelPlacementSound();
         // plant 模式：资源在面板点击时已扣除，取消时需退还
         if (this.buildType === 'plant') {
             const data = PlayerData.instance;
@@ -729,6 +733,7 @@ export class TurretPlacementManager extends Component {
     /** 取消建造进度：退还资源，销毁虚影 */
     private cancelBuildProgress() {
         this._isBuilding = false;
+        this.playCancelPlacementSound();
 
         this._buildGhostNode?.destroy();
         this._buildGhostNode = null;
@@ -741,6 +746,13 @@ export class TurretPlacementManager extends Component {
         }
 
         this.refreshHud();
+    }
+
+    /** 播放取消放置音效 */
+    private playCancelPlacementSound() {
+        if (this._audioSource && this.cancelPlacementSound) {
+            this._audioSource.playOneShot(this.cancelPlacementSound, 1);
+        }
     }
 
     /** 公开取消放置方法（供 DemolishManager 等外部调用） */
