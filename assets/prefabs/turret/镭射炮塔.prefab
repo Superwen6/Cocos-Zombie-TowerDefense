@@ -1027,6 +1027,8 @@
     "enableDualShot": false,
     "dualShotSpread": 15,
     "homingBullet": true,
+    "destroySound": null,
+    "destroySoundMaxDistance": 800,
     "_id": ""
   },
   {

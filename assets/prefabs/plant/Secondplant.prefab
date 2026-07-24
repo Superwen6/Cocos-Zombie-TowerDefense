@@ -602,10 +602,11 @@
     "costIron": 0,
     "costMoney": 0,
     "ghostOpacity": 0.2,
-    "buildCompleteSound": {
-      "__uuid__": "a3a73a04-64b7-45a8-9d2e-578975e2cc87",
+    "destroySound": {
+      "__uuid__": "58cd2542-c1a7-4ec9-b614-c1d2badc1589",
       "__expectedType__": "cc.AudioClip"
     },
+    "destroySoundMaxDistance": 800,
     "_id": ""
   },
   {

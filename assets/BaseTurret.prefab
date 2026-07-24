@@ -1030,6 +1030,11 @@
     "enableDualShot": false,
     "dualShotSpread": 15,
     "homingBullet": false,
+    "destroySound": {
+      "__uuid__": "58cd2542-c1a7-4ec9-b614-c1d2badc1589",
+      "__expectedType__": "cc.AudioClip"
+    },
+    "destroySoundMaxDistance": 800,
     "_id": ""
   },
   {

@@ -1,8 +1,11 @@
 import {
     _decorator,
+    AudioClip,
+    AudioSource,
     CCFloat,
     CCInteger,
     Component,
+    find,
     instantiate,
     Label,
     Node,
@@ -85,10 +88,17 @@ export class Turret extends Component {
     @property({ type: Boolean, tooltip: '子弹是否跟踪敌人（取消勾选后子弹沿初始方向直线飞行）' })
     homingBullet = true;
 
+    @property({ type: AudioClip, tooltip: '被摧毁音效' })
+    destroySound: AudioClip | null = null;
+
+    @property({ type: CCFloat, tooltip: '被摧毁音效最大距离（像素），超出此距离不播放' })
+    destroySoundMaxDistance = 800;
+
     private hp = 150;
     private fireTimer = 0;
     private lockedTarget: ZombieMove | null = null;
     private _collider: Collider2D | null = null;
+    private _audioSource: AudioSource | null = null;
 
     // 平滑旋转状态
     private _currentAngle = 0;
@@ -105,6 +115,8 @@ export class Turret extends Component {
     start() {
         this.hp = this.maxHp;
         this.refreshHpLabel();
+        this._audioSource = this.node.addComponent(AudioSource);
+        this._audioSource.loop = false;
         if (this.muzzleNode) {
             // 记录炮管初始角度作为偏移量（2turret炮管初始90°，baseTurret初始0°）
             this.barrelAngleOffset = this.muzzleNode.angle;
@@ -215,7 +227,22 @@ export class Turret extends Component {
         this.refreshHpLabel();
 
         if (this.hp <= 0) {
+            this.playDestroySound();
             this.node.destroy();
+        }
+    }
+
+    /** 播放被摧毁音效（距离衰减） */
+    private playDestroySound() {
+        if (!this._audioSource || !this.destroySound) return;
+        const player = find('GameWorld/YSortLayer/Player');
+        if (player) {
+            const dist = Vec3.distance(this.node.worldPosition, player.worldPosition);
+            if (dist >= this.destroySoundMaxDistance) return;
+            const volume = 1 - (dist / this.destroySoundMaxDistance);
+            this._audioSource.playOneShot(this.destroySound, volume);
+        } else {
+            this._audioSource.playOneShot(this.destroySound, 1);
         }
     }
 

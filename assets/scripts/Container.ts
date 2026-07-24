@@ -1,4 +1,4 @@
-import { _decorator, CCInteger, CCFloat, Component, EventTouch, Node, Vec3 } from 'cc';
+import { _decorator, AudioClip, AudioSource, CCInteger, CCFloat, Component, EventTouch, find, Node, Vec3 } from 'cc';
 import { GlobalContainerStorage } from './GlobalContainerStorage';
 import { ContainerPanelUI } from './ContainerPanelUI';
 import { ReinforcementNotice } from './ReinforcementNotice';
@@ -51,10 +51,19 @@ export class Container extends Component {
     @property({ type: CCFloat, tooltip: '玩家与集装箱交互的最大距离（像素）' })
     interactDistance = 80;
 
+    @property({ type: AudioClip, tooltip: '被摧毁音效' })
+    destroySound: AudioClip | null = null;
+
+    @property({ type: CCFloat, tooltip: '被摧毁音效最大距离（像素），超出此距离不播放' })
+    destroySoundMaxDistance = 800;
+
     private _isPlaced = false;
     private _lastClickTime = 0;
+    private _audioSource: AudioSource | null = null;
 
     onLoad() {
+        this._audioSource = this.node.addComponent(AudioSource);
+        this._audioSource.loop = false;
         this.node.on(Node.EventType.TOUCH_END, this.onTouchEnd, this);
     }
 
@@ -94,7 +103,22 @@ export class Container extends Component {
         if (this.hp <= 0 || amount <= 0) return;
         this.hp = Math.max(0, this.hp - amount);
         if (this.hp <= 0) {
+            this.playDestroySound();
             this.node.destroy();
+        }
+    }
+
+    /** 播放被摧毁音效（距离衰减） */
+    private playDestroySound() {
+        if (!this._audioSource || !this.destroySound) return;
+        const player = find('GameWorld/YSortLayer/Player');
+        if (player) {
+            const dist = Vec3.distance(this.node.worldPosition, player.worldPosition);
+            if (dist >= this.destroySoundMaxDistance) return;
+            const volume = 1 - (dist / this.destroySoundMaxDistance);
+            this._audioSource.playOneShot(this.destroySound, volume);
+        } else {
+            this._audioSource.playOneShot(this.destroySound, 1);
         }
     }
 

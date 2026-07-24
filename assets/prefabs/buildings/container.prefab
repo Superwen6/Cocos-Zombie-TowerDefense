@@ -442,6 +442,8 @@
     "fillSprite": {
       "__id__": 12
     },
+    "borderSprite": null,
+    "titleLabel": null,
     "followTarget": null,
     "worldCamera": null,
     "screenOffset": {
@@ -449,6 +451,10 @@
       "x": 0,
       "y": 80,
       "z": 0
+    },
+    "buildProgressSound": {
+      "__uuid__": "0ff0b1f0-3ae2-4e46-9cce-a2b07c7faf6a",
+      "__expectedType__": "cc.AudioClip"
     },
     "_id": ""
   },
@@ -590,6 +596,11 @@
     "maxStorageCopper": 20,
     "maxStorageIron": 10,
     "interactDistance": 80,
+    "destroySound": {
+      "__uuid__": "58cd2542-c1a7-4ec9-b614-c1d2badc1589",
+      "__expectedType__": "cc.AudioClip"
+    },
+    "destroySoundMaxDistance": 800,
     "_id": ""
   },
   {

@@ -602,6 +602,11 @@
     "costIron": 0,
     "costMoney": 0,
     "ghostOpacity": 0.2,
+    "destroySound": {
+      "__uuid__": "58cd2542-c1a7-4ec9-b614-c1d2badc1589",
+      "__expectedType__": "cc.AudioClip"
+    },
+    "destroySoundMaxDistance": 800,
     "_id": ""
   },
   {

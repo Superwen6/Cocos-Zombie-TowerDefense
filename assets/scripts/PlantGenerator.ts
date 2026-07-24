@@ -1,4 +1,4 @@
-import { _decorator, CCInteger, CCFloat, Component, Vec3 } from 'cc';
+import { _decorator, AudioClip, AudioSource, CCInteger, CCFloat, Component, find, Vec3 } from 'cc';
 
 const { ccclass, property } = _decorator;
 
@@ -53,13 +53,22 @@ export class PlantGenerator extends Component {
     @property({ type: Number, tooltip: '虚影透明度（0~1）', range: [0, 1, 0.05] })
     ghostOpacity = 0.5;
 
+    @property({ type: AudioClip, tooltip: '被摧毁音效' })
+    destroySound: AudioClip | null = null;
+
+    @property({ type: CCFloat, tooltip: '被摧毁音效最大距离（像素），超出此距离不播放' })
+    destroySoundMaxDistance = 800;
+
     private _isPlaced = false;
+    private _audioSource: AudioSource | null = null;
 
     onLoad() {
     }
 
     start() {
         this.hp = this.maxHp;
+        this._audioSource = this.node.addComponent(AudioSource);
+        this._audioSource.loop = false;
     }
 
     /** 受伤，供僵尸攻击等调用 */
@@ -67,6 +76,7 @@ export class PlantGenerator extends Component {
         if (this.hp <= 0 || amount <= 0) return;
         this.hp = Math.max(0, this.hp - amount);
         if (this.hp <= 0) {
+            this.playDestroySound();
             // 发电机被摧毁：停用节点而非销毁，以支持重建
             this.node.active = false;
             if (this._isPlaced) {
@@ -74,6 +84,20 @@ export class PlantGenerator extends Component {
                 PlantGenerator.placedMap.delete(this.plantId);
                 PlantGenerator.invokePlacedCallbacks();
             }
+        }
+    }
+
+    /** 播放被摧毁音效（距离衰减） */
+    private playDestroySound() {
+        if (!this._audioSource || !this.destroySound) return;
+        const player = find('GameWorld/YSortLayer/Player');
+        if (player) {
+            const dist = Vec3.distance(this.node.worldPosition, player.worldPosition);
+            if (dist >= this.destroySoundMaxDistance) return;
+            const volume = 1 - (dist / this.destroySoundMaxDistance);
+            this._audioSource.playOneShot(this.destroySound, volume);
+        } else {
+            this._audioSource.playOneShot(this.destroySound, 1);
         }
     }
 
