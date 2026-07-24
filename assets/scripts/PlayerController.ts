@@ -683,7 +683,7 @@ export class PlayerController extends Component {
     /** 检测玩家是否在基地碰撞矩形内，若是则维修基地 */
     private tryRepairBaseInRange(playerPos: Vec3): boolean {
         const base = BaseSystem.instance;
-        if (!base || base.baseHp >= base.maxBaseHp) return false;
+        if (!base) return false;
 
         const baseNode = find('GameWorld/Base');
         if (!baseNode) return false;
@@ -694,9 +694,11 @@ export class PlayerController extends Component {
         if (dx <= base.baseHalfW && dy <= base.baseHalfH) {
             const state = this.playerState ?? PlayerState.instance;
             if (!state) return false;
-            base.repairBase(state.repairPerHit);
             this.playRepairSound();
-            this.showBuildingHealthBar(baseNode);
+            if (base.baseHp < base.maxBaseHp) {
+                base.repairBase(state.repairPerHit);
+                this.showBuildingHealthBar(baseNode);
+            }
             return true;
         }
         return false;
@@ -967,41 +969,47 @@ export class PlayerController extends Component {
         // 尝试维修炮塔
         const turret = buildingNode.getComponent('Turret') as any;
         if (turret && typeof turret.hp === 'number' && typeof turret.maxHp === 'number') {
-            if (turret.hp >= turret.maxHp) return;
-            turret.hp = Math.min(turret.maxHp, turret.hp + repairAmount);
             this.playRepairSound();
-            this.showBuildingHealthBar(buildingNode);
+            if (turret.hp < turret.maxHp) {
+                turret.hp = Math.min(turret.maxHp, turret.hp + repairAmount);
+                this.showBuildingHealthBar(buildingNode);
+            }
             return;
         }
 
         // 尝试维修发电机
         const plant = buildingNode.getComponent('PlantGenerator') as any;
         if (plant && typeof plant.hp === 'number' && typeof plant.maxHp === 'number') {
-            if (plant.hp >= plant.maxHp) return;
-            plant.hp = Math.min(plant.maxHp, plant.hp + repairAmount);
             this.playRepairSound();
-            this.showBuildingHealthBar(buildingNode);
+            if (plant.hp < plant.maxHp) {
+                plant.hp = Math.min(plant.maxHp, plant.hp + repairAmount);
+                this.showBuildingHealthBar(buildingNode);
+            }
             return;
         }
 
         // 尝试维修集装箱
         const container = buildingNode.getComponent(Container);
-        if (container && container.hp < container.maxHp) {
-            container.repair(repairAmount);
+        if (container) {
             this.playRepairSound();
-            this.showBuildingHealthBar(buildingNode);
+            if (container.hp < container.maxHp) {
+                container.repair(repairAmount);
+                this.showBuildingHealthBar(buildingNode);
+            }
             return;
         }
 
         // 尝试维修基地（包括基地自身及其任意子节点）
         const base = BaseSystem.instance;
-        if (base && this.isBaseOrDescendant(buildingNode) && base.baseHp < base.maxBaseHp) {
-            base.repairBase(repairAmount);
+        if (base && this.isBaseOrDescendant(buildingNode)) {
             this.playRepairSound();
-            // 查找 Base 节点以显示其血条
-            const baseNode = this.findBaseAncestor(buildingNode);
-            if (baseNode) {
-                this.showBuildingHealthBar(baseNode);
+            if (base.baseHp < base.maxBaseHp) {
+                base.repairBase(repairAmount);
+                // 查找 Base 节点以显示其血条
+                const baseNode = this.findBaseAncestor(buildingNode);
+                if (baseNode) {
+                    this.showBuildingHealthBar(baseNode);
+                }
             }
             return;
         }
