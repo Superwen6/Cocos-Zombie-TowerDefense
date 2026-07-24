@@ -121,9 +121,14 @@ export class BaseSystem extends Component {
     /** 是否已显示过首次受攻击提示 */
     private _hasShownAttackWarning = false;
     private _audioSource: AudioSource | null = null;
+    /** 预警音效冷却计时器（3秒内最多播放一次） */
+    private _attackWarningCooldown = 0;
 
     @property({ type: HealthBar, tooltip: 'Canvas上的Base血条（用于显示升级建造进度和血量）' })
     canvasHealthBar: HealthBar | null = null;
+
+    @property({ type: AudioClip, tooltip: '基地受攻击预警音效' })
+    attackWarningSound: AudioClip | null = null;
 
     onLoad() {
         if (BaseSystem.instance && BaseSystem.instance !== this) {
@@ -175,6 +180,11 @@ export class BaseSystem extends Component {
     }
 
     update(dt: number) {
+        // 预警音效冷却递减
+        if (this._attackWarningCooldown > 0) {
+            this._attackWarningCooldown -= dt;
+        }
+
         if (!this._isUpgrading) return;
 
         this._upgradeTimer += dt;
@@ -413,6 +423,12 @@ export class BaseSystem extends Component {
             return;
         }
         this.baseHp = Math.max(0, this.baseHp - amount);
+
+        // 播放预警音效（3秒冷却，避免多个僵尸同时攻击时重复播放）
+        if (this._audioSource && this.attackWarningSound && this._attackWarningCooldown <= 0) {
+            this._audioSource.playOneShot(this.attackWarningSound, 1);
+            this._attackWarningCooldown = 3;
+        }
 
         if (!this._hasShownAttackWarning) {
             this._hasShownAttackWarning = true;

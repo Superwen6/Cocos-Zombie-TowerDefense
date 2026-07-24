@@ -1,4 +1,4 @@
-import { _decorator, CCFloat, CCInteger, Component, Node, randomRange, Sprite, SpriteFrame, Vec3, warn } from 'cc';
+import { _decorator, AudioClip, AudioSource, CCFloat, CCInteger, Component, find, Node, randomRange, Sprite, SpriteFrame, Vec3, warn } from 'cc';
 import { BaseSystem } from './BaseSystem';
 import { PlayerData } from './PlayerData';
 import { PlayerState } from './PlayerState';
@@ -111,6 +111,12 @@ export class ZombieMove extends Component {
     @property({ type: [SpriteFrame], tooltip: '死亡动画帧序列' })
     deathFrames: SpriteFrame[] = [];
 
+    @property({ type: AudioClip, tooltip: '死亡音效' })
+    deathSound: AudioClip | null = null;
+
+    @property({ type: CCFloat, tooltip: '死亡音效最大可听距离（像素），超出此距离不播放' })
+    deathSoundMaxDistance = 800;
+
     // ========== 私有变量 ==========
 
     /** 当前 AI 状态 */
@@ -165,6 +171,10 @@ export class ZombieMove extends Component {
     private _walkMirror = 1; // 当前行走镜像：1=原方向（左），-1=镜像（右）
     private _isAttackAnimPlaying = false; // 防止每帧重置攻击动画
     private _collider: Collider2D | null = null;
+    private _audioSource: AudioSource | null = null;
+
+    /** 同类型僵尸死亡音效互斥标志（同一时间每种僵尸最多播放1个死亡音效） */
+    private static _deathSoundPlaying: Record<string, boolean> = {};
 
     // ========== 生命周期 ==========
 
@@ -173,6 +183,8 @@ export class ZombieMove extends Component {
         this.syncHpFromMaxHp();
         this._aiState = this.isDayWanderer ? 'WANDER' : 'CHASE_BASE';
         DayNightSystem.eventTarget.on(DayNightEvents.PHASE_CHANGED, this.onPhaseChanged, this);
+        this._audioSource = this.node.addComponent(AudioSource);
+        this._audioSource.loop = false;
     }
 
     start() {
@@ -1042,6 +1054,7 @@ export class ZombieMove extends Component {
         }
 
         this.playDeathAnimation();
+        this.playDeathSound();
         this.scheduleDrop();
 
         this.scheduleOnce(() => {
@@ -1271,6 +1284,29 @@ export class ZombieMove extends Component {
         this._animFrameTimer = 0;
         this._deathAnimFinished = false;
         this.bodySprite.spriteFrame = this.deathFrames[0];
+    }
+
+    /** 播放死亡音效（距离衰减 + 同类型互斥） */
+    private playDeathSound() {
+        if (!this._audioSource || !this.deathSound) return;
+
+        const typeKey = this.node.name;
+        if (ZombieMove._deathSoundPlaying[typeKey]) return;
+
+        const playerNode = find('GameWorld/YSortLayer/Player');
+        if (!playerNode) return;
+
+        const dist = Vec3.distance(this.node.worldPosition, playerNode.worldPosition);
+        if (dist >= this.deathSoundMaxDistance) return;
+
+        ZombieMove._deathSoundPlaying[typeKey] = true;
+        const volume = 1 - dist / this.deathSoundMaxDistance;
+        this._audioSource.playOneShot(this.deathSound, Math.max(0, volume));
+
+        // 0.5秒后解除互斥，允许同类型下一只僵尸播放死亡音效
+        this.scheduleOnce(() => {
+            ZombieMove._deathSoundPlaying[typeKey] = false;
+        }, 0.5);
     }
 
     private applyMirror(scaleX: number) {
