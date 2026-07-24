@@ -17,6 +17,7 @@ import {
     KeyCode,
     Node,
     Prefab,
+    screen,
     Sprite,
     SpriteFrame,
     UITransform,
@@ -152,6 +153,10 @@ export class PlayerController extends Component {
     // CameraFollow 组件引用，用于死亡时禁用/复活时启用
     private _cameraFollow: CameraFollow | null = null;
 
+    // 自由视角：滚轮缩放
+    private _freeCamTargetOrthoHeight = 0;
+    private _freeCamOrthoInitialized = false;
+
     // 玩家音效
     private _audioSource: AudioSource | null = null;
     private _walkSoundPlaying = false;
@@ -210,6 +215,7 @@ export class PlayerController extends Component {
         input.on(Input.EventType.TOUCH_END, this.onTouchEnd, this);
         input.on(Input.EventType.TOUCH_CANCEL, this.onTouchEnd, this);
         input.on(Input.EventType.TOUCH_MOVE, this.onTouchMove, this);
+        input.on(Input.EventType.MOUSE_WHEEL, this.onMouseWheel, this);
     }
 
     start() {
@@ -242,6 +248,7 @@ export class PlayerController extends Component {
         input.off(Input.EventType.TOUCH_END, this.onTouchEnd, this);
         input.off(Input.EventType.TOUCH_CANCEL, this.onTouchEnd, this);
         input.off(Input.EventType.TOUCH_MOVE, this.onTouchMove, this);
+        input.off(Input.EventType.MOUSE_WHEEL, this.onMouseWheel, this);
         this.keyPressedMap = {};
     }
 
@@ -407,11 +414,24 @@ export class PlayerController extends Component {
         this.playWalkSound();
     }
 
-    /** 死亡后自由视角移动（WASD移动摄像机） */
+    /** 死亡后自由视角移动（WASD移动摄像机 + 滚轮缩放） */
     private updateCameraFreeMove(dt: number) {
         if (!this.worldCamera) return;
 
-        const camNode = this.worldCamera.node;
+        const cam = this.worldCamera;
+        const camNode = cam.node;
+
+        // 初始化 orthoHeight
+        if (!this._freeCamOrthoInitialized) {
+            this._freeCamTargetOrthoHeight = cam.orthoHeight;
+            this._freeCamOrthoInitialized = true;
+        }
+
+        // 平滑缩放
+        const zoomSmooth = 8;
+        const factor = 1 - Math.exp(-zoomSmooth * dt);
+        cam.orthoHeight += (this._freeCamTargetOrthoHeight - cam.orthoHeight) * factor;
+
         const moveDir = new Vec3(0, 0, 0);
         if (this.keyPressedMap[KeyCode.KEY_W] || this.keyPressedMap[KeyCode.ARROW_UP]) {
             moveDir.y += 1;
@@ -430,23 +450,69 @@ export class PlayerController extends Component {
             moveDir.normalize();
             moveDir.multiplyScalar(this.cameraFreeMoveSpeed * dt);
 
-            const curPos = camNode.position.clone();
-            const newX = curPos.x + moveDir.x;
-            const newY = curPos.y + moveDir.y;
+            const curWorldPos = camNode.worldPosition.clone();
+            const newWorldX = curWorldPos.x + moveDir.x;
+            const newWorldY = curWorldPos.y + moveDir.y;
 
-            camNode.setPosition(newX, newY, curPos.z);
-
-            // 限制视角在地图边界内（相机相对于GameWorld的局部坐标）
-            const ref = this.coordinateReference;
-            if (ref && this.node.parent) {
-                const camPos = camNode.position;
-                const clampedX = Math.max(this.mapMinX, Math.min(this.mapMaxX, camPos.x));
-                const clampedY = Math.max(this.mapMinY, Math.min(this.mapMaxY, camPos.y));
-                if (clampedX !== camPos.x || clampedY !== camPos.y) {
-                    camNode.setPosition(clampedX, clampedY, camPos.z);
-                }
-            }
+            camNode.setWorldPosition(newWorldX, newWorldY, curWorldPos.z);
         }
+
+        // 限制视角在地图边界内（与 CameraFollow._clampCameraToMap 一致）
+        this.clampCameraToMap();
+    }
+
+    /** 将自由视角相机 clamp 到地图边界内 */
+    private clampCameraToMap() {
+        if (!this.worldCamera) return;
+
+        const cam = this.worldCamera;
+        const coordRef = this.coordinateReference ?? find('GameWorld/CoordinateReference');
+        const refPos = coordRef?.worldPosition ?? Vec3.ZERO;
+        const minWorldX = refPos.x + this.mapMinX;
+        const maxWorldX = refPos.x + this.mapMaxX;
+        const minWorldY = refPos.y + this.mapMinY;
+        const maxWorldY = refPos.y + this.mapMaxY;
+
+        const orthoHeight = cam.orthoHeight;
+        const windowSize = screen.windowSize;
+        const aspectRatio = windowSize.width / windowSize.height;
+        const halfViewW = orthoHeight * aspectRatio;
+        const halfViewH = orthoHeight;
+
+        const mapW = maxWorldX - minWorldX;
+        const mapH = maxWorldY - minWorldY;
+
+        const camWorldPos = cam.node.worldPosition.clone();
+        let clampedX = camWorldPos.x;
+        let clampedY = camWorldPos.y;
+
+        if (halfViewW * 2 >= mapW) {
+            clampedX = (minWorldX + maxWorldX) / 2;
+        } else {
+            clampedX = Math.max(minWorldX + halfViewW, Math.min(maxWorldX - halfViewW, camWorldPos.x));
+        }
+
+        if (halfViewH * 2 >= mapH) {
+            clampedY = (minWorldY + maxWorldY) / 2;
+        } else {
+            clampedY = Math.max(minWorldY + halfViewH, Math.min(maxWorldY - halfViewH, camWorldPos.y));
+        }
+
+        if (clampedX !== camWorldPos.x || clampedY !== camWorldPos.y) {
+            cam.node.setWorldPosition(clampedX, clampedY, camWorldPos.z);
+        }
+    }
+
+    /** 滚轮缩放（仅在自由视角模式下生效） */
+    private onMouseWheel(event: EventMouse) {
+        if (this.playerState?.isAlive) return; // 存活时由 CameraFollow 处理
+
+        const scrollY = event.getScrollY();
+        const zoomStep = 1.0;
+        const minOrtho = 5;
+        const maxOrtho = 50;
+        this._freeCamTargetOrthoHeight -= scrollY * 0.001 * zoomStep;
+        this._freeCamTargetOrthoHeight = Math.max(minOrtho, Math.min(maxOrtho, this._freeCamTargetOrthoHeight));
     }
 
     private playWalkAnimation(dx: number, dy: number) {
@@ -754,6 +820,7 @@ export class PlayerController extends Component {
         this._isDying = false;
         this._deathFrameIndex = 0;
         this._deathFrameTimer = 0;
+        this._freeCamOrthoInitialized = false;
         this.showIdleFrame();
 
         // 重新启用 CameraFollow，恢复相机跟随玩家
