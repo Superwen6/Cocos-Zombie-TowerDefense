@@ -123,6 +123,8 @@ export class BaseSystem extends Component {
     private _audioSource: AudioSource | null = null;
     /** 预警音效冷却计时器（3秒内最多播放一次） */
     private _attackWarningCooldown = 0;
+    /** 电力音效跳过计数（跳过首次进入的断电和首次恢复，共2次） */
+    private _powerSoundSkipCount = 2;
 
     @property({ type: HealthBar, tooltip: 'Canvas上的Base血条（用于显示升级建造进度和血量）' })
     canvasHealthBar: HealthBar | null = null;
@@ -471,6 +473,13 @@ export class BaseSystem extends Component {
 
         const wasOutage = this.isPowerOutage;
         this.isPowerOutage = this.totalPowerGen === 0 || this.totalPowerGen < this.totalPowerCost;
+
+        // 检测电力状态变化
+        const stateChanged = wasOutage !== this.isPowerOutage;
+        if (stateChanged && this._powerSoundSkipCount > 0) {
+            this._powerSoundSkipCount--;
+            return;
+        }
 
         // 从正常状态进入断电状态时播放断电音效
         if (!wasOutage && this.isPowerOutage && this._audioSource && this.powerOutageSound) {

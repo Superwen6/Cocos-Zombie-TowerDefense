@@ -602,6 +602,10 @@
     "costIron": 0,
     "costMoney": 0,
     "ghostOpacity": 0.2,
+    "buildCompleteSound": {
+      "__uuid__": "a3a73a04-64b7-45a8-9d2e-578975e2cc87",
+      "__expectedType__": "cc.AudioClip"
+    },
     "_id": ""
   },
   {

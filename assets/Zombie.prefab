@@ -375,6 +375,11 @@
         "__expectedType__": "cc.SpriteFrame"
       }
     ],
+    "deathSound": {
+      "__uuid__": "424c33d4-0897-41d8-a1ed-4e37c7cec1b7",
+      "__expectedType__": "cc.AudioClip"
+    },
+    "deathSoundMaxDistance": 800,
     "_id": ""
   },
   {

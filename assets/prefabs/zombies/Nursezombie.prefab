@@ -290,6 +290,8 @@
     "attackRange": 45,
     "alertRadius": 300,
     "buildingScanRadius": 250,
+    "wanderLandmarkScanRadius": 500,
+    "wanderPatrolRadius": 800,
     "colliderHalfW": 15,
     "colliderHalfH": 15,
     "baseNode": null,
@@ -377,6 +379,11 @@
         "__expectedType__": "cc.SpriteFrame"
       }
     ],
+    "deathSound": {
+      "__uuid__": "86ed68d9-efbe-418a-8086-6b5cc17743ec",
+      "__expectedType__": "cc.AudioClip"
+    },
+    "deathSoundMaxDistance": 800,
     "_id": ""
   },
   {

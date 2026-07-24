@@ -246,6 +246,18 @@
     "canvasHealthBar": {
       "__id__": 2862
     },
+    "attackWarningSound": {
+      "__uuid__": "4c8171e7-fe98-4d05-aab5-2720268bfd7f",
+      "__expectedType__": "cc.AudioClip"
+    },
+    "powerOutageSound": {
+      "__uuid__": "af97091b-b427-40c0-a25e-090977a646af",
+      "__expectedType__": "cc.AudioClip"
+    },
+    "powerRestoreSound": {
+      "__uuid__": "a3a73a04-64b7-45a8-9d2e-578975e2cc87",
+      "__expectedType__": "cc.AudioClip"
+    },
     "_id": "35DjglTmNBKKeUAFRaFVu9"
   },
   {
