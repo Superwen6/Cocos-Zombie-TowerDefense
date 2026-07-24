@@ -1,4 +1,4 @@
-import { _decorator, Component, Label } from 'cc';
+import { _decorator, AudioClip, AudioSource, Component, Label } from 'cc';
 
 const { ccclass, property } = _decorator;
 
@@ -11,10 +11,16 @@ const { ccclass, property } = _decorator;
 export class ReinforcementNotice extends Component {
     private static _instance: ReinforcementNotice | null = null;
     private _label: Label | null = null;
+    private _audioSource: AudioSource | null = null;
+
+    @property({ type: AudioClip, tooltip: '弹出提示音效' })
+    popSound: AudioClip | null = null;
 
     onLoad() {
         ReinforcementNotice._instance = this;
         this._label = this.node.getComponent(Label);
+        this._audioSource = this.node.addComponent(AudioSource);
+        this._audioSource.loop = false;
         this.node.active = false;
     }
 
@@ -34,6 +40,10 @@ export class ReinforcementNotice extends Component {
         if (!inst || !inst._label) return;
         inst._label.string = msg;
         inst.node.active = true;
+        // 播放弹出音效
+        if (inst._audioSource && inst.popSound) {
+            inst._audioSource.playOneShot(inst.popSound, 1);
+        }
         inst.unscheduleAllCallbacks();
         inst.scheduleOnce(() => {
             if (inst.node?.isValid) {
