@@ -421,12 +421,6 @@ export class PlayerController extends Component {
         const cam = this.worldCamera;
         const camNode = cam.node;
 
-        // 初始化 orthoHeight
-        if (!this._freeCamOrthoInitialized) {
-            this._freeCamTargetOrthoHeight = cam.orthoHeight;
-            this._freeCamOrthoInitialized = true;
-        }
-
         // 平滑缩放
         const zoomSmooth = 8;
         const factor = 1 - Math.exp(-zoomSmooth * dt);
@@ -508,9 +502,9 @@ export class PlayerController extends Component {
         if (this.playerState?.isAlive) return; // 存活时由 CameraFollow 处理
 
         const scrollY = event.getScrollY();
-        const zoomStep = 1.0;
-        const minOrtho = 5;
-        const maxOrtho = 50;
+        const zoomStep = this._cameraFollow?.zoomStep ?? 1.0;
+        const minOrtho = this._cameraFollow?.minOrthoHeight ?? 5;
+        const maxOrtho = this._cameraFollow?.maxOrthoHeight ?? 50;
         this._freeCamTargetOrthoHeight -= scrollY * 0.001 * zoomStep;
         this._freeCamTargetOrthoHeight = Math.max(minOrtho, Math.min(maxOrtho, this._freeCamTargetOrthoHeight));
     }
@@ -780,6 +774,12 @@ export class PlayerController extends Component {
         // 禁用 CameraFollow，允许死亡后自由视角移动
         if (this._cameraFollow) {
             this._cameraFollow.enabled = false;
+        }
+
+        // 初始化自由视角 orthoHeight 为死亡时刻的当前值
+        if (this.worldCamera) {
+            this._freeCamTargetOrthoHeight = this.worldCamera.orthoHeight;
+            this._freeCamOrthoInitialized = true;
         }
 
         // 播放死亡音效
