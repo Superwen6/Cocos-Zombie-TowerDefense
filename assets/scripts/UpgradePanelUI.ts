@@ -82,13 +82,10 @@ export class UpgradePanelUI extends Component {
             return;
         }
 
-        // 扣除资源（RemoteMaterial 感知：优先仓库再背包）
-        PlayerData.spendWithWarehouse(actualCost.wood, actualCost.copper, actualCost.iron, actualCost.money);
-
         // 关闭面板
         this.hidePanel();
 
-        // 进入集装箱放置模式
+        // 进入集装箱放置模式（资源在确认放置时扣除，取消时无需退还）
         manager.startContainerPlacement(this.containerPrefab, actualCost);
     }
 

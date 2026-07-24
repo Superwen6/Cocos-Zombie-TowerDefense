@@ -467,9 +467,9 @@ export class TurretPlacementManager extends Component {
             return;
         }
 
-        // plant/container 模式：资源已在面板点击时扣除，此处跳过
-        // turret 模式：资源在此处扣除
-        if (this.buildType === 'turret') {
+        // plant 模式：资源已在面板点击时扣除，此处跳过
+        // turret/container 模式：资源在此处扣除
+        if (this.buildType === 'turret' || this.buildType === 'container') {
             if (!PlayerData.canAffordWithWarehouse(this.currentCost.wood, this.currentCost.copper, this.currentCost.iron, this.currentCost.money)) {
                 return;
             }
@@ -567,7 +567,7 @@ export class TurretPlacementManager extends Component {
     }
 
     private cancelPlacement() {
-        // plant 模式：退还已扣除的资源
+        // plant 模式：资源在面板点击时已扣除，取消时需退还
         if (this.buildType === 'plant') {
             const data = PlayerData.instance;
             if (data) {

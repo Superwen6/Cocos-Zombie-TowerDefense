@@ -27,31 +27,40 @@ export class ZombieDrop extends Component {
      */
     drop() {
         const storage = GlobalContainerStorage.instance;
+        const data = PlayerData.instance;
+        // 仓库可用且至少有一个集装箱时存入仓库，否则存入背包
+        const hasStorage = storage && storage.maxWood > 0;
 
-        // 木材 → 直接存入仓库
+        // 木材 → 优先存入仓库，仓库不可用时存入背包
         if (Math.random() < this.woodDropChance) {
-            if (storage) {
+            if (hasStorage) {
                 storage.storedWood = Math.min(storage.maxWood, storage.storedWood + 1);
+            } else if (data) {
+                data.addWood(1);
             }
         }
 
-        // 铜矿 → 直接存入仓库
+        // 铜矿 → 优先存入仓库，仓库不可用时存入背包
         if (Math.random() < this.copperDropChance) {
-            if (storage) {
+            if (hasStorage) {
                 storage.storedCopper = Math.min(storage.maxCopper, storage.storedCopper + 1);
+            } else if (data) {
+                data.addCopper(1);
             }
         }
 
-        // 铁矿 → 直接存入仓库
+        // 铁矿 → 优先存入仓库，仓库不可用时存入背包
         if (Math.random() < this.ironDropChance) {
-            if (storage) {
+            if (hasStorage) {
                 storage.storedIron = Math.min(storage.maxIron, storage.storedIron + 1);
+            } else if (data) {
+                data.addIron(1);
             }
         }
 
         // 金钱 → 直接加给玩家
         if (Math.random() < this.moneyDropChance) {
-            PlayerData.instance?.addMoney(this.moneyAmount);
+            data?.addMoney(this.moneyAmount);
         }
     }
 }
