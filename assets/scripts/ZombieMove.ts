@@ -509,23 +509,6 @@ export class ZombieMove extends Component {
         }
     }
 
-    /** 夜间僵尸：扫描范围内最近的非防御性建筑（发电机/集装箱），返回节点或 null */
-    private findNearestTargetableBuilding(): Node | null {
-        const selfPos = this.node.worldPosition;
-        let nearest: Node | null = null;
-        let nearestDist = this.buildingScanRadius;
-
-        this.findNonDefensiveBuildings(this.node.scene ?? this.node, (node) => {
-            const d = Vec3.distance(selfPos, node.worldPosition);
-            if (d < nearestDist) {
-                nearestDist = d;
-                nearest = node;
-            }
-        });
-
-        return nearest;
-    }
-
     // ========== AI 状态更新 ==========
 
     /** 根据当前环境更新 AI 状态 */
@@ -682,17 +665,6 @@ export class ZombieMove extends Component {
                 this._aiState = 'CHASE_PLAYER';
             }
             return;
-        }
-
-        // ===== 夜间僵尸：扫描附近建筑（发电机/集装箱），优先攻击建筑 =====
-        if (this._aiState === 'CHASE_BASE' || this._aiState === 'ATTACK_BASE') {
-            const nearestBuilding = this.findNearestTargetableBuilding();
-            if (nearestBuilding) {
-                this._buildingTarget = nearestBuilding;
-                this._aiState = 'CHASE_BUILDING';
-                this._memoryTimer = 0;
-                return;
-            }
         }
 
         // ===== CHASE_BASE → 进入攻击范围 =====
