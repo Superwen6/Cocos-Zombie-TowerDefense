@@ -20,6 +20,7 @@ export class Bullet extends Component {
     private _damage = 0;
     private _lifetime = 0;
     private _homing = true;
+    private _piercing = false;
     private readonly _hitZombies = new Set<ZombieMove>();
     private readonly _tempVec = new Vec3();
     private readonly _zombiePos = new Vec3();
@@ -44,13 +45,14 @@ export class Bullet extends Component {
         }
     }
 
-    init(targetNode: Node | null, damage: number, attackerNode?: Node, homing = true) {
+    init(targetNode: Node | null, damage: number, attackerNode?: Node, homing = true, piercing = false) {
         this._targetNode = targetNode;
         this._targetZombie = targetNode?.getComponent(ZombieMove) ?? null;
         this._attackerNode = attackerNode ?? null;
         this._damage = damage;
         this._lifetime = 0;
         this._homing = homing;
+        this._piercing = piercing;
         this._hitZombies.clear();
 
         // 非跟踪模式且有目标：记录初始发射方向
@@ -99,8 +101,15 @@ export class Bullet extends Component {
             dir.normalize();
             if (dist < HIT_RADIUS) {
                 this.dealDamageToTarget();
-                this.node.destroy();
-                return;
+                if (this._piercing) {
+                    // 穿透：目标已命中，继续沿当前方向飞行
+                    this._targetNode = null;
+                    this._targetZombie = null;
+                    this._initialDir.set(dir);
+                } else {
+                    this.node.destroy();
+                    return;
+                }
             }
         } else if (this._targetNode?.isValid) {
             // 非跟踪模式 + 有目标：沿初始方向直线飞行，检测与目标距离
@@ -109,8 +118,14 @@ export class Bullet extends Component {
             const dist = Vec3.distance(bulletWP, this._tempVec);
             if (dist < HIT_RADIUS) {
                 this.dealDamageToTarget();
-                this.node.destroy();
-                return;
+                if (this._piercing) {
+                    // 穿透：目标已命中，继续沿初始方向飞行
+                    this._targetNode = null;
+                    this._targetZombie = null;
+                } else {
+                    this.node.destroy();
+                    return;
+                }
             }
         } else {
             // 无目标模式：沿初始方向飞行，仅靠碰撞检测

@@ -88,6 +88,9 @@ export class Turret extends Component {
     @property({ type: Boolean, tooltip: '子弹是否跟踪敌人（取消勾选后子弹沿初始方向直线飞行）' })
     homingBullet = true;
 
+    @property({ type: Boolean, tooltip: '子弹是否穿透僵尸（勾选后子弹可穿透多个僵尸）' })
+    piercingBullet = false;
+
     @property({ type: AudioClip, tooltip: '被摧毁音效' })
     destroySound: AudioClip | null = null;
 
@@ -351,7 +354,7 @@ export class Turret extends Component {
 
         const bullet = bulletNode.getComponent(Bullet);
         if (bullet) {
-            bullet.init(target.node, this.damage, this.node, this.homingBullet);
+            bullet.init(target.node, this.damage, this.node, this.homingBullet, this.piercingBullet);
         } else {
             warn('[Turret] 子弹预制体上未找到 Bullet 组件');
             bulletNode.destroy();

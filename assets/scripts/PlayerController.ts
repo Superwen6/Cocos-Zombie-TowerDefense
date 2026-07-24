@@ -124,6 +124,9 @@ export class PlayerController extends Component {
     @property({ type: AudioClip, tooltip: '维修建筑/基地/发电机/集装箱音效' })
     repairSound: AudioClip | null = null;
 
+    @property({ type: AudioClip, tooltip: '武器模式发射子弹音效' })
+    weaponFireSound: AudioClip | null = null;
+
     /** 从 PlayerState 读取攻击/维修范围（可在属性检查器中调整） */
     private get hitRange(): number {
         return this.playerState?.repairRange ?? 50;
@@ -655,6 +658,11 @@ export class PlayerController extends Component {
     private fireWeaponBullet(clickScreenPos: Vec3) {
         const state = this.playerState ?? PlayerState.instance;
         if (!state || !this.weaponBulletPrefab || !this.worldCamera) return;
+
+        // 播放武器发射音效
+        if (this._audioSource && this.weaponFireSound) {
+            this._audioSource.playOneShot(this.weaponFireSound, 1);
+        }
 
         const playerPos = this.node.worldPosition;
 
