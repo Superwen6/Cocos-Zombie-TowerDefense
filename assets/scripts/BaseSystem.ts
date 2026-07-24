@@ -130,6 +130,12 @@ export class BaseSystem extends Component {
     @property({ type: AudioClip, tooltip: '基地受攻击预警音效' })
     attackWarningSound: AudioClip | null = null;
 
+    @property({ type: AudioClip, tooltip: '断电音效' })
+    powerOutageSound: AudioClip | null = null;
+
+    @property({ type: AudioClip, tooltip: '电力恢复音效' })
+    powerRestoreSound: AudioClip | null = null;
+
     onLoad() {
         if (BaseSystem.instance && BaseSystem.instance !== this) {
             warn('[BaseSystem] 场景中存在多个 BaseSystem，已销毁重复实例');
@@ -465,6 +471,16 @@ export class BaseSystem extends Component {
 
         const wasOutage = this.isPowerOutage;
         this.isPowerOutage = this.totalPowerGen === 0 || this.totalPowerGen < this.totalPowerCost;
+
+        // 从正常状态进入断电状态时播放断电音效
+        if (!wasOutage && this.isPowerOutage && this._audioSource && this.powerOutageSound) {
+            this._audioSource.playOneShot(this.powerOutageSound, 1);
+        }
+
+        // 从断电状态恢复到正常时播放电力恢复音效
+        if (wasOutage && !this.isPowerOutage && this._audioSource && this.powerRestoreSound) {
+            this._audioSource.playOneShot(this.powerRestoreSound, 1);
+        }
     }
 
     /** 触发所有升级回调 */
