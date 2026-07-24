@@ -481,14 +481,20 @@ export class BaseSystem extends Component {
             return;
         }
 
-        // 从正常状态进入断电状态时播放断电音效
-        if (!wasOutage && this.isPowerOutage && this._audioSource && this.powerOutageSound) {
-            this._audioSource.playOneShot(this.powerOutageSound, 1);
+        // 从正常状态进入断电状态时播放断电音效并提示
+        if (!wasOutage && this.isPowerOutage) {
+            if (this._audioSource && this.powerOutageSound) {
+                this._audioSource.playOneShot(this.powerOutageSound, 1);
+            }
+            ReinforcementNotice.show('电力不足，部分建筑功能受限！');
         }
 
-        // 从断电状态恢复到正常时播放电力恢复音效
-        if (wasOutage && !this.isPowerOutage && this._audioSource && this.powerRestoreSound) {
-            this._audioSource.playOneShot(this.powerRestoreSound, 1);
+        // 从断电状态恢复到正常时播放电力恢复音效并提示
+        if (wasOutage && !this.isPowerOutage) {
+            if (this._audioSource && this.powerRestoreSound) {
+                this._audioSource.playOneShot(this.powerRestoreSound, 1);
+            }
+            ReinforcementNotice.show('电力已恢复，所有建筑功能恢复正常！');
         }
     }
 
