@@ -1,4 +1,4 @@
-import { _decorator, Color, Component, Node, Sprite, Vec3, warn } from 'cc';
+import { _decorator, AudioClip, AudioSource, Color, Component, Node, Sprite, Vec3, warn } from 'cc';
 import { BaseSystem } from './BaseSystem';
 import { ReinforcementNotice } from './ReinforcementNotice';
 import { PlayerController } from './PlayerController';
@@ -157,6 +157,9 @@ export class PlayerState extends Component {
     @property({ tooltip: '每隔多少秒打印一次状态日志' })
     statusLogInterval = STATUS_LOG_INTERVAL;
 
+    @property({ type: AudioClip, tooltip: '疲劳度满后间隔播放的音效' })
+    fatigueSound: AudioClip | null = null;
+
     private _baseNode: Node | null = null;
     private _statusLogTimer = 0;
     private _fatigueMode: FatigueMode = FatigueMode.IDLE;
@@ -165,6 +168,8 @@ export class PlayerState extends Component {
     private _deathLogged = false;
     private _flashTimer = 0;
     private _flashDuration = 0.15;
+    private _audioSource: AudioSource | null = null;
+    private _fatigueSoundTimer = 0;
 
     // 死亡与复活
     private _deathCount = 0;
@@ -179,6 +184,8 @@ export class PlayerState extends Component {
             return;
         }
         PlayerState.instance = this;
+        this._audioSource = this.node.addComponent(AudioSource);
+        this._audioSource.loop = false;
         this.resolveBaseNode();
     }
 
@@ -257,9 +264,17 @@ export class PlayerState extends Component {
 
         if (this.isExhausted) {
             this.hp = Math.max(0, this.hp - this.exhaustedHpDrain * dt);
+            // 疲劳度已满时，间隔2秒播放疲劳音效
+            this._fatigueSoundTimer += dt;
+            if (this._fatigueSoundTimer >= 2 && this._audioSource && this.fatigueSound) {
+                this._fatigueSoundTimer = 0;
+                this._audioSource.playOneShot(this.fatigueSound, 1);
+            }
             if (this.hp <= 0) {
                 this.onPlayerDeath();
             }
+        } else {
+            this._fatigueSoundTimer = 0;
         }
 
         this.hp = Math.min(this.hp, this.getEffectiveMaxHp());

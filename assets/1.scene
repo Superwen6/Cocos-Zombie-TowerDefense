@@ -769,6 +769,10 @@
       "__id__": 16
     },
     "statusLogInterval": 120,
+    "fatigueSound": {
+      "__uuid__": "2d65b3f6-c6bb-487b-87cc-9f0217cee9cd",
+      "__expectedType__": "cc.AudioClip"
+    },
     "_id": "28bYGA5dlGv7vvmo+AD0D7"
   },
   {
@@ -37944,7 +37948,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": 184.26099999999997,
+      "y": 209.0167,
       "z": 0
     },
     "_lrot": {
