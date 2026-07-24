@@ -916,7 +916,7 @@
       "__expectedType__": "cc.AudioClip"
     },
     "waveSound": {
-      "__uuid__": "bd8adc35-4511-4e7c-96db-f29470c8f41d",
+      "__uuid__": "a9514161-4a16-473c-aafd-202a319b84d8",
       "__expectedType__": "cc.AudioClip"
     },
     "attackHitSound": {
@@ -83207,12 +83207,16 @@
       "__uuid__": "01a36a8d-8df2-428a-ad18-1c0935920081",
       "__expectedType__": "cc.AudioClip"
     },
+    "dayAnnounceSound": {
+      "__uuid__": "489d101a-5e6e-4142-8c75-1036e5e3b8cd",
+      "__expectedType__": "cc.AudioClip"
+    },
     "nightZombieSound": {
       "__uuid__": "d19ed8c7-7978-4d9e-b8dc-94cbb79e889e",
       "__expectedType__": "cc.AudioClip"
     },
     "nightBgMusic": {
-      "__uuid__": "ffe92a53-464a-4011-9efb-3de77b86d77a",
+      "__uuid__": "c3407195-1922-4648-9e6f-bfa02fcf7459",
       "__expectedType__": "cc.AudioClip"
     },
     "_id": "08XJ/zs6BGSIeno2eTtiCe"

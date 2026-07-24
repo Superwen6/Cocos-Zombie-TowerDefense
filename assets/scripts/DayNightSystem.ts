@@ -76,6 +76,9 @@ export class DayNightSystem extends Component {
     @property({ type: AudioClip, tooltip: '白天背景音乐' })
     dayBgMusic: AudioClip | null = null;
 
+    @property({ type: AudioClip, tooltip: '新的一天提示音效（公鸡叫声，在白天BGM前播放）' })
+    dayAnnounceSound: AudioClip | null = null;
+
     @property({ type: AudioClip, tooltip: '进入夜晚时先播放的僵尸音效' })
     nightZombieSound: AudioClip | null = null;
 
@@ -348,10 +351,36 @@ export class DayNightSystem extends Component {
         this._audioSource.loop = true;
     }
 
-    /** 播放白天背景音乐 */
+    /** 播放白天背景音乐：先播新的一天提示音效，再播白天背景音乐 */
     private playDayMusic() {
+        if (!this._audioSource) return;
+
+        // 停止当前音乐
+        this._audioSource.stop();
+
+        // 先播新的一天提示音效（公鸡叫声）
+        if (this.dayAnnounceSound) {
+            this._audioSource.loop = false;
+            this._audioSource.clip = this.dayAnnounceSound;
+            this._audioSource.play();
+        } else {
+            // 没有提示音效，直接播白天背景音乐
+            this._playDayBgMusic();
+            return;
+        }
+
+        // 提示音效播完后，切换为白天背景音乐
+        const delay = this.dayAnnounceSound.getDuration() || 3;
+        this.scheduleOnce(() => {
+            this._playDayBgMusic();
+        }, delay);
+    }
+
+    /** 播放白天背景音乐（循环） */
+    private _playDayBgMusic() {
         if (!this._audioSource || !this.dayBgMusic) return;
         this._audioSource.stop();
+        this._audioSource.loop = true;
         this._audioSource.clip = this.dayBgMusic;
         this._audioSource.play();
     }
