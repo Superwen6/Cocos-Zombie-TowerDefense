@@ -82889,6 +82889,10 @@
     },
     "_enabled": true,
     "__prefab": null,
+    "popSound": {
+      "__uuid__": "c061f116-b81e-4caa-8203-713a588fbc73",
+      "__expectedType__": "cc.AudioClip"
+    },
     "_id": "54ed+YBqxOiaS8e1Vxv4Sw"
   },
   {
@@ -83655,6 +83659,10 @@
     },
     "buildCompleteSound": {
       "__uuid__": "f3c633d1-428c-44c6-9ca5-53c62d2c2319",
+      "__expectedType__": "cc.AudioClip"
+    },
+    "cancelPlacementSound": {
+      "__uuid__": "17795f51-0889-4161-a980-1b2341bce3d1",
       "__expectedType__": "cc.AudioClip"
     },
     "worldCamera": {
