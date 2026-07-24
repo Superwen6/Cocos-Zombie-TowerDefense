@@ -1004,8 +1004,8 @@
       "__id__": 43
     },
     "costWood": 1,
-    "costCopper": 1,
-    "costIron": 1,
+    "costCopper": 0,
+    "costIron": 0,
     "costMoney": 0,
     "powerCost": 0,
     "maxHp": 150,
@@ -1030,6 +1030,7 @@
     "enableDualShot": false,
     "dualShotSpread": 15,
     "homingBullet": false,
+    "piercingBullet": true,
     "destroySound": {
       "__uuid__": "58cd2542-c1a7-4ec9-b614-c1d2badc1589",
       "__expectedType__": "cc.AudioClip"

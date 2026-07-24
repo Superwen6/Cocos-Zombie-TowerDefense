@@ -951,6 +951,10 @@
       "__uuid__": "94f41fe9-b296-4b51-a510-5cdb63f1a97c",
       "__expectedType__": "cc.AudioClip"
     },
+    "weaponFireSound": {
+      "__uuid__": "195299fb-3503-401b-9c4c-b8fedf35e9d9",
+      "__expectedType__": "cc.AudioClip"
+    },
     "_id": "c0RxC7l0tKWKiVtrPlJJ01"
   },
   {
