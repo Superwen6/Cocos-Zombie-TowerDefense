@@ -547,23 +547,23 @@ export class ZombieMove extends Component {
         const playerAlive = this.isPlayerAlive();
         const selfPos = this.node.worldPosition;
 
-        // ===== 玩家不存在/死亡 =====
+        // ===== 玩家不存在/死亡：重置玩家相关状态，但不阻止其他状态机运行 =====
         if (!playerNode || !playerAlive) {
-            if (this._aiState !== 'CHASE_BASE' && this._aiState !== 'ATTACK_BASE'
-                && this._aiState !== 'WANDER' && this._aiState !== 'CHASE_BUILDING'
-                && this._aiState !== 'ATTACK_BUILDING') {
+            if (this._aiState === 'CHASE_PLAYER' || this._aiState === 'ATTACK_PLAYER'
+                || this._aiState === 'MEMORY_TRACK') {
                 this.returnToDefaultTarget();
             }
-            return;
+            // 继续执行后续状态机（炮塔/建筑/基地），不提前返回
         }
 
-        const distToPlayer = Vec3.distance(selfPos, playerNode.worldPosition);
-        const lineClear = CollisionWorld.instance?.isLineOfSightClear(
-            selfPos, playerNode.worldPosition, [ColliderGroup.Wall],
-        );
+        const playerExists = playerNode != null && playerAlive;
+        const distToPlayer = playerExists ? Vec3.distance(selfPos, playerNode!.worldPosition) : Infinity;
+        const lineClear = playerExists ? (CollisionWorld.instance?.isLineOfSightClear(
+            selfPos, playerNode!.worldPosition, [ColliderGroup.Wall],
+        ) ?? false) : false;
 
         // ===== 死磕玩家状态：LEASH_RADIUS 退出 =====
-        if (this._aiState === 'CHASE_PLAYER' || this._aiState === 'ATTACK_PLAYER') {
+        if (playerExists && (this._aiState === 'CHASE_PLAYER' || this._aiState === 'ATTACK_PLAYER')) {
             // 玩家超出拉扯范围 → 放弃追击，回到预定目标
             if (distToPlayer > LEASH_RADIUS) {
                 this.returnToDefaultTarget();
@@ -600,13 +600,13 @@ export class ZombieMove extends Component {
         }
 
         // ===== MEMORY_TRACK =====
-        if (this._aiState === 'MEMORY_TRACK') {
+        if (playerExists && this._aiState === 'MEMORY_TRACK') {
             if (distToPlayer > LEASH_RADIUS || this._memoryTimer <= 0) {
                 this.returnToDefaultTarget();
                 return;
             }
             if (lineClear && distToPlayer <= this.alertRadius * PlayerState.zombieAlertRadiusMultiplier) {
-                this._lastKnownPlayerPos.set(playerNode.worldPosition);
+                this._lastKnownPlayerPos.set(playerNode!.worldPosition);
                 this._memoryTimer = MEMORY_DURATION;
                 this._aiState = 'CHASE_PLAYER';
             }
@@ -693,8 +693,8 @@ export class ZombieMove extends Component {
         }
 
         // ===== 夜间僵尸：看到玩家就追击（视觉发现，非玩家攻击，优先级低于炮塔） =====
-        if (lineClear && distToPlayer <= this.alertRadius * PlayerState.zombieAlertRadiusMultiplier) {
-            this._lastKnownPlayerPos.set(playerNode.worldPosition);
+        if (playerExists && lineClear && distToPlayer <= this.alertRadius * PlayerState.zombieAlertRadiusMultiplier) {
+            this._lastKnownPlayerPos.set(playerNode!.worldPosition);
             this._memoryTimer = MEMORY_DURATION;
             this._buildingTarget = null;
             this._hatedTurret = null;
