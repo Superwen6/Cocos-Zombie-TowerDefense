@@ -63,7 +63,7 @@ export class Container extends Component {
     @property({ type: CCFloat, tooltip: '受攻击音效最大距离（像素），超出此距离不播放' })
     attackSoundMaxDistance = 250;
 
-    @property({ type: CCFloat, tooltip: '受攻击音效冷却时间（秒），0=每次受击都播放' })
+    @property({ type: CCFloat, tooltip: '受攻击音效最小播放间隔（秒），0=每次受击都播放，0.3=间隔0.3秒，2=间隔2秒' })
     attackSoundCooldown = 1;
 
     private _isPlaced = false;
