@@ -258,6 +258,9 @@
       "__uuid__": "a3a73a04-64b7-45a8-9d2e-578975e2cc87",
       "__expectedType__": "cc.AudioClip"
     },
+    "attackSound": null,
+    "attackSoundMaxDistance": 250,
+    "attackSoundCooldown": 1,
     "_id": "35DjglTmNBKKeUAFRaFVu9"
   },
   {
