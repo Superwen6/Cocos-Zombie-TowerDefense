@@ -612,6 +612,7 @@
       "__expectedType__": "cc.AudioClip"
     },
     "attackSoundMaxDistance": 250,
+    "attackSoundCooldown": 0,
     "_id": ""
   },
   {
