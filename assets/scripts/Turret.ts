@@ -97,11 +97,18 @@ export class Turret extends Component {
     @property({ type: CCFloat, tooltip: '被摧毁音效最大距离（像素），超出此距离不播放' })
     destroySoundMaxDistance = 800;
 
+    @property({ type: AudioClip, tooltip: '受到攻击音效' })
+    attackSound: AudioClip | null = null;
+
+    @property({ type: CCFloat, tooltip: '受攻击音效最大距离（像素），超出此距离不播放' })
+    attackSoundMaxDistance = 250;
+
     private hp = 150;
     private fireTimer = 0;
     private lockedTarget: ZombieMove | null = null;
     private _collider: Collider2D | null = null;
     private _audioSource: AudioSource | null = null;
+    private _attackSoundCooldown = 0;
 
     // 平滑旋转状态
     private _currentAngle = 0;
@@ -161,6 +168,9 @@ export class Turret extends Component {
     }
 
     update(dt: number) {
+        if (this._attackSoundCooldown > 0) {
+            this._attackSoundCooldown -= dt;
+        }
         if (this.hp <= 0) {
             return;
         }
@@ -228,6 +238,7 @@ export class Turret extends Component {
 
         this.hp = Math.max(0, this.hp - amount);
         this.refreshHpLabel();
+        this.playAttackSound();
 
         if (this.hp <= 0) {
             this.playDestroySound();
@@ -247,6 +258,22 @@ export class Turret extends Component {
         } else {
             this._audioSource.playOneShot(this.destroySound, 1);
         }
+    }
+
+    /** 播放受攻击音效（距离衰减，1秒冷却） */
+    private playAttackSound() {
+        if (this._attackSoundCooldown > 0) return;
+        if (!this._audioSource || !this.attackSound) return;
+        const player = find('GameWorld/YSortLayer/Player');
+        if (player) {
+            const dist = Vec3.distance(this.node.worldPosition, player.worldPosition);
+            if (dist >= this.attackSoundMaxDistance) return;
+            const volume = 1 - (dist / this.attackSoundMaxDistance);
+            this._audioSource.playOneShot(this.attackSound, volume);
+        } else {
+            this._audioSource.playOneShot(this.attackSound, 1);
+        }
+        this._attackSoundCooldown = 1;
     }
 
     private refreshHpLabel() {

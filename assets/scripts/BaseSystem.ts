@@ -1,4 +1,4 @@
-import { _decorator, AudioClip, AudioSource, CCFloat, CCInteger, Color, Component, Node, Sprite, find, warn } from 'cc';
+import { _decorator, AudioClip, AudioSource, CCFloat, CCInteger, Color, Component, Node, Sprite, Vec3, find, warn } from 'cc';
 import { PlayerData } from './PlayerData';
 import { PlayerState } from './PlayerState';
 import { PlantGenerator } from './PlantGenerator';
@@ -123,6 +123,8 @@ export class BaseSystem extends Component {
     private _audioSource: AudioSource | null = null;
     /** 预警音效冷却计时器（3秒内最多播放一次） */
     private _attackWarningCooldown = 0;
+    /** 受攻击音效冷却计时器（1秒内最多播放一次） */
+    private _attackSoundCooldown = 0;
     /** 电力音效跳过计数（跳过首次进入的断电和首次恢复，共2次） */
     private _powerSoundSkipCount = 2;
 
@@ -137,6 +139,12 @@ export class BaseSystem extends Component {
 
     @property({ type: AudioClip, tooltip: '电力恢复音效' })
     powerRestoreSound: AudioClip | null = null;
+
+    @property({ type: AudioClip, tooltip: '受到攻击音效' })
+    attackSound: AudioClip | null = null;
+
+    @property({ type: CCFloat, tooltip: '受攻击音效最大距离（像素），超出此距离不播放' })
+    attackSoundMaxDistance = 250;
 
     onLoad() {
         if (BaseSystem.instance && BaseSystem.instance !== this) {
@@ -191,6 +199,9 @@ export class BaseSystem extends Component {
         // 预警音效冷却递减
         if (this._attackWarningCooldown > 0) {
             this._attackWarningCooldown -= dt;
+        }
+        if (this._attackSoundCooldown > 0) {
+            this._attackSoundCooldown -= dt;
         }
 
         if (!this._isUpgrading) return;
@@ -432,6 +443,9 @@ export class BaseSystem extends Component {
         }
         this.baseHp = Math.max(0, this.baseHp - amount);
 
+        // 播放受攻击音效（距离衰减，1秒冷却）
+        this.playAttackSound();
+
         // 播放预警音效（3秒冷却，避免多个僵尸同时攻击时重复播放）
         if (this._audioSource && this.attackWarningSound && this._attackWarningCooldown <= 0) {
             this._audioSource.playOneShot(this.attackWarningSound, 1);
@@ -442,6 +456,22 @@ export class BaseSystem extends Component {
             this._hasShownAttackWarning = true;
             ReinforcementNotice.show('基地正在遭受攻击，在基地或其他建筑物附近点击即可维修');
         }
+    }
+
+    /** 播放受攻击音效（距离衰减，1秒冷却） */
+    private playAttackSound() {
+        if (this._attackSoundCooldown > 0) return;
+        if (!this._audioSource || !this.attackSound) return;
+        const player = find('GameWorld/YSortLayer/Player');
+        if (player) {
+            const dist = Vec3.distance(this.node.worldPosition, player.worldPosition);
+            if (dist >= this.attackSoundMaxDistance) return;
+            const volume = 1 - (dist / this.attackSoundMaxDistance);
+            this._audioSource.playOneShot(this.attackSound, volume);
+        } else {
+            this._audioSource.playOneShot(this.attackSound, 1);
+        }
+        this._attackSoundCooldown = 1;
     }
 
     // ── 电力系统 ──

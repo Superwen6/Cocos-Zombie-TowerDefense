@@ -57,9 +57,16 @@ export class Container extends Component {
     @property({ type: CCFloat, tooltip: '被摧毁音效最大距离（像素），超出此距离不播放' })
     destroySoundMaxDistance = 800;
 
+    @property({ type: AudioClip, tooltip: '受到攻击音效' })
+    attackSound: AudioClip | null = null;
+
+    @property({ type: CCFloat, tooltip: '受攻击音效最大距离（像素），超出此距离不播放' })
+    attackSoundMaxDistance = 250;
+
     private _isPlaced = false;
     private _lastClickTime = 0;
     private _audioSource: AudioSource | null = null;
+    private _attackSoundCooldown = 0;
 
     onLoad() {
         this._audioSource = this.node.addComponent(AudioSource);
@@ -94,6 +101,12 @@ export class Container extends Component {
         }
     }
 
+    update(dt: number) {
+        if (this._attackSoundCooldown > 0) {
+            this._attackSoundCooldown -= dt;
+        }
+    }
+
     get isPlaced(): boolean {
         return this._isPlaced;
     }
@@ -102,6 +115,7 @@ export class Container extends Component {
     takeDamage(amount: number) {
         if (this.hp <= 0 || amount <= 0) return;
         this.hp = Math.max(0, this.hp - amount);
+        this.playAttackSound();
         if (this.hp <= 0) {
             this.playDestroySound();
             this.node.destroy();
@@ -120,6 +134,22 @@ export class Container extends Component {
         } else {
             this._audioSource.playOneShot(this.destroySound, 1);
         }
+    }
+
+    /** 播放受攻击音效（距离衰减，1秒冷却） */
+    private playAttackSound() {
+        if (this._attackSoundCooldown > 0) return;
+        if (!this._audioSource || !this.attackSound) return;
+        const player = find('GameWorld/YSortLayer/Player');
+        if (player) {
+            const dist = Vec3.distance(this.node.worldPosition, player.worldPosition);
+            if (dist >= this.attackSoundMaxDistance) return;
+            const volume = 1 - (dist / this.attackSoundMaxDistance);
+            this._audioSource.playOneShot(this.attackSound, volume);
+        } else {
+            this._audioSource.playOneShot(this.attackSound, 1);
+        }
+        this._attackSoundCooldown = 1;
     }
 
     /** 维修：恢复血量，不超过 maxHp */
