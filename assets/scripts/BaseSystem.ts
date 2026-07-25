@@ -124,7 +124,7 @@ export class BaseSystem extends Component {
     /** 预警音效冷却计时器（3秒内最多播放一次） */
     private _attackWarningCooldown = 0;
     /** 受攻击音效冷却计时器（1秒内最多播放一次） */
-    private _attackSoundCooldown = 0;
+    private _attackSoundTimer = 0;
     /** 电力音效跳过计数（跳过首次进入的断电和首次恢复，共2次） */
     private _powerSoundSkipCount = 2;
 
@@ -145,6 +145,9 @@ export class BaseSystem extends Component {
 
     @property({ type: CCFloat, tooltip: '受攻击音效最大距离（像素），超出此距离不播放' })
     attackSoundMaxDistance = 250;
+
+    @property({ type: CCFloat, tooltip: '受攻击音效冷却时间（秒），0=每次受击都播放' })
+    attackSoundCooldown = 1;
 
     onLoad() {
         if (BaseSystem.instance && BaseSystem.instance !== this) {
@@ -200,8 +203,8 @@ export class BaseSystem extends Component {
         if (this._attackWarningCooldown > 0) {
             this._attackWarningCooldown -= dt;
         }
-        if (this._attackSoundCooldown > 0) {
-            this._attackSoundCooldown -= dt;
+        if (this._attackSoundTimer > 0) {
+            this._attackSoundTimer -= dt;
         }
 
         if (!this._isUpgrading) return;
@@ -458,20 +461,22 @@ export class BaseSystem extends Component {
         }
     }
 
-    /** 播放受攻击音效（距离衰减，1秒冷却） */
+    /** 播放受攻击音效（距离衰减，冷却时间由属性控制） */
     private playAttackSound() {
-        if (this._attackSoundCooldown > 0) return;
+        if (this.attackSoundCooldown > 0 && this._attackSoundTimer > 0) return;
         if (!this._audioSource || !this.attackSound) return;
+        const baseNode = find('GameWorld/Base');
+        const basePos = baseNode?.worldPosition ?? this.node.worldPosition;
         const player = find('GameWorld/YSortLayer/Player');
         if (player) {
-            const dist = Vec3.distance(this.node.worldPosition, player.worldPosition);
+            const dist = Vec3.distance(basePos, player.worldPosition);
             if (dist >= this.attackSoundMaxDistance) return;
             const volume = 1 - (dist / this.attackSoundMaxDistance);
             this._audioSource.playOneShot(this.attackSound, volume);
         } else {
             this._audioSource.playOneShot(this.attackSound, 1);
         }
-        this._attackSoundCooldown = 1;
+        this._attackSoundTimer = this.attackSoundCooldown;
     }
 
     // ── 电力系统 ──

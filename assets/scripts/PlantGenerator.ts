@@ -65,9 +65,12 @@ export class PlantGenerator extends Component {
     @property({ type: CCFloat, tooltip: '受攻击音效最大距离（像素），超出此距离不播放' })
     attackSoundMaxDistance = 250;
 
+    @property({ type: CCFloat, tooltip: '受攻击音效冷却时间（秒），0=每次受击都播放' })
+    attackSoundCooldown = 1;
+
     private _isPlaced = false;
     private _audioSource: AudioSource | null = null;
-    private _attackSoundCooldown = 0;
+    private _attackSoundTimer = 0;
 
     onLoad() {
     }
@@ -79,8 +82,8 @@ export class PlantGenerator extends Component {
     }
 
     update(dt: number) {
-        if (this._attackSoundCooldown > 0) {
-            this._attackSoundCooldown -= dt;
+        if (this._attackSoundTimer > 0) {
+            this._attackSoundTimer -= dt;
         }
     }
 
@@ -115,9 +118,9 @@ export class PlantGenerator extends Component {
         }
     }
 
-    /** 播放受攻击音效（距离衰减，1秒冷却） */
+    /** 播放受攻击音效（距离衰减，冷却时间由属性控制） */
     private playAttackSound() {
-        if (this._attackSoundCooldown > 0) return;
+        if (this.attackSoundCooldown > 0 && this._attackSoundTimer > 0) return;
         if (!this._audioSource || !this.attackSound) return;
         const player = find('GameWorld/YSortLayer/Player');
         if (player) {
@@ -128,7 +131,7 @@ export class PlantGenerator extends Component {
         } else {
             this._audioSource.playOneShot(this.attackSound, 1);
         }
-        this._attackSoundCooldown = 1;
+        this._attackSoundTimer = this.attackSoundCooldown;
     }
 
     get isPlaced(): boolean {
