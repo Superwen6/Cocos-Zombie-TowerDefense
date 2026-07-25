@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Sprite, director } from 'cc';
+import { _decorator, Component, Node, Sprite, Label, director } from 'cc';
 
 const { ccclass, property } = _decorator;
 
@@ -18,6 +18,9 @@ export class MainMenuUI extends Component {
 
     @property({ type: Sprite, tooltip: '进度条填充' })
     progressBarFill: Sprite | null = null;
+
+    @property({ type: Label, tooltip: '进度百分比文字' })
+    progressLabel: Label | null = null;
 
     private _loading = false;
     private _intervalId: ReturnType<typeof setInterval> | null = null;
@@ -50,10 +53,21 @@ export class MainMenuUI extends Component {
         this.startLoading();
     }
 
-    /** 启动加载流程：进度条 + 场景预加载 */
+    /** 更新进度条和百分比文字 */
+    private updateProgress(value: number) {
+        const pct = Math.round(value * 100);
+        if (this.progressBarFill && this.progressBarFill.isValid) {
+            this.progressBarFill.fillRange = value;
+        }
+        if (this.progressLabel && this.progressLabel.isValid) {
+            this.progressLabel.string = `加载中... ${pct}%`;
+        }
+    }
+
+    /** 启动加载流程：预加载场景资源 + 进度条 */
     private startLoading() {
-        let progress = 0;
         let targetProgress = 0;
+        let displayProgress = 0;
         let preloadCompleted = false;
         const startTime = Date.now();
 
@@ -62,47 +76,43 @@ export class MainMenuUI extends Component {
                 clearInterval(this._intervalId);
                 this._intervalId = null;
             }
-            // 确保进度条视觉上到 100%
-            if (this.progressBarFill && this.progressBarFill.isValid) {
-                this.progressBarFill.fillRange = 1;
-            }
+            this.updateProgress(1);
             this.scheduleOnce(() => {
                 director.loadScene('1');
             }, 0.3);
         };
 
+        // 每 50ms 更新一次显示进度（平滑追赶目标进度）
         this._intervalId = setInterval(() => {
             const elapsed = (Date.now() - startTime) / 1000;
 
-            // 回退：无进度回调时持续自动推进
+            // 编辑器预览模式下 preloadScene 回调可能不触发，用时间模拟回退
             if (!preloadCompleted && elapsed > 0.5 && targetProgress < 0.9) {
                 targetProgress = Math.min(0.9, elapsed / 3);
             }
 
-            // 平滑追赶目标进度
-            if (progress < targetProgress) {
-                progress += 0.03;
-                if (progress > targetProgress) progress = targetProgress;
+            // 平滑追赶
+            if (displayProgress < targetProgress) {
+                displayProgress += 0.02;
+                if (displayProgress > targetProgress) displayProgress = targetProgress;
             }
 
-            if (this.progressBarFill && this.progressBarFill.isValid) {
-                this.progressBarFill.fillRange = progress;
-            }
+            this.updateProgress(displayProgress);
 
-            // 进度完成 → 切换场景
-            if (progress >= 1 && targetProgress >= 1) {
+            // 加载完成
+            if (displayProgress >= 1 && targetProgress >= 1) {
                 doLoadScene();
                 return;
             }
 
-            // 超时保护：8 秒后强制完成加载
+            // 超时保护：8 秒后强制完成
             if (elapsed > 8) {
                 targetProgress = 1;
                 preloadCompleted = true;
             }
         }, 50);
 
-        // 真实预加载场景资源
+        // 后台预加载 1.scene 所有资源
         director.preloadScene(
             '1',
             (completed: number, total: number) => {
@@ -134,7 +144,6 @@ export class MainMenuUI extends Component {
     }
 
     onDestroy() {
-        // 检查节点是否仍然有效再调用 off
         if (this.startGameBtn && this.startGameBtn.isValid) {
             this.startGameBtn.off(Node.EventType.TOUCH_END, this.onStartGame, this);
         }
@@ -144,7 +153,6 @@ export class MainMenuUI extends Component {
         if (this.exitGameBtn && this.exitGameBtn.isValid) {
             this.exitGameBtn.off(Node.EventType.TOUCH_END, this.onExitGame, this);
         }
-        // 清理定时器
         if (this._intervalId) {
             clearInterval(this._intervalId);
             this._intervalId = null;
