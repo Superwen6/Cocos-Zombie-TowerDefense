@@ -90,6 +90,7 @@ export class BuildPanelUI extends Component {
     }
 
     onDestroy() {
+        BuildPanelUI._openPanelBound = false;
         this.unbindButton(this.upgradeButton, this.onUpgradeClick);
         this.unbindButton(this.closePanelButton, this.hidePanel);
     }

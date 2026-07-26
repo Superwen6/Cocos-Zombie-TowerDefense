@@ -302,6 +302,7 @@ export class AttributeUpgradePanel extends Component {
     }
 
     onDestroy() {
+        AttributeUpgradePanel._openPanelBound = false;
         if (this.closeButton?.node?.isValid) {
             this.closeButton.node.off(Button.EventType.CLICK, this.hidePanel, this);
         }

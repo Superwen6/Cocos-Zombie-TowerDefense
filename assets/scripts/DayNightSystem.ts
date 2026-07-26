@@ -201,6 +201,11 @@ export class DayNightSystem extends Component {
         this.emitPhaseChanged(previous);
     }
 
+    /** 设置当前阶段已流逝时间（秒），用于存档恢复 */
+    forceElapsed(elapsed: number) {
+        this._elapsed = elapsed;
+    }
+
     /**
      * 屏幕中央天数大字报：闪现后逐渐淡出隐藏。
      */

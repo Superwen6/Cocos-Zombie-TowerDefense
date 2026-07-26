@@ -3,12 +3,17 @@ import { PlayerData } from './PlayerData';
 import { BaseSystem } from './BaseSystem';
 import { DayNightSystem, DayNightPhase } from './DayNightSystem';
 import { GlobalContainerStorage } from './GlobalContainerStorage';
+import { find, Vec3 } from 'cc';
 
 const SAVE_KEY = 'game_save_v1';
 const PENDING_LOAD_KEY = 'game_pending_load';
 
 export interface SaveData {
     timestamp: number;
+    playerPos: {
+        x: number;
+        y: number;
+    };
     playerState: {
         hp: number;
         maxHp: number;
@@ -77,8 +82,15 @@ export class SaveSystem {
             return false;
         }
 
+        // 获取玩家位置
+        const playerNode = find('Canvas/Player');
+        const playerPos = playerNode
+            ? { x: playerNode.position.x, y: playerNode.position.y }
+            : { x: 0, y: 0 };
+
         const data: SaveData = {
             timestamp: Date.now(),
+            playerPos,
             playerState: {
                 hp: ps.hp,
                 maxHp: ps.maxHp,
@@ -243,7 +255,13 @@ export class SaveSystem {
         const dnData = data.dayNight;
         dn.currentDay = dnData.currentDay;
         dn.forcePhase(dnData.phase as DayNightPhase);
-        // 注意：elapsed 需要通过 forcePhase 间接设置，这里仅设置 phase
+        dn.forceElapsed(dnData.elapsed);
+
+        // 恢复玩家位置
+        const playerNode = find('Canvas/Player');
+        if (playerNode) {
+            playerNode.setPosition(data.playerPos.x, data.playerPos.y);
+        }
 
         // 恢复 GlobalContainerStorage
         if (cs) {
