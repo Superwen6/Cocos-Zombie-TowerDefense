@@ -6,6 +6,7 @@ import { GlobalContainerStorage } from './GlobalContainerStorage';
 import { BuildPanelUI } from './BuildPanelUI';
 import { AttributeUpgradePanel } from './AttributeUpgradePanel';
 import { DayNightSystem, DayNightPhase } from './DayNightSystem';
+import { SettingPanelUI } from './SettingPanelUI';
 
 const { ccclass, property } = _decorator;
 
@@ -105,6 +106,8 @@ export class GameHUDUI extends Component {
         BuildPanelUI.ensureOpenPanelBinding();
         // 确保属性升级面板按钮绑定（即使 AttributeUpgradePanel 未激活）
         AttributeUpgradePanel.ensureOpenPanelBinding();
+        // 确保设置面板按钮绑定（即使 settingpanel 未激活）
+        SettingPanelUI.ensureOpenPanelBinding();
 
         // 设置资源图标
         if (this.ironIcon && this.ironIconSprite) this.ironIcon.spriteFrame = this.ironIconSprite;

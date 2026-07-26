@@ -29,7 +29,7 @@
     "_active": true,
     "_components": [],
     "_prefab": {
-      "__id__": 2941
+      "__id__": 2942
     },
     "_lpos": {
       "__type__": "cc.Vec3",
@@ -60,7 +60,7 @@
     },
     "autoReleaseAssets": false,
     "_globals": {
-      "__id__": 2942
+      "__id__": 2943
     },
     "_id": "8faf2079-a7f9-48b1-98cc-40d3e1ee36b7"
   },
@@ -82,13 +82,10 @@
         "__id__": 4
       },
       {
-        "__id__": 2928
-      },
-      {
         "__id__": 2929
       },
       {
-        "__id__": 2937
+        "__id__": 2930
       },
       {
         "__id__": 2938
@@ -98,6 +95,9 @@
       },
       {
         "__id__": 2940
+      },
+      {
+        "__id__": 2941
       }
     ],
     "_prefab": null,
@@ -244,7 +244,7 @@
       "a": 255
     },
     "canvasHealthBar": {
-      "__id__": 2922
+      "__id__": 2923
     },
     "attackWarningSound": {
       "__uuid__": "4c8171e7-fe98-4d05-aab5-2720268bfd7f",
@@ -275,13 +275,13 @@
     "_active": false,
     "_components": [
       {
-        "__id__": 2925
-      },
-      {
         "__id__": 2926
       },
       {
         "__id__": 2927
+      },
+      {
+        "__id__": 2928
       }
     ],
     "_prefab": null,
@@ -19754,7 +19754,7 @@
       "__id__": 1277
     },
     "fillSprite": {
-      "__id__": 2917
+      "__id__": 2918
     },
     "borderSprite": null,
     "titleLabel": null,
@@ -19817,7 +19817,7 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 2924
+        "__id__": 2925
       },
       {
         "__id__": 1277
@@ -19866,22 +19866,22 @@
         "__id__": 1278
       },
       {
-        "__id__": 2915
+        "__id__": 2916
       },
       {
-        "__id__": 2918
+        "__id__": 2919
       }
     ],
     "_active": true,
     "_components": [
       {
-        "__id__": 2921
-      },
-      {
         "__id__": 2922
       },
       {
         "__id__": 2923
+      },
+      {
+        "__id__": 2924
       }
     ],
     "_prefab": null,
@@ -19990,13 +19990,13 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 2912
-      },
-      {
         "__id__": 2913
       },
       {
         "__id__": 2914
+      },
+      {
+        "__id__": 2915
       }
     ],
     "_prefab": null,
@@ -83390,7 +83390,7 @@
     "__prefab": null,
     "clickEvents": [],
     "_interactable": true,
-    "_transition": 2,
+    "_transition": 3,
     "_normalColor": {
       "__type__": "cc.Color",
       "r": 214,
@@ -83436,7 +83436,7 @@
       "__expectedType__": "cc.SpriteFrame"
     },
     "_duration": 0.1,
-    "_zoomScale": 1.2,
+    "_zoomScale": 0.9,
     "_target": {
       "__id__": 2885
     },
@@ -83498,6 +83498,9 @@
       },
       {
         "__id__": 2911
+      },
+      {
+        "__id__": 2912
       }
     ],
     "_prefab": null,
@@ -84383,6 +84386,30 @@
     "_id": "a44icj00lKS5cNyiMkMZ25"
   },
   {
+    "__type__": "0e8a8dKrVpCsafqj4LWO45y",
+    "_name": "",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "node": {
+      "__id__": 2890
+    },
+    "_enabled": true,
+    "__prefab": null,
+    "settingBtn": {
+      "__id__": 2885
+    },
+    "saveGameBtn": {
+      "__id__": 2891
+    },
+    "closeBtn": {
+      "__id__": 1417
+    },
+    "exitGameBtn": {
+      "__id__": 2898
+    },
+    "_id": "8bLGYFxvZEI7d9c6SHl3ah"
+  },
+  {
     "__type__": "cc.UITransform",
     "_name": "",
     "_objFlags": 0,
@@ -84462,10 +84489,10 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 2916
+        "__id__": 2917
       },
       {
-        "__id__": 2917
+        "__id__": 2918
       }
     ],
     "_prefab": null,
@@ -84504,7 +84531,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 2915
+      "__id__": 2916
     },
     "_enabled": true,
     "__prefab": null,
@@ -84526,7 +84553,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 2915
+      "__id__": 2916
     },
     "_enabled": true,
     "__prefab": null,
@@ -84571,10 +84598,10 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 2919
+        "__id__": 2920
       },
       {
-        "__id__": 2920
+        "__id__": 2921
       }
     ],
     "_prefab": null,
@@ -84613,7 +84640,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 2918
+      "__id__": 2919
     },
     "_enabled": true,
     "__prefab": null,
@@ -84635,7 +84662,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 2918
+      "__id__": 2919
     },
     "_enabled": true,
     "__prefab": null,
@@ -84728,11 +84755,11 @@
       "__id__": 1277
     },
     "fillSprite": {
-      "__id__": 2917
+      "__id__": 2918
     },
     "borderSprite": null,
     "titleLabel": {
-      "__id__": 2920
+      "__id__": 2921
     },
     "followTarget": {
       "__id__": 6
@@ -84963,19 +84990,16 @@
     },
     "spawnZones": [
       {
-        "__id__": 2930
-      },
-      {
         "__id__": 2931
       },
       {
         "__id__": 2932
+      },
+      {
+        "__id__": 2933
       }
     ],
     "dayWanderSpawnZones": [
-      {
-        "__id__": 2933
-      },
       {
         "__id__": 2934
       },
@@ -84984,6 +85008,9 @@
       },
       {
         "__id__": 2936
+      },
+      {
+        "__id__": 2937
       }
     ],
     "spawnOrigin": null,
@@ -85703,28 +85730,28 @@
   {
     "__type__": "cc.SceneGlobals",
     "ambient": {
-      "__id__": 2943
-    },
-    "shadows": {
       "__id__": 2944
     },
-    "_skybox": {
+    "shadows": {
       "__id__": 2945
     },
-    "fog": {
+    "_skybox": {
       "__id__": 2946
     },
-    "octree": {
+    "fog": {
       "__id__": 2947
     },
-    "skin": {
+    "octree": {
       "__id__": 2948
     },
-    "lightProbeInfo": {
+    "skin": {
       "__id__": 2949
     },
-    "postSettings": {
+    "lightProbeInfo": {
       "__id__": 2950
+    },
+    "postSettings": {
+      "__id__": 2951
     },
     "bakedWithStationaryMainLight": false,
     "bakedWithHighpLightmap": false

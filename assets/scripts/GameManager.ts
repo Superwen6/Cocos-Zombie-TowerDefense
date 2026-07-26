@@ -1,6 +1,7 @@
 import { _decorator, Component, Node, warn } from 'cc';
 import { CollisionWorld } from './CollisionWorld';
 import { YSortManager } from './YSortManager';
+import { SaveSystem } from './SaveSystem';
 
 const { ccclass } = _decorator;
 
@@ -27,6 +28,16 @@ export class GameManager extends Component {
     onDestroy() {
         if (GameManager.instance === this) {
             GameManager.instance = null;
+        }
+    }
+
+    start() {
+        // 检查是否有待加载的存档（从主菜单载入游戏时）
+        if (SaveSystem.hasPendingLoad()) {
+            const data = SaveSystem.consumePendingLoad();
+            if (data) {
+                SaveSystem.apply(data);
+            }
         }
     }
 

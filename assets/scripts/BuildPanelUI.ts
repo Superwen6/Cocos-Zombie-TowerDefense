@@ -439,7 +439,7 @@ export class BuildPanelUI extends Component {
     }
 
     private unbindButton(button: Button | null, handler: () => void) {
-        if (button?.node.isValid) {
+        if (button?.node?.isValid) {
             button.node.off(Button.EventType.CLICK, handler, this);
         }
     }

@@ -1,4 +1,5 @@
 import { _decorator, Component, Node, Sprite, Label, director } from 'cc';
+import { SaveSystem } from './SaveSystem';
 
 const { ccclass, property } = _decorator;
 
@@ -130,9 +131,29 @@ export class MainMenuUI extends Component {
         );
     }
 
-    /** 载入游戏 */
+    /** 载入游戏（读取存档后进入游戏场景） */
     onLoadGame() {
-        console.log('[MainMenuUI] 载入游戏');
+        if (this._loading) return;
+
+        if (!SaveSystem.hasSave()) {
+            console.log('[MainMenuUI] 没有存档，无法载入游戏');
+            return;
+        }
+
+        this._loading = true;
+
+        if (this.startGameBtn) this.startGameBtn.active = false;
+        if (this.loadGameBtn) this.loadGameBtn.active = false;
+        if (this.exitGameBtn) this.exitGameBtn.active = false;
+
+        if (this.loadingPanel) {
+            this.loadingPanel.active = true;
+        }
+
+        // 标记为加载存档模式，1.scene 启动后会应用存档
+        SaveSystem.markPendingLoad();
+
+        this.startLoading();
     }
 
     /** 退出游戏 */

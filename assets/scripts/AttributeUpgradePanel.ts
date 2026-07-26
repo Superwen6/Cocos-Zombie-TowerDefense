@@ -302,12 +302,12 @@ export class AttributeUpgradePanel extends Component {
     }
 
     onDestroy() {
-        if (this.closeButton?.node.isValid) {
+        if (this.closeButton?.node?.isValid) {
             this.closeButton.node.off(Button.EventType.CLICK, this.hidePanel, this);
         }
         if (this.resetButton?.isValid) {
             const resetBtn = this.resetButton.getComponent(Button);
-            if (resetBtn?.node.isValid) {
+            if (resetBtn?.node?.isValid) {
                 resetBtn.node.off(Button.EventType.CLICK, this.onResetClick, this);
             }
         }
@@ -474,7 +474,7 @@ export class AttributeUpgradePanel extends Component {
     private unbindAllButtons() {
         for (const [name, state] of this._upgradeStates) {
             const btn = state.node.getComponent(Button);
-            if (btn?.node.isValid) {
+            if (btn?.node?.isValid) {
                 btn.node.off(Button.EventType.CLICK, () => this.onUpgradeClick(name), this);
             }
             if (state.node.isValid) {
@@ -1370,7 +1370,7 @@ export class AttributeUpgradePanel extends Component {
         this.warningLabel.string = msg;
         this.warningLabel.node.active = true;
         this.scheduleOnce(() => {
-            if (this.warningLabel?.node.isValid) {
+            if (this.warningLabel?.node?.isValid) {
                 this.warningLabel.node.active = false;
             }
             // 若 warningLabel 与 pointNumberLabel 绑定同一节点，隐藏后恢复点数显示
