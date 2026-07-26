@@ -1030,7 +1030,7 @@
     "enableDualShot": false,
     "dualShotSpread": 15,
     "homingBullet": false,
-    "piercingBullet": true,
+    "piercingBullet": false,
     "destroySound": {
       "__uuid__": "58cd2542-c1a7-4ec9-b614-c1d2badc1589",
       "__expectedType__": "cc.AudioClip"
@@ -1041,6 +1041,7 @@
       "__expectedType__": "cc.AudioClip"
     },
     "attackSoundMaxDistance": 250,
+    "attackSoundCooldown": 1,
     "_id": ""
   },
   {
