@@ -3,6 +3,7 @@ import { PlayerData } from './PlayerData';
 import { BaseSystem } from './BaseSystem';
 import { DayNightSystem, DayNightPhase } from './DayNightSystem';
 import { GlobalContainerStorage } from './GlobalContainerStorage';
+import { EnemyManager, ZombieSaveData } from './EnemyManager';
 import { find, Vec3 } from 'cc';
 
 const SAVE_KEY = 'game_save_v1';
@@ -66,6 +67,7 @@ export interface SaveData {
         storedCopper: number;
         storedIron: number;
     };
+    zombies: ZombieSaveData[];
 }
 
 export class SaveSystem {
@@ -83,7 +85,7 @@ export class SaveSystem {
         }
 
         // 获取玩家位置
-        const playerNode = find('Canvas/Player');
+        const playerNode = find('Player');
         const playerPos = playerNode
             ? { x: playerNode.position.x, y: playerNode.position.y }
             : { x: 0, y: 0 };
@@ -143,6 +145,7 @@ export class SaveSystem {
                 storedCopper: cs ? cs.storedCopper : 0,
                 storedIron: cs ? cs.storedIron : 0,
             },
+            zombies: EnemyManager.getZombieData(),
         };
 
         try {
@@ -258,7 +261,7 @@ export class SaveSystem {
         dn.forceElapsed(dnData.elapsed);
 
         // 恢复玩家位置
-        const playerNode = find('Canvas/Player');
+        const playerNode = find('Player');
         if (playerNode) {
             playerNode.setPosition(data.playerPos.x, data.playerPos.y);
         }
@@ -269,6 +272,11 @@ export class SaveSystem {
             cs.storedWood = c.storedWood;
             cs.storedCopper = c.storedCopper;
             cs.storedIron = c.storedIron;
+        }
+
+        // 恢复僵尸
+        if (data.zombies && data.zombies.length > 0) {
+            EnemyManager.restoreZombies(data.zombies);
         }
 
         console.log('[SaveSystem] 存档已加载');

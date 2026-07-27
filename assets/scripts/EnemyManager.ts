@@ -20,6 +20,15 @@ import { YSortManager } from './YSortManager';
 
 const { ccclass, property } = _decorator;
 
+/** 僵尸存档数据 */
+export interface ZombieSaveData {
+    worldX: number;
+    worldY: number;
+    hp: number;
+    maxHp: number;
+    isDayWanderer: boolean;
+}
+
 @ccclass('SpawnZone')
 export class SpawnZone {
     @property({ type: CCFloat, tooltip: '最小 X 坐标（相对于 GameWorld）' })
@@ -37,6 +46,8 @@ export class SpawnZone {
 
 @ccclass('EnemyManager')
 export class EnemyManager extends Component {
+    private static _instance: EnemyManager | null = null;
+
     @property({ type: Prefab, tooltip: '僵尸预制体' })
     enemyPrefab: Prefab | null = null;
 
@@ -89,6 +100,7 @@ export class EnemyManager extends Component {
     private _gameWorldRef: Node | null = null;
 
     onLoad() {
+        EnemyManager._instance = this;
         DayNightSystem.eventTarget.on(
             DayNightEvents.PHASE_CHANGED,
             this.onPhaseChanged,
@@ -97,6 +109,7 @@ export class EnemyManager extends Component {
     }
 
     onDestroy() {
+        EnemyManager._instance = null;
         DayNightSystem.eventTarget.off(
             DayNightEvents.PHASE_CHANGED,
             this.onPhaseChanged,
@@ -300,5 +313,60 @@ export class EnemyManager extends Component {
         for (const child of root.children) {
             this.walkZombies(child, visitor);
         }
+    }
+
+    /** 收集所有存活僵尸的存档数据 */
+    static getZombieData(): ZombieSaveData[] {
+        const inst = EnemyManager._instance;
+        if (!inst) return [];
+
+        const result: ZombieSaveData[] = [];
+        const root = inst.resolveEnemyRoot();
+        inst.walkZombies(root, (zm) => {
+            if (zm.isDead || zm.hp <= 0) return;
+            result.push({
+                worldX: zm.node.worldPosition.x,
+                worldY: zm.node.worldPosition.y,
+                hp: zm.hp,
+                maxHp: zm.maxHp,
+                isDayWanderer: zm.isDayWanderer,
+            });
+        });
+        return result;
+    }
+
+    /** 从存档数据恢复僵尸 */
+    static restoreZombies(data: ZombieSaveData[]): void {
+        const inst = EnemyManager._instance;
+        if (!inst || data.length === 0) return;
+
+        const root = inst.resolveEnemyRoot();
+
+        for (const zd of data) {
+            // 根据 maxHp 选择对应的预制体
+            let prefab: Prefab | null = null;
+            if (inst.fatZombiePrefab && zd.maxHp >= 150) {
+                prefab = inst.fatZombiePrefab;
+            } else if (inst.nurseZombiePrefab && zd.maxHp <= 60) {
+                prefab = inst.nurseZombiePrefab;
+            } else {
+                prefab = inst.enemyPrefab;
+            }
+
+            if (!prefab) continue;
+
+            const enemy = instantiate(prefab);
+            enemy.setParent(root);
+            enemy.setWorldPosition(new Vec3(zd.worldX, zd.worldY, 0));
+
+            const zm = enemy.getComponent(ZombieMove);
+            if (zm) {
+                zm.init(inst.baseNode ?? enemy, undefined, zd.isDayWanderer);
+                // init() 会调用 syncHpFromMaxHp()，覆盖为存档的 HP
+                zm.hp = zd.hp;
+            }
+        }
+
+        console.log(`[EnemyManager] 已恢复 ${data.length} 只僵尸`);
     }
 }

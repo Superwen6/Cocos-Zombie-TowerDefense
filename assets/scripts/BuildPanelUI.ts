@@ -91,6 +91,7 @@ export class BuildPanelUI extends Component {
 
     onDestroy() {
         BuildPanelUI._openPanelBound = false;
+        BuildPanelUI._pendingOpen = false;
         this.unbindButton(this.upgradeButton, this.onUpgradeClick);
         this.unbindButton(this.closePanelButton, this.hidePanel);
     }

@@ -132,6 +132,7 @@ export class SettingPanelUI extends Component {
 
     onDestroy() {
         SettingPanelUI._openPanelBound = false;
+        SettingPanelUI._pendingOpen = false;
         this.unbindButton(this.saveGameBtn, this.onSaveGame);
         this.unbindButton(this.closeBtn, this.onClose);
         this.unbindButton(this.exitGameBtn, this.onExitGame);
