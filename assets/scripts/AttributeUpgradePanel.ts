@@ -475,14 +475,13 @@ export class AttributeUpgradePanel extends Component {
 
     private unbindAllButtons() {
         for (const [name, state] of this._upgradeStates) {
+            if (!state.node || !state.node.isValid) continue;
             const btn = state.node.getComponent(Button);
             if (btn?.node?.isValid) {
                 btn.node.off(Button.EventType.CLICK, () => this.onUpgradeClick(name), this);
             }
-            if (state.node.isValid) {
-                state.node.off(Node.EventType.MOUSE_ENTER, () => this.onButtonHover(name), this);
-                state.node.off(Node.EventType.MOUSE_LEAVE, () => this.onButtonHoverEnd(), this);
-            }
+            state.node.off(Node.EventType.MOUSE_ENTER, () => this.onButtonHover(name), this);
+            state.node.off(Node.EventType.MOUSE_LEAVE, () => this.onButtonHoverEnd(), this);
         }
     }
 
@@ -657,7 +656,7 @@ export class AttributeUpgradePanel extends Component {
         this.exitAllModes();
         this._reinforceMode = true;
         this.setupModeInput();
-        if (this.reinforceActionBtn) {
+        if (this.reinforceActionBtn?.isValid) {
             const btn = this.reinforceActionBtn.getComponent(Button);
             if (btn) btn.interactable = false;
         }
@@ -667,7 +666,7 @@ export class AttributeUpgradePanel extends Component {
     private exitReinforceMode() {
         this._reinforceMode = false;
         this.clearTurretHighlight();
-        if (this.reinforceActionBtn) {
+        if (this.reinforceActionBtn?.isValid) {
             const btn = this.reinforceActionBtn.getComponent(Button);
             if (btn) btn.interactable = true;
         }
@@ -696,7 +695,7 @@ export class AttributeUpgradePanel extends Component {
         this._blastMode = true;
         this.setupModeInput();
 
-        if (this.blastActionBtn) {
+        if (this.blastActionBtn?.isValid) {
             const btn = this.blastActionBtn.getComponent(Button);
             if (btn) btn.interactable = false;
         }
@@ -707,7 +706,7 @@ export class AttributeUpgradePanel extends Component {
     private exitBlastMode() {
         this._blastMode = false;
         this.clearBlastHighlight();
-        if (this.blastActionBtn) {
+        if (this.blastActionBtn?.isValid) {
             const btn = this.blastActionBtn.getComponent(Button);
             if (btn) btn.interactable = true;
         }
