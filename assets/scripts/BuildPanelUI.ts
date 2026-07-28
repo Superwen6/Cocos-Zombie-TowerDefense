@@ -74,6 +74,21 @@ export class BuildPanelUI extends Component {
     private static _openPanelBound = false;
     private static _pendingOpen = false;
 
+    onLoad() {
+        // 在 onLoad 中直接绑定 openPanelButton，确保每次场景加载都能正确绑定
+        if (this.openPanelButton && this.openPanelButton.node && this.openPanelButton.node.isValid) {
+            this.openPanelButton.node.on(Button.EventType.CLICK, () => {
+                const upgradePanel = this.node;
+                if (!upgradePanel.active) {
+                    BuildPanelUI._pendingOpen = true;
+                    upgradePanel.active = true;
+                } else {
+                    this.showPanel();
+                }
+            }, this);
+        }
+    }
+
     start() {
         this.bindButton(this.upgradeButton, this.onUpgradeClick, 'upgradeButton');
         this.bindButton(this.closePanelButton, this.hidePanel, 'closePanelButton');
@@ -94,6 +109,10 @@ export class BuildPanelUI extends Component {
         BuildPanelUI._pendingOpen = false;
         this.unbindButton(this.upgradeButton, this.onUpgradeClick);
         this.unbindButton(this.closePanelButton, this.hidePanel);
+        // 解绑 openPanelButton（在 onLoad 中绑定）
+        if (this.openPanelButton?.node?.isValid) {
+            this.openPanelButton.node.targetOff(this);
+        }
     }
 
     update(dt: number) {

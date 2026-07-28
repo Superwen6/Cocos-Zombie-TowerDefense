@@ -268,6 +268,24 @@ export class AttributeUpgradePanel extends Component {
         if (this.reinforceActionBtn) this.reinforceActionBtn.active = false;
         if (this.blastActionBtn) this.blastActionBtn.active = false;
         if (this.weaponActionBtn) this.weaponActionBtn.active = false;
+
+        // 在 onLoad 中直接绑定 Btn_OpenAttribute，确保每次场景加载都能正确绑定
+        // 与 BuildPanelUI 保持一致的绑定策略
+        const btnNode = find('Canvas/Btn_OpenAttribute');
+        if (btnNode) {
+            const btn = btnNode.getComponent(Button);
+            if (btn) {
+                btn.node.on(Button.EventType.CLICK, () => {
+                    const panelNode = this.node;
+                    if (!panelNode.active) {
+                        AttributeUpgradePanel._pendingOpen = true;
+                        panelNode.active = true;
+                    } else {
+                        this.showPanel();
+                    }
+                }, this);
+            }
+        }
     }
 
     private _initialized = false;
@@ -304,6 +322,12 @@ export class AttributeUpgradePanel extends Component {
     onDestroy() {
         AttributeUpgradePanel._openPanelBound = false;
         AttributeUpgradePanel._pendingOpen = false;
+        // 解绑 Btn_OpenAttribute（在 onLoad 中绑定）
+        const btnNode = find('Canvas/Btn_OpenAttribute');
+        if (btnNode?.isValid) {
+            const btn = btnNode.getComponent(Button);
+            if (btn) btn.node.targetOff(this);
+        }
         if (this.closeButton?.node?.isValid) {
             this.closeButton.node.off(Button.EventType.CLICK, this.hidePanel, this);
         }
