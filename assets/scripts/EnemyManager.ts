@@ -146,7 +146,6 @@ export class EnemyManager extends Component {
     }
 
     private onPhaseChanged(detail: DayNightPhaseChangedDetail) {
-        console.log(`[EnemyManager] onPhaseChanged: phase=${detail.phase}, 当前僵尸总数=${this.countZombiesUnder(this.resolveEnemyRoot())}`);
         if (detail.phase === DayNightPhase.NIGHT) {
             this.stopDayWanderSpawning();
             this.startNightSpawning();
@@ -187,7 +186,6 @@ export class EnemyManager extends Component {
     private startDayWanderSpawning() {
         if (this._dayWanderSpawning) return;
         this._dayWanderSpawning = true;
-        console.log('[EnemyManager] startDayWanderSpawning 开始, 当前僵尸总数=', this.countZombiesUnder(this.resolveEnemyRoot()));
         this.schedule(this.spawnDayWanderer, this.dayWanderInterval);
         // 进入白天立即刷新 1-2 只游荡僵尸
         this.spawnDayWanderer();
@@ -257,11 +255,8 @@ export class EnemyManager extends Component {
 
     /** 白天：在基地周围生成游荡型僵尸（不攻击基地/玩家） */
     private spawnDayWanderer() {
-        const currentCount = this.countZombiesUnder(this.resolveEnemyRoot());
-        const wandererCount = this.getWandererCount();
         const prefab = this.pickZombiePrefab();
         if (!prefab || this.getWandererCount() >= this.maxDayWanderers) {
-            console.log(`[EnemyManager] spawnDayWanderer 跳过: prefab=${!!prefab}, wandererCount=${wandererCount}/${this.maxDayWanderers}, totalZombies=${currentCount}`);
             return;
         }
 
@@ -276,7 +271,6 @@ export class EnemyManager extends Component {
             const x = gwPos.x + zone.minX + Math.random() * (zone.maxX - zone.minX);
             const y = gwPos.y + zone.minY + Math.random() * (zone.maxY - zone.minY);
             enemy.setWorldPosition(new Vec3(x, y, 0));
-            console.log(`[EnemyManager] spawnDayWanderer 生成: type='${enemy.name}', pos=(${x.toFixed(1)},${y.toFixed(1)}), zone=[${zone.minX},${zone.maxX},${zone.minY},${zone.maxY}], totalZombies=${currentCount+1}`);
         } else {
             // 旧环形生成：兜底
             const origin = this.spawnOrigin?.worldPosition ?? Vec3.ZERO;
@@ -285,7 +279,6 @@ export class EnemyManager extends Component {
             const x = origin.x + Math.cos(angle) * radius;
             const y = origin.y + Math.sin(angle) * radius;
             enemy.setWorldPosition(new Vec3(x, y, 0));
-            console.log(`[EnemyManager] spawnDayWanderer 生成(环形): type='${enemy.name}', pos=(${x.toFixed(1)},${y.toFixed(1)}), totalZombies=${currentCount+1}`);
         }
 
         const zombieMove = enemy.getComponent(ZombieMove);
