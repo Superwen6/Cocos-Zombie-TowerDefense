@@ -177,6 +177,15 @@ export class PlayerState extends Component {
     private _respawnLabelTimer = 0;
     private _isDead = false;
 
+    /** 玩家本地坐标（每帧更新，供存档系统使用，相对于 GameWorld） */
+    private _localX = 0;
+    private _localY = 0;
+
+    /** 获取玩家本地 X 坐标（相对于 GameWorld） */
+    get worldX(): number { return this._localX; }
+    /** 获取玩家本地 Y 坐标（相对于 GameWorld） */
+    get worldY(): number { return this._localY; }
+
     onLoad() {
         if (PlayerState.instance && PlayerState.instance !== this) {
             warn('[PlayerState] 场景中存在多个 PlayerState，已销毁重复实例');
@@ -205,6 +214,11 @@ export class PlayerState extends Component {
     }
 
     update(dt: number) {
+        // 每帧更新本地坐标（相对于 GameWorld，供存档系统使用）
+        const lp = this.node.position;
+        this._localX = lp.x;
+        this._localY = lp.y;
+
         // 受击闪红渐变恢复
         if (this._flashTimer > 0 && this.playerSprite) {
             this._flashTimer -= dt;

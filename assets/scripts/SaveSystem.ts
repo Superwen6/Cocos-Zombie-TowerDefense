@@ -4,7 +4,7 @@ import { BaseSystem } from './BaseSystem';
 import { DayNightSystem, DayNightPhase } from './DayNightSystem';
 import { GlobalContainerStorage } from './GlobalContainerStorage';
 import { EnemyManager, ZombieSaveData } from './EnemyManager';
-import { find, Vec3 } from 'cc';
+import { director } from 'cc';
 
 const SAVE_KEY = 'game_save_v1';
 const PENDING_LOAD_KEY = 'game_pending_load';
@@ -84,13 +84,11 @@ export class SaveSystem {
             return false;
         }
 
-        // 获取玩家位置（Player 在 GameWorld 下，必须用完整路径）
-        const playerNode = find('GameWorld/Player');
-        const playerPos = playerNode
-            ? { x: playerNode.position.x, y: playerNode.position.y }
-            : { x: 0, y: 0 };
-        console.log('[SaveSystem] 存档时玩家位置: localPos=(', playerPos.x.toFixed(1), ',', playerPos.y.toFixed(1),
-            '), worldPos=(', playerNode ? playerNode.worldPosition.x.toFixed(1) : '?', ',', playerNode ? playerNode.worldPosition.y.toFixed(1) : '?', ')');
+        // 获取玩家位置（从 PlayerState 追踪的本地坐标读取）
+        const playerPos = {
+            x: ps.worldX,
+            y: ps.worldY,
+        };
 
         const data: SaveData = {
             timestamp: Date.now(),
@@ -206,8 +204,6 @@ export class SaveSystem {
         const dn = DayNightSystem.instance;
         const cs = GlobalContainerStorage.instance;
 
-        console.log('[SaveSystem] apply 开始, 核心系统状态: PlayerState=', !!ps, ' PlayerData=', !!pd, ' BaseSystem=', !!bs, ' DayNightSystem=', !!dn, ' ContainerStorage=', !!cs);
-
         if (!ps || !pd || !bs || !dn) {
             console.warn('[SaveSystem] 应用存档失败：核心系统未就绪');
             return;
@@ -264,15 +260,16 @@ export class SaveSystem {
         dn.forcePhase(dnData.phase as DayNightPhase);
         dn.forceElapsed(dnData.elapsed);
 
-        // 恢复玩家位置（Player 在 GameWorld 下，必须用完整路径）
-        const playerNode = find('GameWorld/Player');
+        // 恢复玩家位置
+        let playerNode = ps.node;
+        if (!playerNode || !playerNode.isValid) {
+            // 回退方案：通过场景层级查找
+            const scene = director.getScene();
+            const gameWorld = scene?.getChildByName('GameWorld');
+            playerNode = gameWorld?.getChildByName('Player') ?? null;
+        }
         if (playerNode) {
-            console.log('[SaveSystem] 读档恢复玩家位置: 存档 localPos=(', data.playerPos.x.toFixed(1), ',', data.playerPos.y.toFixed(1),
-                '), 恢复前 localPos=(', playerNode.position.x.toFixed(1), ',', playerNode.position.y.toFixed(1),
-                '), 恢复前 worldPos=(', playerNode.worldPosition.x.toFixed(1), ',', playerNode.worldPosition.y.toFixed(1), ')');
-            playerNode.setPosition(data.playerPos.x, data.playerPos.y);
-            console.log('[SaveSystem] 恢复后 localPos=(', playerNode.position.x.toFixed(1), ',', playerNode.position.y.toFixed(1),
-                '), 恢复后 worldPos=(', playerNode.worldPosition.x.toFixed(1), ',', playerNode.worldPosition.y.toFixed(1), ')');
+            playerNode.setPosition(data.playerPos.x, data.playerPos.y, 0);
         } else {
             console.warn('[SaveSystem] 读档时找不到 Player 节点');
         }
@@ -289,7 +286,5 @@ export class SaveSystem {
         if (data.zombies && data.zombies.length > 0) {
             EnemyManager.restoreZombies(data.zombies);
         }
-
-        console.log('[SaveSystem] 存档已加载');
     }
 }
