@@ -384,6 +384,7 @@ export class SaveSystem {
                 console.log(`[SaveSystem] getBuildingData - 跳过 Plant: node=${plant.node ? '存在' : 'NULL'}, valid=${plant.node?.isValid}`);
                 continue;
             }
+            console.log(`[SaveSystem] getBuildingData - plant: name=${plant.node.name}, parent=${plant.node.parent?.name}, localPos=(${plant.node.position.x}, ${plant.node.position.y}), worldPos=(${plant.node.worldPosition.x}, ${plant.node.worldPosition.y})`);
             result.push({
                 type: 'plant',
                 prefabName: plant.node.name,
@@ -517,9 +518,11 @@ export class SaveSystem {
 
                     if (plantNode) {
                         // 找到了场景预置节点，激活并恢复位置
-                        console.log(`[SaveSystem] restoreBuildings - 找到预置节点 plantId=${plantId}: ${plantNode.name}`);
+                        console.log(`[SaveSystem] restoreBuildings - 找到预置节点 plantId=${plantId}: ${plantNode.name}, parent=${plantNode.parent?.name}`);
+                        console.log(`[SaveSystem] restoreBuildings - plant 恢复前: localPos=(${plantNode.position.x}, ${plantNode.position.y}), worldPos=(${plantNode.worldPosition.x}, ${plantNode.worldPosition.y})`);
                         plantNode.active = true;
                         plantNode.setPosition(bd.localX, bd.localY, 0);
+                        console.log(`[SaveSystem] restoreBuildings - plant 恢复后: localPos=(${plantNode.position.x}, ${plantNode.position.y}), worldPos=(${plantNode.worldPosition.x}, ${plantNode.worldPosition.y}), 存档值=(${bd.localX}, ${bd.localY})`);
                         const plant = plantNode.getComponent(PlantGenerator);
                         if (plant) {
                             plant.markPlaced();
@@ -604,22 +607,35 @@ export class SaveSystem {
 
     /** 恢复资源矿点到场景中 */
     static restoreResources(data: ResourceSaveData[]): void {
+        console.log(`[SaveSystem] restoreResources - 开始恢复 ${data.length} 个资源`);
         const spawner = ResourceSpawner.instance;
-        if (!spawner) return;
+        if (!spawner) {
+            console.warn('[SaveSystem] restoreResources - ResourceSpawner.instance 为 null，资源恢复失败');
+            return;
+        }
 
         const root = spawner.getResourceRoot();
-        if (!root) return;
+        if (!root) {
+            console.warn('[SaveSystem] restoreResources - getResourceRoot() 返回 null，资源恢复失败');
+            return;
+        }
+        console.log(`[SaveSystem] restoreResources - 资源根节点: ${root.name}`);
 
         // 先清除场景中已有的资源矿点
         const existing = root.getComponentsInChildren(ResourceItem);
+        console.log(`[SaveSystem] restoreResources - 清除 ${existing.length} 个已有资源`);
         for (const item of existing) {
             if (item.node && item.node.isValid) item.node.destroy();
         }
 
         // 恢复资源矿点
+        let restored = 0;
         for (const rd of data) {
             const prefab = spawner.getPrefabByType(rd.resourceType);
-            if (!prefab) continue;
+            if (!prefab) {
+                if (restored === 0) console.warn(`[SaveSystem] restoreResources - 类型 ${rd.resourceType} 无对应预制体`);
+                continue;
+            }
 
             const node = instantiate(prefab);
             node.setParent(root);
@@ -628,7 +644,8 @@ export class SaveSystem {
             if (item) {
                 item.hp = rd.hp;
             }
+            restored++;
         }
-        console.log(`[SaveSystem] restoreResources - 资源矿点恢复完成，共 ${data.length} 个`);
+        console.log(`[SaveSystem] restoreResources - 资源矿点恢复完成，共 ${restored}/${data.length} 个`);
     }
 }

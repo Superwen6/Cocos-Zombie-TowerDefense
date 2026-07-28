@@ -53,8 +53,11 @@ export class ResourceSpawner extends Component {
     @property({ type: CCFloat, tooltip: '地图最大 Y 坐标（相对于 CoordinateReference）' })
     mapMaxY = 3350;
 
-    start() {
+    onLoad() {
         ResourceSpawner.instance = this;
+    }
+
+    start() {
         // 第一天也交由 DayNightSystem 在 showDayNotice 后触发，避免重复
     }
 
