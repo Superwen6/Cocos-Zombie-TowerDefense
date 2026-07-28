@@ -393,8 +393,13 @@ export class SaveSystem {
     /** 按 plantId 匹配发电机预制体 */
     private static matchPlantPrefabById(prefabs: Prefab[], plantId: number): Prefab | null {
         for (const p of prefabs) {
-            // Prefab.data 是预制体的根节点，可以获取其上的 PlantGenerator 组件
-            const pg = p.data?.getComponent(PlantGenerator);
+            if (!p.data) {
+                console.warn(`[SaveSystem] matchPlantPrefabById - prefab.data 为空`);
+                continue;
+            }
+            // getComponentInChildren 可查找根节点及所有子节点上的 PlantGenerator 组件
+            const pg = p.data.getComponentInChildren(PlantGenerator);
+            console.log(`[SaveSystem] matchPlantPrefabById - prefab=${p.name}, data.name=${p.data.name}, plantId=${pg?.plantId}, target=${plantId}`);
             if (pg && pg.plantId === plantId) return p;
         }
         return null;
@@ -469,14 +474,21 @@ export class SaveSystem {
                 case 'plant': {
                     // 发电机按 plantId 匹配预制体（而非节点名，因为场景中预置节点名可能与预制体不同）
                     prefab = SaveSystem.matchPlantPrefabById(mgr.plantPrefabs, bd.plantId ?? 0);
-                    console.log(`[SaveSystem] restoreBuildings - plant prefab匹配(by plantId=${bd.plantId}): ${prefab ? '成功' : '失败'}, plantPrefabs数量=${mgr.plantPrefabs?.length ?? 0}`);
+                    if (!prefab) {
+                        // 兜底：按名称匹配
+                        console.warn(`[SaveSystem] restoreBuildings - plantId=${bd.plantId} 匹配失败，尝试按名称匹配: ${bd.prefabName}`);
+                        prefab = matchPrefab(mgr.plantPrefabs, bd.prefabName);
+                    }
+                    console.log(`[SaveSystem] restoreBuildings - plant prefab最终: ${prefab ? '成功' : '失败'}, plantPrefabs数量=${mgr.plantPrefabs?.length ?? 0}`);
                     if (!prefab) break;
                     // 发电机：先查找场景中预置的对应节点
                     const plantId = bd.plantId ?? 0;
                     let plantNode: Node | null = null;
                     // 遍历 placementRoot 下找到正确的 plantId 节点
                     const allPlants = root.getComponentsInChildren(PlantGenerator);
+                    console.log(`[SaveSystem] restoreBuildings - placementRoot下找到 ${allPlants.length} 个 PlantGenerator`);
                     for (const pg of allPlants) {
+                        console.log(`[SaveSystem] restoreBuildings - 检查 PlantGenerator: plantId=${pg.plantId}, node=${pg.node.name}, active=${pg.node.active}`);
                         if (pg.plantId === plantId && pg.node && pg.node.isValid) {
                             plantNode = pg.node;
                             break;
@@ -484,11 +496,14 @@ export class SaveSystem {
                     }
                     if (!plantNode) {
                         // 场景中没有预置节点，则动态创建
+                        console.log(`[SaveSystem] restoreBuildings - 未找到预置节点，动态创建 plantId=${plantId}`);
                         plantNode = instantiate(prefab);
                         plantNode.setParent(root);
                     }
+                    console.log(`[SaveSystem] restoreBuildings - plant 激活前: parent=${plantNode.parent?.name}, pos=(${plantNode.position.x}, ${plantNode.position.y})`);
                     plantNode.active = true;
                     plantNode.setPosition(bd.localX, bd.localY, 0);
+                    console.log(`[SaveSystem] restoreBuildings - plant 激活后: parent=${plantNode.parent?.name}, pos=(${plantNode.position.x}, ${plantNode.position.y}), savedPos=(${bd.localX}, ${bd.localY})`);
                     const plant = plantNode.getComponent(PlantGenerator);
                     if (plant) {
                         plant.markPlaced();
@@ -496,6 +511,8 @@ export class SaveSystem {
                         plant.scheduleOnce(() => {
                             plant.hp = bd.hp;
                         }, 0);
+                    } else {
+                        console.warn(`[SaveSystem] restoreBuildings - plantNode 上无 PlantGenerator 组件!`);
                     }
                     node = plantNode;
                     break;
