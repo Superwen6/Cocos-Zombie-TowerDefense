@@ -258,9 +258,12 @@
       "__uuid__": "a3a73a04-64b7-45a8-9d2e-578975e2cc87",
       "__expectedType__": "cc.AudioClip"
     },
-    "attackSound": null,
+    "attackSound": {
+      "__uuid__": "124a3545-3e2d-45ea-82b0-300217cfc54c",
+      "__expectedType__": "cc.AudioClip"
+    },
     "attackSoundMaxDistance": 250,
-    "attackSoundCooldown": 1,
+    "attackSoundCooldown": 0.3,
     "_id": "35DjglTmNBKKeUAFRaFVu9"
   },
   {
@@ -38861,7 +38864,10 @@
     },
     "_enabled": true,
     "__prefab": null,
-    "clickSound": null,
+    "clickSound": {
+      "__uuid__": "4ae6468b-61e7-49cb-9bb5-287bb35f06c9",
+      "__expectedType__": "cc.AudioClip"
+    },
     "_id": "c1QeVaUf5IEJBIkTCcyw8V"
   },
   {
@@ -82208,6 +82214,9 @@
     },
     "cancelResetButtonNode": {
       "__id__": 2867
+    },
+    "btnOpenAttribute": {
+      "__id__": 2606
     },
     "_id": "3eQqYMr6xIwbXjo/wZ8Mg4"
   },

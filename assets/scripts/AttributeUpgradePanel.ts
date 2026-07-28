@@ -229,7 +229,6 @@ export class AttributeUpgradePanel extends Component {
     cancelResetButtonNode: Node | null = null;
 
     private _panelVisible = false;
-    private static _openPanelBound = false;
     private static _pendingOpen = false;
 
     /** 按钮状态 Map（生存 + 工程） */
@@ -268,25 +267,9 @@ export class AttributeUpgradePanel extends Component {
         if (this.reinforceActionBtn) this.reinforceActionBtn.active = false;
         if (this.blastActionBtn) this.blastActionBtn.active = false;
         if (this.weaponActionBtn) this.weaponActionBtn.active = false;
-
-        // 在 onLoad 中直接绑定 Btn_OpenAttribute，确保每次场景加载都能正确绑定
-        // 同时设置 _openPanelBound 防止 ensureOpenPanelBinding 重复绑定
-        AttributeUpgradePanel._openPanelBound = true;
-        const btnNode = find('Canvas/Btn_OpenAttribute');
-        if (btnNode) {
-            const btn = btnNode.getComponent(Button);
-            if (btn) {
-                btn.node.on(Button.EventType.CLICK, () => {
-                    const panelNode = this.node;
-                    if (!panelNode.active) {
-                        AttributeUpgradePanel._pendingOpen = true;
-                        panelNode.active = true;
-                    } else {
-                        this.showPanel();
-                    }
-                }, this);
-            }
-        }
+        // 面板节点在编辑器中 inactive，onLoad 仅在面板被激活时执行
+        // 打开按钮的绑定由 ensureOpenPanelBinding（GameHUDUI.start() 调用）统一处理
+        // 不在 onLoad 中绑定按钮，避免 double-binding
     }
 
     private _initialized = false;
@@ -321,13 +304,11 @@ export class AttributeUpgradePanel extends Component {
     }
 
     onDestroy() {
-        AttributeUpgradePanel._openPanelBound = false;
         AttributeUpgradePanel._pendingOpen = false;
-        // 解绑 Btn_OpenAttribute（在 onLoad 中绑定）
+        // 解绑 Btn_OpenAttribute（由 ensureOpenPanelBinding 绑定，target 为 this）
         const btnNode = find('Canvas/Btn_OpenAttribute');
         if (btnNode?.isValid) {
-            const btn = btnNode.getComponent(Button);
-            if (btn) btn.node.targetOff(this);
+            btnNode.targetOff(this);
         }
         if (this.closeButton?.node?.isValid) {
             this.closeButton.node.off(Button.EventType.CLICK, this.hidePanel, this);
@@ -364,10 +345,12 @@ export class AttributeUpgradePanel extends Component {
         return this._panelVisible;
     }
 
+    /**
+     * 确保打开面板按钮的点击事件已绑定（从 GameHUDUI.start() 调用）。
+     * 面板节点在编辑器中 inactive，onLoad 不执行，因此统一在此绑定。
+     * 每次场景加载只调用一次，不会 double-binding。
+     */
     public static ensureOpenPanelBinding() {
-        if (AttributeUpgradePanel._openPanelBound) return;
-        AttributeUpgradePanel._openPanelBound = true;
-
         const panelNode = find('Canvas/AttributeUpgradePanel');
         if (!panelNode) {
             warn('[AttributeUpgradePanel] 找不到 Canvas/AttributeUpgradePanel');
