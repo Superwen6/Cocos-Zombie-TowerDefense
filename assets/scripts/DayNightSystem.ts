@@ -177,6 +177,10 @@ export class DayNightSystem extends Component {
         if (SaveSystem.hasPendingLoad()) {
             return;
         }
+        // 兜底：如果 forcePhase 已被调用（读档时 GameManager.start 先于本组件执行，_phase 已不是 DAY）
+        if (this._phase !== DayNightPhase.DAY) {
+            return;
+        }
         this.showDayNotice(`Day ${this.currentDay}`);
         this.spawnDayResources();
         this.playDayMusic();
