@@ -34,10 +34,16 @@ export class GameManager extends Component {
     start() {
         // 检查是否有待加载的存档（从主菜单载入游戏时）
         if (SaveSystem.hasPendingLoad()) {
+            console.log('[GameManager] 检测到待加载存档，开始恢复...');
             const data = SaveSystem.consumePendingLoad();
             if (data) {
+                console.log('[GameManager] 存档数据已取出, timestamp=', new Date(data.timestamp).toLocaleString(), ', playerPos=(', data.playerPos.x.toFixed(1), ',', data.playerPos.y.toFixed(1), ')');
                 SaveSystem.apply(data);
+            } else {
+                console.warn('[GameManager] consumePendingLoad 返回 null');
             }
+        } else {
+            console.log('[GameManager] 无待加载存档，新游戏开始');
         }
     }
 

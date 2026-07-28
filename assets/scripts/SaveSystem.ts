@@ -89,6 +89,8 @@ export class SaveSystem {
         const playerPos = playerNode
             ? { x: playerNode.position.x, y: playerNode.position.y }
             : { x: 0, y: 0 };
+        console.log('[SaveSystem] 存档时玩家位置: localPos=(', playerPos.x.toFixed(1), ',', playerPos.y.toFixed(1),
+            '), worldPos=(', playerNode ? playerNode.worldPosition.x.toFixed(1) : '?', ',', playerNode ? playerNode.worldPosition.y.toFixed(1) : '?', ')');
 
         const data: SaveData = {
             timestamp: Date.now(),
@@ -204,6 +206,8 @@ export class SaveSystem {
         const dn = DayNightSystem.instance;
         const cs = GlobalContainerStorage.instance;
 
+        console.log('[SaveSystem] apply 开始, 核心系统状态: PlayerState=', !!ps, ' PlayerData=', !!pd, ' BaseSystem=', !!bs, ' DayNightSystem=', !!dn, ' ContainerStorage=', !!cs);
+
         if (!ps || !pd || !bs || !dn) {
             console.warn('[SaveSystem] 应用存档失败：核心系统未就绪');
             return;
@@ -263,7 +267,14 @@ export class SaveSystem {
         // 恢复玩家位置
         const playerNode = find('Player');
         if (playerNode) {
+            console.log('[SaveSystem] 读档恢复玩家位置: 存档 localPos=(', data.playerPos.x.toFixed(1), ',', data.playerPos.y.toFixed(1),
+                '), 恢复前 localPos=(', playerNode.position.x.toFixed(1), ',', playerNode.position.y.toFixed(1),
+                '), 恢复前 worldPos=(', playerNode.worldPosition.x.toFixed(1), ',', playerNode.worldPosition.y.toFixed(1), ')');
             playerNode.setPosition(data.playerPos.x, data.playerPos.y);
+            console.log('[SaveSystem] 恢复后 localPos=(', playerNode.position.x.toFixed(1), ',', playerNode.position.y.toFixed(1),
+                '), 恢复后 worldPos=(', playerNode.worldPosition.x.toFixed(1), ',', playerNode.worldPosition.y.toFixed(1), ')');
+        } else {
+            console.warn('[SaveSystem] 读档时找不到 Player 节点');
         }
 
         // 恢复 GlobalContainerStorage
