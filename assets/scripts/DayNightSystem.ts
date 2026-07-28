@@ -200,14 +200,14 @@ export class DayNightSystem extends Component {
         this.updateMaskSmoothly();
     }
 
-    forcePhase(phase: DayNightPhase) {
+    forcePhase(phase: DayNightPhase, skipAnnounce = false) {
         if (this._phase === phase) {
             return;
         }
         const previous = this._phase;
         this._phase = phase;
         this._elapsed = 0;
-        this.emitPhaseChanged(previous);
+        this.emitPhaseChanged(previous, skipAnnounce);
     }
 
     /** 设置当前阶段已流逝时间（秒），用于存档恢复 */
@@ -297,7 +297,7 @@ export class DayNightSystem extends Component {
         this.emitPhaseChanged(previous);
     }
 
-    private emitPhaseChanged(previousPhase: DayNightPhase) {
+    private emitPhaseChanged(previousPhase: DayNightPhase, skipAnnounce = false) {
         const detail: DayNightPhaseChangedDetail = {
             phase: this._phase,
             previousPhase,
@@ -308,7 +308,7 @@ export class DayNightSystem extends Component {
         DayNightSystem.eventTarget.emit(DayNightEvents.PHASE_CHANGED, detail);
 
         // 阶段切换音乐
-        this.onPhaseMusicChanged(this._phase);
+        this.onPhaseMusicChanged(this._phase, skipAnnounce);
     }
 
     /** 进入新的一天 */
@@ -434,13 +434,21 @@ export class DayNightSystem extends Component {
     }
 
     /** 根据阶段切换音乐 */
-    private onPhaseMusicChanged(phase: DayNightPhase) {
+    private onPhaseMusicChanged(phase: DayNightPhase, skipAnnounce = false) {
         switch (phase) {
             case DayNightPhase.DAY:
-                this.playDayMusic();
+                if (skipAnnounce) {
+                    this._playDayBgMusic();
+                } else {
+                    this.playDayMusic();
+                }
                 break;
             case DayNightPhase.NIGHT:
-                this.playNightMusic();
+                if (skipAnnounce) {
+                    this._playNightBgMusic();
+                } else {
+                    this.playNightMusic();
+                }
                 break;
             // DUSK/DAWN 过渡阶段不切换音乐，保持当前音乐
         }

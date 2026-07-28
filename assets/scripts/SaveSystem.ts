@@ -257,7 +257,7 @@ export class SaveSystem {
         // 恢复 DayNightSystem
         const dnData = data.dayNight;
         dn.currentDay = dnData.currentDay;
-        dn.forcePhase(dnData.phase as DayNightPhase);
+        dn.forcePhase(dnData.phase as DayNightPhase, true);
         dn.forceElapsed(dnData.elapsed);
 
         // 恢复玩家位置（使用本地坐标，相对于父节点 YSortLayer，不受 GameWorld 移动影响）
