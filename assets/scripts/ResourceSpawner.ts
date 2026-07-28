@@ -6,6 +6,7 @@ const { ccclass, property } = _decorator;
 
 @ccclass('ResourceSpawner')
 export class ResourceSpawner extends Component {
+    public static instance: ResourceSpawner | null = null;
 
     @property({ type: Prefab, tooltip: '铁矿预制体' })
     ironPrefab: Prefab | null = null;
@@ -53,7 +54,31 @@ export class ResourceSpawner extends Component {
     mapMaxY = 3350;
 
     start() {
+        ResourceSpawner.instance = this;
         // 第一天也交由 DayNightSystem 在 showDayNotice 后触发，避免重复
+    }
+
+    onDestroy() {
+        if (ResourceSpawner.instance === this) {
+            ResourceSpawner.instance = null;
+        }
+    }
+
+    /** 获取资源根节点（供 SaveSystem 使用） */
+    public getResourceRoot(): Node | null {
+        return YSortManager.getSortLayer()
+            || this.resourceRoot
+            || find('GameWorld/ResourceRoot');
+    }
+
+    /** 根据资源类型获取对应预制体（供 SaveSystem 使用） */
+    public getPrefabByType(type: string): Prefab | null {
+        switch (type) {
+            case 'iron': return this.ironPrefab;
+            case 'copper': return this.copperPrefab;
+            case 'wood': return this.woodPrefab;
+            default: return null;
+        }
     }
 
     public spawnDayResources() {
