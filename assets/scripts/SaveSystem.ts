@@ -188,8 +188,6 @@ export class SaveSystem {
             resources: SaveSystem.getResourceData(),
         };
 
-        console.log(`[SaveSystem] 保存 - 建筑数量: ${data.buildings.length}, 资源矿点: ${data.resources.length}`);
-
         try {
             localStorage.setItem(SAVE_KEY, JSON.stringify(data));
             console.log('[SaveSystem] 游戏已保存');
@@ -334,18 +332,12 @@ export class SaveSystem {
 
         // 恢复建筑（炮塔/发电机/集装箱）
         if (data.buildings && data.buildings.length > 0) {
-            console.log(`[SaveSystem] apply - 存档中有 ${data.buildings.length} 个建筑，开始恢复`);
             SaveSystem.restoreBuildings(data.buildings);
-        } else {
-            console.log(`[SaveSystem] apply - 存档中无建筑数据 (buildings=${data.buildings ? '存在(空数组)' : 'undefined'})`);
         }
 
         // 恢复地图资源矿点
         if (data.resources && data.resources.length > 0) {
-            console.log(`[SaveSystem] apply - 存档中有 ${data.resources.length} 个资源矿点，开始恢复`);
             SaveSystem.restoreResources(data.resources);
-        } else {
-            console.log(`[SaveSystem] apply - 存档中无资源数据`);
         }
     }
 
@@ -353,21 +345,15 @@ export class SaveSystem {
     static getBuildingData(): BuildingSaveData[] {
         const result: BuildingSaveData[] = [];
         const mgr = TurretPlacementManager.instance;
-        console.log(`[SaveSystem] getBuildingData - TurretPlacementManager: ${mgr ? '存在' : 'NULL'}`);
         if (!mgr) return result;
 
         const root = mgr.getPlacementRootPublic();
-        console.log(`[SaveSystem] getBuildingData - placementRoot: ${root ? root.name : 'NULL'}, parent: ${root?.parent?.name ?? 'NULL'}`);
         if (!root) return result;
 
         // 收集炮塔
         const turrets = root.getComponentsInChildren(Turret);
-        console.log(`[SaveSystem] getBuildingData - 找到 ${turrets.length} 个 Turret 组件`);
         for (const t of turrets) {
-            if (!t.enabled || !t.node || !t.node.isValid) {
-                console.log(`[SaveSystem] getBuildingData - 跳过 Turret: enabled=${t.enabled}, node=${t.node ? '存在' : 'NULL'}, valid=${t.node?.isValid}`);
-                continue;
-            }
+            if (!t.enabled || !t.node || !t.node.isValid) continue;
             result.push({
                 type: 'turret',
                 prefabName: t.node.name,
@@ -378,13 +364,8 @@ export class SaveSystem {
         }
 
         // 收集发电机
-        console.log(`[SaveSystem] getBuildingData - PlantGenerator.placedMap.size: ${PlantGenerator.placedMap.size}`);
         for (const plant of PlantGenerator.placedMap.values()) {
-            if (!plant.node || !plant.node.isValid) {
-                console.log(`[SaveSystem] getBuildingData - 跳过 Plant: node=${plant.node ? '存在' : 'NULL'}, valid=${plant.node?.isValid}`);
-                continue;
-            }
-            console.log(`[SaveSystem] getBuildingData - plant: name=${plant.node.name}, parent=${plant.node.parent?.name}, localPos=(${plant.node.position.x}, ${plant.node.position.y}), worldPos=(${plant.node.worldPosition.x}, ${plant.node.worldPosition.y})`);
+            if (!plant.node || !plant.node.isValid) continue;
             result.push({
                 type: 'plant',
                 prefabName: plant.node.name,
@@ -397,12 +378,8 @@ export class SaveSystem {
 
         // 收集集装箱
         const containers = root.getComponentsInChildren(Container);
-        console.log(`[SaveSystem] getBuildingData - 找到 ${containers.length} 个 Container 组件`);
         for (const c of containers) {
-            if (!c.enabled || !c.node || !c.node.isValid) {
-                console.log(`[SaveSystem] getBuildingData - 跳过 Container: enabled=${c.enabled}, node=${c.node ? '存在' : 'NULL'}, valid=${c.node?.isValid}`);
-                continue;
-            }
+            if (!c.enabled || !c.node || !c.node.isValid) continue;
             result.push({
                 type: 'container',
                 prefabName: c.node.name,
@@ -412,20 +389,14 @@ export class SaveSystem {
             });
         }
 
-        console.log(`[SaveSystem] getBuildingData - 总计收集: ${result.length} 个建筑`);
         return result;
     }
 
     /** 按 plantId 匹配发电机预制体 */
     private static matchPlantPrefabById(prefabs: Prefab[], plantId: number): Prefab | null {
         for (const p of prefabs) {
-            if (!p.data) {
-                console.warn(`[SaveSystem] matchPlantPrefabById - prefab.data 为空`);
-                continue;
-            }
-            // getComponentInChildren 可查找根节点及所有子节点上的 PlantGenerator 组件
+            if (!p.data) continue;
             const pg = p.data.getComponentInChildren(PlantGenerator);
-            console.log(`[SaveSystem] matchPlantPrefabById - prefab=${p.name}, data.name=${p.data.name}, plantId=${pg?.plantId}, target=${plantId}`);
             if (pg && pg.plantId === plantId) return p;
         }
         return null;
@@ -433,16 +404,13 @@ export class SaveSystem {
 
     /** 恢复建筑到场景中 */
     static restoreBuildings(data: BuildingSaveData[]): void {
-        console.log(`[SaveSystem] restoreBuildings - 开始恢复 ${data.length} 个建筑`);
         const mgr = TurretPlacementManager.instance;
-        console.log(`[SaveSystem] restoreBuildings - TurretPlacementManager: ${mgr ? '存在' : 'NULL'}`);
         if (!mgr) {
             console.warn('[SaveSystem] restoreBuildings - TurretPlacementManager 不存在，无法恢复建筑');
             return;
         }
 
         const root = mgr.getPlacementRootPublic();
-        console.log(`[SaveSystem] restoreBuildings - placementRoot: ${root ? root.name : 'NULL'}, parent: ${root?.parent?.name ?? 'NULL'}`);
         if (!root) {
             console.warn('[SaveSystem] restoreBuildings - placementRoot 不存在，无法恢复建筑');
             return;
@@ -475,14 +443,12 @@ export class SaveSystem {
         };
 
         for (const bd of data) {
-            console.log(`[SaveSystem] restoreBuildings - 恢复: type=${bd.type}, prefabName=${bd.prefabName}, pos=(${bd.localX}, ${bd.localY})`);
             let prefab: Prefab | null = null;
             let node: Node | null = null;
 
             switch (bd.type) {
                 case 'turret': {
                     prefab = matchPrefab(mgr.turretPrefabs, bd.prefabName);
-                    console.log(`[SaveSystem] restoreBuildings - turret prefab匹配: ${prefab ? '成功' : '失败'}, turretPrefabs数量=${mgr.turretPrefabs?.length ?? 0}`);
                     if (!prefab) break;
                     node = instantiate(prefab);
                     node.setParent(root);
@@ -507,7 +473,6 @@ export class SaveSystem {
                     const scene = director.getScene();
                     if (scene) {
                         const allPlants = scene.getComponentsInChildren(PlantGenerator);
-                        console.log(`[SaveSystem] restoreBuildings - 场景中找到 ${allPlants.length} 个 PlantGenerator`);
                         for (const pg of allPlants) {
                             if (pg.plantId === plantId && pg.node && pg.node.isValid) {
                                 plantNode = pg.node;
@@ -517,12 +482,11 @@ export class SaveSystem {
                     }
 
                     if (plantNode) {
-                        // 找到了场景预置节点，激活并恢复位置
-                        console.log(`[SaveSystem] restoreBuildings - 找到预置节点 plantId=${plantId}: ${plantNode.name}, parent=${plantNode.parent?.name}`);
-                        console.log(`[SaveSystem] restoreBuildings - plant 恢复前: localPos=(${plantNode.position.x}, ${plantNode.position.y}), worldPos=(${plantNode.worldPosition.x}, ${plantNode.worldPosition.y})`);
+                        // 找到了场景预置节点，激活并恢复到正确父节点下
                         plantNode.active = true;
+                        // 先移到 placementRoot（YSortLayer）下，再设置位置，避免因父节点不同导致坐标漂移
+                        plantNode.setParent(root);
                         plantNode.setPosition(bd.localX, bd.localY, 0);
-                        console.log(`[SaveSystem] restoreBuildings - plant 恢复后: localPos=(${plantNode.position.x}, ${plantNode.position.y}), worldPos=(${plantNode.worldPosition.x}, ${plantNode.worldPosition.y}), 存档值=(${bd.localX}, ${bd.localY})`);
                         const plant = plantNode.getComponent(PlantGenerator);
                         if (plant) {
                             plant.markPlaced();
@@ -535,7 +499,6 @@ export class SaveSystem {
                         if (!prefab) {
                             prefab = matchPrefab(mgr.plantPrefabs, bd.prefabName);
                         }
-                        console.log(`[SaveSystem] restoreBuildings - plant prefab匹配: ${prefab ? '成功' : '失败'}`);
                         if (!prefab) break;
                         plantNode = instantiate(prefab);
                         plantNode.setParent(root);
@@ -552,7 +515,6 @@ export class SaveSystem {
                 }
                 case 'container': {
                     prefab = mgr.containerPrefab;
-                    console.log(`[SaveSystem] restoreBuildings - container prefab: ${prefab ? '存在' : 'NULL'}`);
                     if (!prefab) break;
                     node = instantiate(prefab);
                     node.setParent(root);
@@ -579,7 +541,6 @@ export class SaveSystem {
 
         // 更新电力状态
         BaseSystem.instance?.updatePowerStatus();
-        console.log('[SaveSystem] restoreBuildings - 建筑恢复完成');
     }
 
     /** 收集场景中所有资源矿点的数据 */
@@ -607,7 +568,6 @@ export class SaveSystem {
 
     /** 恢复资源矿点到场景中 */
     static restoreResources(data: ResourceSaveData[]): void {
-        console.log(`[SaveSystem] restoreResources - 开始恢复 ${data.length} 个资源`);
         const spawner = ResourceSpawner.instance;
         if (!spawner) {
             console.warn('[SaveSystem] restoreResources - ResourceSpawner.instance 为 null，资源恢复失败');
@@ -619,23 +579,17 @@ export class SaveSystem {
             console.warn('[SaveSystem] restoreResources - getResourceRoot() 返回 null，资源恢复失败');
             return;
         }
-        console.log(`[SaveSystem] restoreResources - 资源根节点: ${root.name}`);
 
         // 先清除场景中已有的资源矿点
         const existing = root.getComponentsInChildren(ResourceItem);
-        console.log(`[SaveSystem] restoreResources - 清除 ${existing.length} 个已有资源`);
         for (const item of existing) {
             if (item.node && item.node.isValid) item.node.destroy();
         }
 
         // 恢复资源矿点
-        let restored = 0;
         for (const rd of data) {
             const prefab = spawner.getPrefabByType(rd.resourceType);
-            if (!prefab) {
-                if (restored === 0) console.warn(`[SaveSystem] restoreResources - 类型 ${rd.resourceType} 无对应预制体`);
-                continue;
-            }
+            if (!prefab) continue;
 
             const node = instantiate(prefab);
             node.setParent(root);
@@ -644,8 +598,6 @@ export class SaveSystem {
             if (item) {
                 item.hp = rd.hp;
             }
-            restored++;
         }
-        console.log(`[SaveSystem] restoreResources - 资源矿点恢复完成，共 ${restored}/${data.length} 个`);
     }
 }
