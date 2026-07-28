@@ -14,6 +14,7 @@ import {
 import { GameManager } from './GameManager';
 import { ResourceSpawner } from './ResourceSpawner';
 import { PlayerState } from './PlayerState';
+import { SaveSystem } from './SaveSystem';
 
 const { ccclass, property } = _decorator;
 
@@ -172,6 +173,10 @@ export class DayNightSystem extends Component {
     }
 
     start() {
+        // 有存档待加载时，跳过白天初始化（音乐/天数大字报），由 SaveSystem.apply 的 forcePhase 接管
+        if (SaveSystem.hasPendingLoad()) {
+            return;
+        }
         this.showDayNotice(`Day ${this.currentDay}`);
         this.spawnDayResources();
         this.playDayMusic();

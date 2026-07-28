@@ -259,7 +259,7 @@ export class ZombieMove extends Component {
         this._aiState = asDayWanderer ? 'WANDER' : 'CHASE_BASE';
         this._wanderLandmarkNode = null;
         this._landmarkScanned = false;
-        this._isNight = false;
+        this._isNight = DayNightSystem.instance?.isNight ?? false;
 
         if (asDayWanderer) {
             this.pickNewWanderTarget();
