@@ -14,7 +14,6 @@ import {
 import { GameManager } from './GameManager';
 import { ResourceSpawner } from './ResourceSpawner';
 import { PlayerState } from './PlayerState';
-import { SaveSystem } from './SaveSystem';
 
 const { ccclass, property } = _decorator;
 
@@ -173,12 +172,8 @@ export class DayNightSystem extends Component {
     }
 
     start() {
-        // 有存档待加载时，跳过白天初始化（音乐/天数大字报），由 SaveSystem.apply 的 forcePhase 接管
-        if (SaveSystem.hasPendingLoad()) {
-            return;
-        }
-        // 兜底：如果 forcePhase 已被调用（读档时 GameManager.start 先于本组件执行，_phase 已不是 DAY）
-        if (this._phase !== DayNightPhase.DAY) {
+        // 读档恢复时跳过白天初始化（音乐/天数大字报），由 SaveSystem.apply 的 forcePhase 接管
+        if (GameManager.isRestoringSave) {
             return;
         }
         this.showDayNotice(`Day ${this.currentDay}`);
@@ -202,6 +197,10 @@ export class DayNightSystem extends Component {
 
     forcePhase(phase: DayNightPhase, skipAnnounce = false) {
         if (this._phase === phase) {
+            // 同阶段（如读档恢复白天存档）：仍需播放背景音乐，但跳过提示音效
+            if (skipAnnounce) {
+                this.onPhaseMusicChanged(phase, true);
+            }
             return;
         }
         const previous = this._phase;
