@@ -84,8 +84,8 @@ export class SaveSystem {
             return false;
         }
 
-        // 获取玩家位置
-        const playerNode = find('Player');
+        // 获取玩家位置（Player 在 GameWorld 下，必须用完整路径）
+        const playerNode = find('GameWorld/Player');
         const playerPos = playerNode
             ? { x: playerNode.position.x, y: playerNode.position.y }
             : { x: 0, y: 0 };
@@ -264,8 +264,8 @@ export class SaveSystem {
         dn.forcePhase(dnData.phase as DayNightPhase);
         dn.forceElapsed(dnData.elapsed);
 
-        // 恢复玩家位置
-        const playerNode = find('Player');
+        // 恢复玩家位置（Player 在 GameWorld 下，必须用完整路径）
+        const playerNode = find('GameWorld/Player');
         if (playerNode) {
             console.log('[SaveSystem] 读档恢复玩家位置: 存档 localPos=(', data.playerPos.x.toFixed(1), ',', data.playerPos.y.toFixed(1),
                 '), 恢复前 localPos=(', playerNode.position.x.toFixed(1), ',', playerNode.position.y.toFixed(1),
