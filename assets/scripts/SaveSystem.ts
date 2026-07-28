@@ -90,8 +90,6 @@ export class SaveSystem {
             ? { x: playerNode.position.x, y: playerNode.position.y }
             : { x: ps.worldX, y: ps.worldY };
 
-        console.log(`[SaveSystem] 保存玩家位置: localPos=(${playerPos.x.toFixed(1)},${playerPos.y.toFixed(1)})`);
-
         const data: SaveData = {
             timestamp: Date.now(),
             playerPos,
@@ -273,7 +271,6 @@ export class SaveSystem {
         }
         if (playerNode) {
             playerNode.setPosition(data.playerPos.x, data.playerPos.y, 0);
-            console.log(`[SaveSystem] 恢复玩家位置: localPos=(${data.playerPos.x.toFixed(1)},${data.playerPos.y.toFixed(1)})`);
         } else {
             console.warn('[SaveSystem] 读档时找不到 Player 节点');
         }
@@ -288,7 +285,6 @@ export class SaveSystem {
 
         // 恢复僵尸
         if (data.zombies && data.zombies.length > 0) {
-            console.log(`[SaveSystem] apply 恢复僵尸: 存档中 ${data.zombies.length} 只`);
             EnemyManager.restoreZombies(data.zombies);
         } else {
             console.log('[SaveSystem] apply 存档中无僵尸数据');

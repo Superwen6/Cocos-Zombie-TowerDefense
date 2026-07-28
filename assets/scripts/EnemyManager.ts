@@ -337,9 +337,6 @@ export class EnemyManager extends Component {
                 zombieType: typeName,
             });
         });
-        const wanderers = result.filter(z => z.isDayWanderer);
-        const nonWanderers = result.filter(z => !z.isDayWanderer);
-        console.log(`[EnemyManager] 存档: 总数=${result.length}(游荡${wanderers.length}+非游荡${nonWanderers.length})`);
         return result;
     }
 
@@ -349,7 +346,6 @@ export class EnemyManager extends Component {
         if (!inst || data.length === 0) return;
 
         const root = inst.resolveEnemyRoot();
-        const countBefore = inst.countZombiesUnder(root);
 
         // 先清除场景中已有的僵尸（避免重复）
         const existingZombies: Node[] = [];
@@ -361,8 +357,6 @@ export class EnemyManager extends Component {
         for (const node of existingZombies) {
             node.destroy();
         }
-
-        let backfillCount = 0;
 
         for (const zd of data) {
             // 根据 zombieType 精确匹配预制体
@@ -386,7 +380,6 @@ export class EnemyManager extends Component {
                 } else {
                     prefab = inst.enemyPrefab;
                 }
-                backfillCount++;
             }
 
             if (!prefab) continue;
@@ -401,12 +394,5 @@ export class EnemyManager extends Component {
                 zm.hp = zd.hp;
             }
         }
-
-        const countAfter = inst.countZombiesUnder(root);
-        const wanderers = data.filter(z => z.isDayWanderer);
-        const nonWanderers = data.filter(z => !z.isDayWanderer);
-        let logMsg = `[EnemyManager] 读档恢复: 清除${existingZombies.length}→恢复${data.length}(游荡${wanderers.length}+非游荡${nonWanderers.length}), 场景僵尸${countBefore}→${countAfter}`;
-        if (backfillCount > 0) logMsg += `, 类型回退匹配${backfillCount}只`;
-        console.log(logMsg);
     }
 }
