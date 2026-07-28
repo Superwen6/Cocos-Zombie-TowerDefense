@@ -390,6 +390,16 @@ export class SaveSystem {
         return result;
     }
 
+    /** 按 plantId 匹配发电机预制体 */
+    private static matchPlantPrefabById(prefabs: Prefab[], plantId: number): Prefab | null {
+        for (const p of prefabs) {
+            // Prefab.data 是预制体的根节点，可以获取其上的 PlantGenerator 组件
+            const pg = p.data?.getComponent(PlantGenerator);
+            if (pg && pg.plantId === plantId) return p;
+        }
+        return null;
+    }
+
     /** 恢复建筑到场景中 */
     static restoreBuildings(data: BuildingSaveData[]): void {
         console.log(`[SaveSystem] restoreBuildings - 开始恢复 ${data.length} 个建筑`);
@@ -449,13 +459,17 @@ export class SaveSystem {
                     const turret = node.getComponent(Turret);
                     if (turret) {
                         turret.enabled = true;
-                        turret.hp = bd.hp;
+                        // start() 会在下一帧将 hp 重置为 maxHp，延迟覆盖
+                        turret.scheduleOnce(() => {
+                            turret.hp = bd.hp;
+                        }, 0);
                     }
                     break;
                 }
                 case 'plant': {
-                    prefab = matchPrefab(mgr.plantPrefabs, bd.prefabName);
-                    console.log(`[SaveSystem] restoreBuildings - plant prefab匹配: ${prefab ? '成功' : '失败'}, plantPrefabs数量=${mgr.plantPrefabs?.length ?? 0}, plantId=${bd.plantId}`);
+                    // 发电机按 plantId 匹配预制体（而非节点名，因为场景中预置节点名可能与预制体不同）
+                    prefab = SaveSystem.matchPlantPrefabById(mgr.plantPrefabs, bd.plantId ?? 0);
+                    console.log(`[SaveSystem] restoreBuildings - plant prefab匹配(by plantId=${bd.plantId}): ${prefab ? '成功' : '失败'}, plantPrefabs数量=${mgr.plantPrefabs?.length ?? 0}`);
                     if (!prefab) break;
                     // 发电机：先查找场景中预置的对应节点
                     const plantId = bd.plantId ?? 0;
