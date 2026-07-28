@@ -263,6 +263,8 @@ export class AttributeUpgradePanel extends Component {
 
     /** onLoad 比 start 更早执行，确保第一帧前隐藏按钮 */
     onLoad() {
+        console.log('[AttrPanel] onLoad 开始, node.active=', this.node.active);
+
         this._audioSource = this.node.addComponent(AudioSource);
         this._audioSource.loop = false;
         if (this.reinforceActionBtn) this.reinforceActionBtn.active = false;
@@ -270,27 +272,37 @@ export class AttributeUpgradePanel extends Component {
         if (this.weaponActionBtn) this.weaponActionBtn.active = false;
 
         // 在 onLoad 中直接绑定 Btn_OpenAttribute，确保每次场景加载都能正确绑定
-        // 与 BuildPanelUI 保持一致的绑定策略
+        // 同时设置 _openPanelBound 防止 ensureOpenPanelBinding 重复绑定
+        AttributeUpgradePanel._openPanelBound = true;
         const btnNode = find('Canvas/Btn_OpenAttribute');
         if (btnNode) {
             const btn = btnNode.getComponent(Button);
             if (btn) {
+                console.log('[AttrPanel] onLoad - Btn_OpenAttribute 绑定成功');
                 btn.node.on(Button.EventType.CLICK, () => {
+                    console.log('[AttrPanel] Btn_OpenAttribute 点击, panelNode.active=', this.node.active, '_pendingOpen=', AttributeUpgradePanel._pendingOpen);
                     const panelNode = this.node;
                     if (!panelNode.active) {
                         AttributeUpgradePanel._pendingOpen = true;
+                        console.log('[AttrPanel] 面板未激活, 设置 _pendingOpen=true, 激活面板');
                         panelNode.active = true;
                     } else {
+                        console.log('[AttrPanel] 面板已激活, 调用 showPanel');
                         this.showPanel();
                     }
                 }, this);
+            } else {
+                console.warn('[AttrPanel] onLoad - Btn_OpenAttribute 上无 Button 组件');
             }
+        } else {
+            console.warn('[AttrPanel] onLoad - 找不到 Canvas/Btn_OpenAttribute');
         }
     }
 
     private _initialized = false;
 
     start() {
+        console.log('[AttrPanel] start 开始, _initialized=', this._initialized, '_pendingOpen=', AttributeUpgradePanel._pendingOpen);
         // 仅在首次初始化时注册升级按钮，避免重复调用 start() 时覆盖已有升级状态
         if (!this._initialized) {
             this._initialized = true;
@@ -313,13 +325,16 @@ export class AttributeUpgradePanel extends Component {
 
         if (AttributeUpgradePanel._pendingOpen) {
             AttributeUpgradePanel._pendingOpen = false;
+            console.log('[AttrPanel] start - _pendingOpen=true, 调用 showPanel');
             this.showPanel();
         } else {
+            console.log('[AttrPanel] start - _pendingOpen=false, 调用 hidePanel');
             this.hidePanel();
         }
     }
 
     onDestroy() {
+        console.log('[AttrPanel] onDestroy - 清理, _openPanelBound=', AttributeUpgradePanel._openPanelBound);
         AttributeUpgradePanel._openPanelBound = false;
         AttributeUpgradePanel._pendingOpen = false;
         // 解绑 Btn_OpenAttribute（在 onLoad 中绑定）
@@ -347,6 +362,7 @@ export class AttributeUpgradePanel extends Component {
     // ==================== 面板显示/隐藏 ====================
 
     showPanel() {
+        console.log('[AttrPanel] showPanel - 面板显示');
         this._panelVisible = true;
         this.setHostPanelVisible(true);
         this.refreshPointDisplay();
@@ -364,7 +380,11 @@ export class AttributeUpgradePanel extends Component {
     }
 
     public static ensureOpenPanelBinding() {
-        if (AttributeUpgradePanel._openPanelBound) return;
+        console.log('[AttrPanel] ensureOpenPanelBinding 调用, _openPanelBound=', AttributeUpgradePanel._openPanelBound);
+        if (AttributeUpgradePanel._openPanelBound) {
+            console.log('[AttrPanel] ensureOpenPanelBinding - 已绑定，跳过');
+            return;
+        }
         AttributeUpgradePanel._openPanelBound = true;
 
         const panelNode = find('Canvas/AttributeUpgradePanel');
