@@ -106,7 +106,11 @@ export class Turret extends Component {
     @property({ type: CCFloat, tooltip: '受攻击音效最小播放间隔（秒），0=每次受击都播放，0.3=间隔0.3秒，2=间隔2秒' })
     attackSoundCooldown = 1;
 
-    private hp = 150;
+    private _hp = 150;
+
+    /** 当前血量（公开读写，供 SaveSystem 存档/读档使用） */
+    get hp(): number { return this._hp; }
+    set hp(v: number) { this._hp = v; }
     private fireTimer = 0;
     private lockedTarget: ZombieMove | null = null;
     private _collider: Collider2D | null = null;

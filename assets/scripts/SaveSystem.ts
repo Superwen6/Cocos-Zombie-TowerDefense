@@ -4,10 +4,30 @@ import { BaseSystem } from './BaseSystem';
 import { DayNightSystem, DayNightPhase } from './DayNightSystem';
 import { GlobalContainerStorage } from './GlobalContainerStorage';
 import { EnemyManager, ZombieSaveData } from './EnemyManager';
-import { director } from 'cc';
+import { TurretPlacementManager } from './TurretPlacementManager';
+import { PlantGenerator } from './PlantGenerator';
+import { Turret } from './Turret';
+import { Container } from './Container';
+import { director, instantiate, Node, Prefab } from 'cc';
 
 const SAVE_KEY = 'game_save_v1';
 const PENDING_LOAD_KEY = 'game_pending_load';
+
+/** 建筑保存数据 */
+export interface BuildingSaveData {
+    /** 建筑类型 */
+    type: 'turret' | 'plant' | 'container';
+    /** 预制体节点名（用于匹配预制体） */
+    prefabName: string;
+    /** 相对于父节点的本地坐标 X */
+    localX: number;
+    /** 相对于父节点的本地坐标 Y */
+    localY: number;
+    /** 当前血量 */
+    hp: number;
+    /** 发电机唯一 ID（仅 plant 类型有效） */
+    plantId?: number;
+}
 
 export interface SaveData {
     timestamp: number;
@@ -68,6 +88,8 @@ export interface SaveData {
         storedIron: number;
     };
     zombies: ZombieSaveData[];
+    /** 建筑（炮塔/发电机/集装箱） */
+    buildings: BuildingSaveData[];
 }
 
 export class SaveSystem {
@@ -146,6 +168,7 @@ export class SaveSystem {
                 storedIron: cs ? cs.storedIron : 0,
             },
             zombies: EnemyManager.getZombieData(),
+            buildings: SaveSystem.getBuildingData(),
         };
 
         try {
@@ -289,5 +312,175 @@ export class SaveSystem {
         } else {
             console.log('[SaveSystem] apply 存档中无僵尸数据');
         }
+
+        // 恢复建筑（炮塔/发电机/集装箱）
+        if (data.buildings && data.buildings.length > 0) {
+            SaveSystem.restoreBuildings(data.buildings);
+        }
+    }
+
+    /** 收集场景中所有建筑的数据 */
+    static getBuildingData(): BuildingSaveData[] {
+        const result: BuildingSaveData[] = [];
+        const mgr = TurretPlacementManager.instance;
+        if (!mgr) return result;
+
+        const root = mgr.getPlacementRootPublic();
+        if (!root) return result;
+
+        // 收集炮塔
+        const turrets = root.getComponentsInChildren(Turret);
+        for (const t of turrets) {
+            if (!t.enabled || !t.node || !t.node.isValid) continue;
+            result.push({
+                type: 'turret',
+                prefabName: t.node.name,
+                localX: t.node.position.x,
+                localY: t.node.position.y,
+                hp: t.hp,
+            });
+        }
+
+        // 收集发电机
+        for (const plant of PlantGenerator.placedMap.values()) {
+            if (!plant.node || !plant.node.isValid) continue;
+            result.push({
+                type: 'plant',
+                prefabName: plant.node.name,
+                localX: plant.node.position.x,
+                localY: plant.node.position.y,
+                hp: plant.hp,
+                plantId: plant.plantId,
+            });
+        }
+
+        // 收集集装箱
+        const containers = root.getComponentsInChildren(Container);
+        for (const c of containers) {
+            if (!c.enabled || !c.node || !c.node.isValid) continue;
+            result.push({
+                type: 'container',
+                prefabName: c.node.name,
+                localX: c.node.position.x,
+                localY: c.node.position.y,
+                hp: c.hp,
+            });
+        }
+
+        return result;
+    }
+
+    /** 恢复建筑到场景中 */
+    static restoreBuildings(data: BuildingSaveData[]): void {
+        const mgr = TurretPlacementManager.instance;
+        if (!mgr) return;
+
+        const root = mgr.getPlacementRootPublic();
+        if (!root) return;
+
+        // 先清除场景中已有的建筑（避免重复）
+        const existingTurrets = root.getComponentsInChildren(Turret);
+        for (const t of existingTurrets) {
+            if (t.node && t.node.isValid) t.node.destroy();
+        }
+        const existingContainers = root.getComponentsInChildren(Container);
+        for (const c of existingContainers) {
+            if (c.node && c.node.isValid) c.node.destroy();
+        }
+        // 清除发电机：停用预置节点
+        for (const plant of PlantGenerator.placedMap.values()) {
+            if (plant.node && plant.node.isValid) {
+                plant.node.active = false;
+            }
+        }
+        PlantGenerator.placedMap.clear();
+
+        // 辅助：匹配预制体
+        const matchPrefab = (prefabs: Prefab[], name: string): Prefab | null => {
+            for (const p of prefabs) {
+                const pName = p.data?.name ?? p.name;
+                if (pName === name) return p;
+            }
+            return null;
+        };
+
+        for (const bd of data) {
+            let prefab: Prefab | null = null;
+            let node: Node | null = null;
+
+            switch (bd.type) {
+                case 'turret': {
+                    prefab = matchPrefab(mgr.turretPrefabs, bd.prefabName);
+                    if (!prefab) break;
+                    node = instantiate(prefab);
+                    node.setParent(root);
+                    node.setPosition(bd.localX, bd.localY, 0);
+                    const turret = node.getComponent(Turret);
+                    if (turret) {
+                        turret.enabled = true;
+                        turret.hp = bd.hp;
+                    }
+                    break;
+                }
+                case 'plant': {
+                    prefab = matchPrefab(mgr.plantPrefabs, bd.prefabName);
+                    if (!prefab) break;
+                    // 发电机：先查找场景中预置的对应节点
+                    const plantId = bd.plantId ?? 0;
+                    let plantNode: Node | null = null;
+                    // 遍历 placementRoot 下找到正确的 plantId 节点
+                    const allPlants = root.getComponentsInChildren(PlantGenerator);
+                    for (const pg of allPlants) {
+                        if (pg.plantId === plantId && pg.node && pg.node.isValid) {
+                            plantNode = pg.node;
+                            break;
+                        }
+                    }
+                    if (!plantNode) {
+                        // 场景中没有预置节点，则动态创建
+                        plantNode = instantiate(prefab);
+                        plantNode.setParent(root);
+                    }
+                    plantNode.active = true;
+                    plantNode.setPosition(bd.localX, bd.localY, 0);
+                    const plant = plantNode.getComponent(PlantGenerator);
+                    if (plant) {
+                        plant.markPlaced();
+                        // start() 会在下一帧将 hp 重置为 maxHp，延迟覆盖
+                        plant.scheduleOnce(() => {
+                            plant.hp = bd.hp;
+                        }, 0);
+                    }
+                    node = plantNode;
+                    break;
+                }
+                case 'container': {
+                    prefab = mgr.containerPrefab;
+                    if (!prefab) break;
+                    node = instantiate(prefab);
+                    node.setParent(root);
+                    node.setPosition(bd.localX, bd.localY, 0);
+                    const container = node.getComponent(Container);
+                    if (container) {
+                        container.enabled = true;
+                        container.onPlaced();  // onPlaced 会设置 hp = maxHp
+                        container.hp = bd.hp;  // 用存档值覆盖
+                    }
+                    break;
+                }
+            }
+
+            // 绑定 HealthBar
+            if (node) {
+                const bar = mgr.findHealthBarPublic(node);
+                if (bar) {
+                    bar.bindParent(node);
+                    bar.finishBuild();
+                }
+            }
+        }
+
+        // 更新电力状态
+        BaseSystem.instance?.updatePowerStatus();
     }
 }

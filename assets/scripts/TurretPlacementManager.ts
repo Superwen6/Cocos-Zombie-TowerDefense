@@ -548,6 +548,11 @@ export class TurretPlacementManager extends Component {
         return this.placementRoot ?? mapElements ?? gameWorld ?? this.node;
     }
 
+    /** 公开的放置根节点访问（供 SaveSystem 等外部模块使用） */
+    public getPlacementRootPublic(): Node {
+        return this.getPlacementRoot();
+    }
+
     private unregisterInput() {
         input.off(Input.EventType.MOUSE_MOVE, this.onMouseMove, this);
         input.off(Input.EventType.MOUSE_DOWN, this.onMouseDown, this);
@@ -596,6 +601,11 @@ export class TurretPlacementManager extends Component {
             if (found) return found;
         }
         return null;
+    }
+
+    /** 公开的 HealthBar 查找方法（供 SaveSystem 等外部模块使用） */
+    public findHealthBarPublic(node: Node): HealthBar | null {
+        return this.findHealthBar(node);
     }
 
     /** 启动建造进度条 */
