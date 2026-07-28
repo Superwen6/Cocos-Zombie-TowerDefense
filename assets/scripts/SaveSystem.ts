@@ -284,7 +284,10 @@ export class SaveSystem {
 
         // 恢复僵尸
         if (data.zombies && data.zombies.length > 0) {
+            console.log(`[SaveSystem] apply 恢复僵尸: 存档中 ${data.zombies.length} 只`);
             EnemyManager.restoreZombies(data.zombies);
+        } else {
+            console.log('[SaveSystem] apply 存档中无僵尸数据');
         }
     }
 }

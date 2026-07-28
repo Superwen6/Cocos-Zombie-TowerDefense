@@ -1163,7 +1163,7 @@ export class ZombieMove extends Component {
         this._hasWanderTarget = true;
     }
 
-    private getWanderOriginWorld(): Vec3 {
+    getWanderOriginWorld(): Vec3 {
         // 优先使用扫描到的地标节点（与僵尸同在 YSortLayer 下，相对位置不变）
         if (this._wanderLandmarkNode?.isValid) {
             return this._wanderLandmarkNode.worldPosition;
