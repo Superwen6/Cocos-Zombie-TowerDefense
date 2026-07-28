@@ -22,8 +22,9 @@ const { ccclass, property } = _decorator;
 
 /** 僵尸存档数据 */
 export interface ZombieSaveData {
-    worldX: number;
-    worldY: number;
+    /** 僵尸相对于父节点（YSortLayer）的本地坐标，不受 GameWorld 移动影响 */
+    localX: number;
+    localY: number;
     hp: number;
     maxHp: number;
     isDayWanderer: boolean;
@@ -122,9 +123,7 @@ export class EnemyManager extends Component {
     start() {
         this._gameWorldRef = find('Canvas/GameWorld') ?? find('GameWorld');
 
-        const root = this.resolveEnemyRoot();
         const dayNight = DayNightSystem.instance;
-        console.log(`[EnemyManager] start: 当前场景僵尸数=${this.countZombiesUnder(root)}, 是否白天=${dayNight?.isDay}, 是否黑夜=${dayNight?.isNight}, root名='${root?.name}', baseNode=(${this.baseNode?.worldPosition?.x?.toFixed(1) ?? '?'},${this.baseNode?.worldPosition?.y?.toFixed(1) ?? '?'})`);
         if (dayNight?.isNight) {
             this.startNightSpawning();
         } else if (dayNight?.isDay) {
@@ -330,8 +329,8 @@ export class EnemyManager extends Component {
             if (zm.isDead || zm.hp <= 0) return;
             const typeName = zm.node.name;
             result.push({
-                worldX: zm.node.worldPosition.x,
-                worldY: zm.node.worldPosition.y,
+                localX: zm.node.position.x,
+                localY: zm.node.position.y,
                 hp: zm.hp,
                 maxHp: zm.maxHp,
                 isDayWanderer: zm.isDayWanderer,
@@ -340,14 +339,7 @@ export class EnemyManager extends Component {
         });
         const wanderers = result.filter(z => z.isDayWanderer);
         const nonWanderers = result.filter(z => !z.isDayWanderer);
-        if (wanderers.length > 0) {
-            const sample = wanderers[0];
-            const gwPos = inst._gameWorldRef?.worldPosition;
-            const slPos = root?.worldPosition;
-            console.log(`[EnemyManager] 存档: 总数=${result.length}(游荡${wanderers.length}+非游荡${nonWanderers.length}), 样本游荡: type='${sample.zombieType}', pos=(${sample.worldX.toFixed(1)},${sample.worldY.toFixed(1)}), hp=${sample.hp.toFixed(1)}/${sample.maxHp}, GameWorld=(${gwPos?.x.toFixed(1) ?? '?'},${gwPos?.y.toFixed(1) ?? '?'}), root=(${slPos?.x.toFixed(1) ?? '?'},${slPos?.y.toFixed(1) ?? '?'})`);
-        } else {
-            console.log(`[EnemyManager] 存档: 总数=${result.length}, 无游荡僵尸`);
-        }
+        console.log(`[EnemyManager] 存档: 总数=${result.length}(游荡${wanderers.length}+非游荡${nonWanderers.length})`);
         return result;
     }
 
@@ -370,7 +362,6 @@ export class EnemyManager extends Component {
             node.destroy();
         }
 
-        let firstWandererRestored: ZombieSaveData | null = null;
         let backfillCount = 0;
 
         for (const zd of data) {
@@ -402,40 +393,20 @@ export class EnemyManager extends Component {
 
             const enemy = instantiate(prefab);
             enemy.setParent(root);
-            enemy.setWorldPosition(new Vec3(zd.worldX, zd.worldY, 0));
+            enemy.setPosition(zd.localX, zd.localY, 0);
 
             const zm = enemy.getComponent(ZombieMove);
             if (zm) {
                 zm.init(inst.baseNode ?? enemy, undefined, zd.isDayWanderer);
                 zm.hp = zd.hp;
-                if (!firstWandererRestored && zd.isDayWanderer) {
-                    firstWandererRestored = zd;
-                }
             }
         }
 
         const countAfter = inst.countZombiesUnder(root);
         const wanderers = data.filter(z => z.isDayWanderer);
         const nonWanderers = data.filter(z => !z.isDayWanderer);
-        const gwPos = inst._gameWorldRef?.worldPosition;
-        const slPos = root?.worldPosition;
         let logMsg = `[EnemyManager] 读档恢复: 清除${existingZombies.length}→恢复${data.length}(游荡${wanderers.length}+非游荡${nonWanderers.length}), 场景僵尸${countBefore}→${countAfter}`;
         if (backfillCount > 0) logMsg += `, 类型回退匹配${backfillCount}只`;
-        if (firstWandererRestored) {
-            logMsg += `, 样本游荡: type='${firstWandererRestored.zombieType}', 存档pos=(${firstWandererRestored.worldX.toFixed(1)},${firstWandererRestored.worldY.toFixed(1)}), hp=${firstWandererRestored.hp.toFixed(1)}/${firstWandererRestored.maxHp}`;
-        }
-        logMsg += `, GameWorld=(${gwPos?.x.toFixed(1) ?? '?'},${gwPos?.y.toFixed(1) ?? '?'}), root=(${slPos?.x.toFixed(1) ?? '?'},${slPos?.y.toFixed(1) ?? '?'})`;
         console.log(logMsg);
-
-        // 诊断：验证恢复后第一只游荡僵尸的实际 worldPosition
-        if (wanderers.length > 0) {
-            let verified = false;
-            inst.walkZombies(root, (zm) => {
-                if (verified || zm.isDead || !zm.isDayWanderer) return;
-                verified = true;
-                const wp = zm.node.worldPosition;
-                console.log(`[EnemyManager] 恢复验证: 第一只游荡僵尸 worldPos=(${wp.x.toFixed(1)},${wp.y.toFixed(1)}), localPos=(${zm.node.position.x.toFixed(1)},${zm.node.position.y.toFixed(1)}), parent名='${zm.node.parent?.name}', wanderOrigin=(${zm.getWanderOriginWorld().x.toFixed(1)},${zm.getWanderOriginWorld().y.toFixed(1)})`);
-            });
-        }
     }
 }

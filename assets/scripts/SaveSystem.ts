@@ -84,11 +84,13 @@ export class SaveSystem {
             return false;
         }
 
-        // 获取玩家位置（从 PlayerState 追踪的本地坐标读取）
-        const playerPos = {
-            x: ps.worldX,
-            y: ps.worldY,
-        };
+        // 获取玩家本地坐标（相对于父节点 YSortLayer，不受 GameWorld 移动影响）
+        const playerNode = ps.node;
+        const playerPos = playerNode
+            ? { x: playerNode.position.x, y: playerNode.position.y }
+            : { x: ps.worldX, y: ps.worldY };
+
+        console.log(`[SaveSystem] 保存玩家位置: localPos=(${playerPos.x.toFixed(1)},${playerPos.y.toFixed(1)})`);
 
         const data: SaveData = {
             timestamp: Date.now(),
@@ -260,16 +262,18 @@ export class SaveSystem {
         dn.forcePhase(dnData.phase as DayNightPhase);
         dn.forceElapsed(dnData.elapsed);
 
-        // 恢复玩家位置
+        // 恢复玩家位置（使用本地坐标，相对于父节点 YSortLayer，不受 GameWorld 移动影响）
         let playerNode = ps.node;
         if (!playerNode || !playerNode.isValid) {
             // 回退方案：通过场景层级查找
             const scene = director.getScene();
             const gameWorld = scene?.getChildByName('GameWorld');
-            playerNode = gameWorld?.getChildByName('Player') ?? null;
+            const sortLayer = gameWorld?.getChildByName('YSortLayer');
+            playerNode = sortLayer?.getChildByName('Player') ?? gameWorld?.getChildByName('Player') ?? null;
         }
         if (playerNode) {
             playerNode.setPosition(data.playerPos.x, data.playerPos.y, 0);
+            console.log(`[SaveSystem] 恢复玩家位置: localPos=(${data.playerPos.x.toFixed(1)},${data.playerPos.y.toFixed(1)})`);
         } else {
             console.warn('[SaveSystem] 读档时找不到 Player 节点');
         }
