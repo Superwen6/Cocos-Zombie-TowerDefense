@@ -629,5 +629,6 @@ export class SaveSystem {
                 item.hp = rd.hp;
             }
         }
+        console.log(`[SaveSystem] restoreResources - 资源矿点恢复完成，共 ${data.length} 个`);
     }
 }
