@@ -278,29 +278,32 @@ export class AttributeUpgradePanel extends Component {
 
     private _initialized = false;
 
-    start() {
-        // 仅在首次初始化时注册升级按钮，避免重复调用 start() 时覆盖已有升级状态
-        if (!this._initialized) {
-            this._initialized = true;
-            this.bindCloseButton();
-            this.initSurvivalUpgrades();
-            this.initEngineeringUpgrades();
-            this.initWeaponUpgrades();
-            this.initCanvasActionButtons();
-            this.bindResetButton();
-            this.bindConfirmPanel();
+    /** 确保面板已初始化（_upgradeStates + 事件绑定），可被 restoreCanvasButtons 提前调用 */
+    private ensureInitialized() {
+        if (this._initialized) return;
+        this._initialized = true;
+        this.bindCloseButton();
+        this.initSurvivalUpgrades();
+        this.initEngineeringUpgrades();
+        this.initWeaponUpgrades();
+        this.initCanvasActionButtons();
+        this.bindResetButton();
+        this.bindConfirmPanel();
 
-            // 描述标签初始隐藏
-            if (this.attributeDescribeLabel) {
-                this.attributeDescribeLabel.node.active = false;
-            }
-
-            // 所有分类同时显示（不再使用 Tab 切换）
-            this.showAllContent();
-
-            // 恢复存档中的按钮等级
-            this.restorePendingLevels();
+        // 描述标签初始隐藏
+        if (this.attributeDescribeLabel) {
+            this.attributeDescribeLabel.node.active = false;
         }
+
+        // 所有分类同时显示（不再使用 Tab 切换）
+        this.showAllContent();
+
+        // 恢复存档中的按钮等级
+        this.restorePendingLevels();
+    }
+
+    start() {
+        this.ensureInitialized();
 
         if (AttributeUpgradePanel._pendingOpen) {
             AttributeUpgradePanel._pendingOpen = false;
@@ -422,23 +425,22 @@ export class AttributeUpgradePanel extends Component {
 
     /** 恢复 Canvas 上的永久操作按钮显示（供 SaveSystem 读档后立即调用，不等面板打开） */
     public static restoreCanvasButtons() {
-        if (!AttributeUpgradePanel._pendingLevels) return;
+        const pendingLevels = AttributeUpgradePanel._pendingLevels;
+        if (!pendingLevels) return;
         const panel = AttributeUpgradePanel.findPanelInstance();
         if (!panel) return;
 
-        const levels = AttributeUpgradePanel._pendingLevels;
-        console.log(`[AttributeUpgradePanel] restoreCanvasButtons - levels: ${JSON.stringify(levels)}, _upgradeStates已初始化: ${panel._upgradeStates.size > 0}`);
-        if ((levels['TurretReinforcement'] ?? 0) >= 1 && panel.reinforceActionBtn) {
+        // 先确保面板已初始化（_upgradeStates + 事件绑定），再显示按钮
+        panel.ensureInitialized();
+
+        if ((pendingLevels['TurretReinforcement'] ?? 0) >= 1 && panel.reinforceActionBtn) {
             panel.reinforceActionBtn.active = true;
-            console.log('[AttributeUpgradePanel] restoreCanvasButtons - 显示 TurretReinforcement 按钮');
         }
-        if ((levels['Blast'] ?? 0) >= 1 && panel.blastActionBtn) {
+        if ((pendingLevels['Blast'] ?? 0) >= 1 && panel.blastActionBtn) {
             panel.blastActionBtn.active = true;
-            console.log('[AttributeUpgradePanel] restoreCanvasButtons - 显示 Blast 按钮');
         }
-        if ((levels['Pistol'] ?? 0) >= 1 && panel.weaponActionBtn) {
+        if ((pendingLevels['Pistol'] ?? 0) >= 1 && panel.weaponActionBtn) {
             panel.weaponActionBtn.active = true;
-            console.log('[AttributeUpgradePanel] restoreCanvasButtons - 显示 Pistol 按钮');
         }
     }
 
@@ -732,7 +734,6 @@ export class AttributeUpgradePanel extends Component {
     // ==================== 炮塔强化模式 ====================
 
     private enterReinforceMode() {
-        console.log(`[AttributeUpgradePanel] enterReinforceMode - level=${this.getLevel('TurretReinforcement')}, _upgradeStates.size=${this._upgradeStates.size}`);
         if (this.getLevel('TurretReinforcement') < 1) return;
 
         this.exitAllModes();
@@ -757,7 +758,6 @@ export class AttributeUpgradePanel extends Component {
     // ==================== 爆破模式 ====================
 
     private enterBlastMode() {
-        console.log(`[AttributeUpgradePanel] enterBlastMode - level=${this.getLevel('Blast')}, _upgradeStates.size=${this._upgradeStates.size}`);
         if (this.getLevel('Blast') < 1) return;
 
         if (this._blastCount >= BLAST_MAX_COUNT) {
@@ -843,7 +843,6 @@ export class AttributeUpgradePanel extends Component {
 
     /** 切换武器模式：采集 ↔ 攻击僵尸 */
     private toggleWeaponMode() {
-        console.log(`[AttributeUpgradePanel] toggleWeaponMode - level=${this.getLevel('Pistol')}, _upgradeStates.size=${this._upgradeStates.size}`);
         if (this.getLevel('Pistol') < 1) return;
         const ps = PlayerState.instance;
         if (!ps) return;
