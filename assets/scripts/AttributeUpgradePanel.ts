@@ -427,20 +427,18 @@ export class AttributeUpgradePanel extends Component {
         if (!panel) return;
 
         const levels = AttributeUpgradePanel._pendingLevels;
+        console.log(`[AttributeUpgradePanel] restoreCanvasButtons - levels: ${JSON.stringify(levels)}, _upgradeStates已初始化: ${panel._upgradeStates.size > 0}`);
         if ((levels['TurretReinforcement'] ?? 0) >= 1 && panel.reinforceActionBtn) {
             panel.reinforceActionBtn.active = true;
-            const btn = panel.reinforceActionBtn.getComponent(Button);
-            if (btn) btn.node.on(Button.EventType.CLICK, () => panel.enterReinforceMode(), panel);
+            console.log('[AttributeUpgradePanel] restoreCanvasButtons - 显示 TurretReinforcement 按钮');
         }
         if ((levels['Blast'] ?? 0) >= 1 && panel.blastActionBtn) {
             panel.blastActionBtn.active = true;
-            const btn = panel.blastActionBtn.getComponent(Button);
-            if (btn) btn.node.on(Button.EventType.CLICK, () => panel.enterBlastMode(), panel);
+            console.log('[AttributeUpgradePanel] restoreCanvasButtons - 显示 Blast 按钮');
         }
         if ((levels['Pistol'] ?? 0) >= 1 && panel.weaponActionBtn) {
             panel.weaponActionBtn.active = true;
-            const btn = panel.weaponActionBtn.getComponent(Button);
-            if (btn) btn.node.on(Button.EventType.CLICK, () => panel.toggleWeaponMode(), panel);
+            console.log('[AttributeUpgradePanel] restoreCanvasButtons - 显示 Pistol 按钮');
         }
     }
 
@@ -734,6 +732,7 @@ export class AttributeUpgradePanel extends Component {
     // ==================== 炮塔强化模式 ====================
 
     private enterReinforceMode() {
+        console.log(`[AttributeUpgradePanel] enterReinforceMode - level=${this.getLevel('TurretReinforcement')}, _upgradeStates.size=${this._upgradeStates.size}`);
         if (this.getLevel('TurretReinforcement') < 1) return;
 
         this.exitAllModes();
@@ -758,6 +757,7 @@ export class AttributeUpgradePanel extends Component {
     // ==================== 爆破模式 ====================
 
     private enterBlastMode() {
+        console.log(`[AttributeUpgradePanel] enterBlastMode - level=${this.getLevel('Blast')}, _upgradeStates.size=${this._upgradeStates.size}`);
         if (this.getLevel('Blast') < 1) return;
 
         if (this._blastCount >= BLAST_MAX_COUNT) {
@@ -814,7 +814,6 @@ export class AttributeUpgradePanel extends Component {
         btnNode.active = false;
         const btn = btnNode.getComponent(Button);
         if (btn) {
-            btn.node.targetOff(this); // 防止 restoreCanvasButtons 已绑定后重复绑定
             btn.node.on(Button.EventType.CLICK, handler, this);
         }
     }
@@ -844,6 +843,7 @@ export class AttributeUpgradePanel extends Component {
 
     /** 切换武器模式：采集 ↔ 攻击僵尸 */
     private toggleWeaponMode() {
+        console.log(`[AttributeUpgradePanel] toggleWeaponMode - level=${this.getLevel('Pistol')}, _upgradeStates.size=${this._upgradeStates.size}`);
         if (this.getLevel('Pistol') < 1) return;
         const ps = PlayerState.instance;
         if (!ps) return;
