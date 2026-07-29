@@ -235,6 +235,10 @@ export class AttributeUpgradePanel extends Component {
     private static _pendingLevels: Record<string, number> | null = null;
     /** 待恢复的爆破次数 */
     private static _pendingBlastCount = 0;
+    /** 待恢复的爆破冷却结束时间戳 */
+    private static _pendingBlastCooldownEndTime = 0;
+    /** 待恢复的已爆破 MapObstacle 标识 */
+    private static _pendingBlastedIds: string[] = [];
     /** 待恢复的已强化炮塔 ID */
     private static _pendingReinforcedIds: string[] = [];
 
@@ -255,6 +259,9 @@ export class AttributeUpgradePanel extends Component {
 
     /** 已爆破次数 */
     private _blastCount = 0;
+
+    /** 已爆破的 MapObstacle 标识集合（格式：name_x_y，供存档恢复） */
+    private _blastedObstacleIds: Set<string> = new Set();
 
     /** 爆破冷却结束时间戳 */
     private _blastCooldownEndTime = 0;
@@ -410,6 +417,18 @@ export class AttributeUpgradePanel extends Component {
         return panel ? panel._blastCount : 0;
     }
 
+    /** 获取爆破冷却结束时间戳（供 SaveSystem 存档） */
+    public static getBlastCooldownEndTime(): number {
+        const panel = AttributeUpgradePanel.findPanelInstance();
+        return panel ? panel._blastCooldownEndTime : 0;
+    }
+
+    /** 获取已爆破的 MapObstacle 标识列表（供 SaveSystem 存档） */
+    public static getBlastedObstacleIds(): string[] {
+        const panel = AttributeUpgradePanel.findPanelInstance();
+        return panel ? [...panel._blastedObstacleIds] : [];
+    }
+
     /** 获取已强化炮塔 UUID 列表（供 SaveSystem 存档） */
     public static getReinforcedTurretIds(): string[] {
         const panel = AttributeUpgradePanel.findPanelInstance();
@@ -417,10 +436,12 @@ export class AttributeUpgradePanel extends Component {
     }
 
     /** 设置待恢复的按钮等级（供 SaveSystem 读档） */
-    public static setPendingLevels(levels: Record<string, number>, blastCount: number, reinforcedIds: string[]) {
+    public static setPendingLevels(levels: Record<string, number>, blastCount: number, reinforcedIds: string[], blastedIds: string[], blastCooldownEndTime: number) {
         AttributeUpgradePanel._pendingLevels = levels;
         AttributeUpgradePanel._pendingBlastCount = blastCount;
         AttributeUpgradePanel._pendingReinforcedIds = reinforcedIds;
+        AttributeUpgradePanel._pendingBlastedIds = blastedIds;
+        AttributeUpgradePanel._pendingBlastCooldownEndTime = blastCooldownEndTime;
     }
 
     /** 恢复 Canvas 上的永久操作按钮显示（供 SaveSystem 读档后立即调用，不等面板打开） */
@@ -1096,6 +1117,7 @@ export class AttributeUpgradePanel extends Component {
         }
 
         // 播放缩放动画后销毁
+        const targetKey = `${target.name}_${target.position.x.toFixed(1)}_${target.position.y.toFixed(1)}`;
         tween(target)
             .to(0.3, { scale: new Vec3(0, 0, 0) })
             .call(() => {
@@ -1105,6 +1127,7 @@ export class AttributeUpgradePanel extends Component {
             })
             .start();
 
+        this._blastedObstacleIds.add(targetKey);
         this._blastCount++;
         const remain = BLAST_MAX_COUNT - this._blastCount;
 
@@ -1414,6 +1437,7 @@ export class AttributeUpgradePanel extends Component {
 
         // 重置爆破计数和强化记录
         this._blastCount = 0;
+        this._blastedObstacleIds.clear();
         this._reinforcedTurretIds.clear();
 
         // 重置爆破冷却
@@ -1529,6 +1553,15 @@ export class AttributeUpgradePanel extends Component {
         // 恢复爆破次数
         this._blastCount = AttributeUpgradePanel._pendingBlastCount;
 
+        // 恢复爆破冷却时间
+        this._blastCooldownEndTime = AttributeUpgradePanel._pendingBlastCooldownEndTime;
+        if (this._blastCooldownEndTime > Date.now()) {
+            this.startBlastCooldownUI();
+        }
+
+        // 恢复已爆破 MapObstacle 标识
+        this._blastedObstacleIds = new Set(AttributeUpgradePanel._pendingBlastedIds);
+
         // 恢复已强化炮塔 ID
         this._reinforcedTurretIds = new Set(AttributeUpgradePanel._pendingReinforcedIds);
 
@@ -1546,6 +1579,8 @@ export class AttributeUpgradePanel extends Component {
         // 清除待恢复数据
         AttributeUpgradePanel._pendingLevels = null;
         AttributeUpgradePanel._pendingBlastCount = 0;
+        AttributeUpgradePanel._pendingBlastCooldownEndTime = 0;
         AttributeUpgradePanel._pendingReinforcedIds = [];
+        AttributeUpgradePanel._pendingBlastedIds = [];
     }
 }

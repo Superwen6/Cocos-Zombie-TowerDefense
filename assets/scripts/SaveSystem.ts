@@ -11,7 +11,7 @@ import { Container } from './Container';
 import { ResourceItem } from './ResourceItem';
 import { ResourceSpawner } from './ResourceSpawner';
 import { AttributeUpgradePanel } from './AttributeUpgradePanel';
-import { director, instantiate, Node, Prefab } from 'cc';
+import { director, instantiate, Node, Prefab, Component } from 'cc';
 
 const SAVE_KEY = 'game_save_v1';
 const PENDING_LOAD_KEY = 'game_pending_load';
@@ -113,6 +113,10 @@ export interface SaveData {
     upgradeLevels: Record<string, number>;
     /** 爆破已使用次数 */
     blastCount: number;
+    /** 爆破冷却结束时间戳（毫秒） */
+    blastCooldownEndTime: number;
+    /** 已爆破的 MapObstacle 标识列表（格式：name_x_y） */
+    blastedObstacleIds: string[];
     /** 已强化的炮塔 UUID 列表 */
     reinforcedTurretIds: string[];
 }
@@ -197,6 +201,8 @@ export class SaveSystem {
             resources: SaveSystem.getResourceData(),
             upgradeLevels: AttributeUpgradePanel.getUpgradeLevels(),
             blastCount: AttributeUpgradePanel.getBlastCount(),
+            blastCooldownEndTime: AttributeUpgradePanel.getBlastCooldownEndTime(),
+            blastedObstacleIds: AttributeUpgradePanel.getBlastedObstacleIds(),
             reinforcedTurretIds: AttributeUpgradePanel.getReinforcedTurretIds(),
         };
 
@@ -354,8 +360,13 @@ export class SaveSystem {
 
         // 恢复属性升级面板按钮等级
         if (data.upgradeLevels) {
-            AttributeUpgradePanel.setPendingLevels(data.upgradeLevels, data.blastCount ?? 0, data.reinforcedTurretIds ?? []);
+            AttributeUpgradePanel.setPendingLevels(data.upgradeLevels, data.blastCount ?? 0, data.reinforcedTurretIds ?? [], data.blastedObstacleIds ?? [], data.blastCooldownEndTime ?? 0);
             AttributeUpgradePanel.restoreCanvasButtons();
+        }
+
+        // 销毁被爆破的 MapObstacle 节点
+        if (data.blastedObstacleIds && data.blastedObstacleIds.length > 0) {
+            SaveSystem.destroyBlastedObstacles(data.blastedObstacleIds);
         }
     }
 
@@ -630,6 +641,22 @@ export class SaveSystem {
             const item = node.getComponent(ResourceItem);
             if (item) {
                 item.hp = rd.hp;
+            }
+        }
+    }
+
+    /** 销毁被爆破的 MapObstacle 节点（读档恢复用，按名称+位置匹配） */
+    private static destroyBlastedObstacles(keys: string[]): void {
+        const scene = director.getScene();
+        if (!scene) return;
+
+        const keySet = new Set(keys);
+        const obstacles = scene.getComponentsInChildren('MapObstacle') as Component[];
+        for (const obs of obstacles) {
+            const pos = obs.node.position;
+            const key = `${obs.node.name}_${pos.x.toFixed(1)}_${pos.y.toFixed(1)}`;
+            if (keySet.has(key)) {
+                obs.node.destroy();
             }
         }
     }
