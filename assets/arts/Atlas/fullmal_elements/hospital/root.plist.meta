@@ -1,0 +1,63 @@
+{
+  "ver": "1.0.8",
+  "importer": "sprite-atlas",
+  "imported": true,
+  "uuid": "23566616-703f-4571-906e-6bccb05eff97",
+  "files": [
+    ".json"
+  ],
+  "subMetas": {
+    "8c6bb": {
+      "importer": "sprite-frame",
+      "uuid": "23566616-703f-4571-906e-6bccb05eff97@8c6bb",
+      "displayName": "",
+      "id": "8c6bb",
+      "name": "hospital",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": 14,
+        "offsetY": 70,
+        "trimX": 1,
+        "trimY": 1,
+        "width": 864,
+        "height": 702,
+        "rawWidth": 1131,
+        "rawHeight": 928,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "bda969ba-e087-4d17-8c84-0fb304c2d892@6c48a",
+        "atlasUuid": "23566616-703f-4571-906e-6bccb05eff97",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "atlasTextureName": "root.png",
+    "format": 3,
+    "uuid": "23566616-703f-4571-906e-6bccb05eff97",
+    "textureUuid": "bda969ba-e087-4d17-8c84-0fb304c2d892@6c48a"
+  }
+}
