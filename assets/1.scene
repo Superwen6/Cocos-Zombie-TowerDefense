@@ -37536,7 +37536,7 @@
     "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 129.33447265625,
+      "width": 141.02508353434396,
       "height": 92.2
     },
     "_anchorPoint": {
@@ -37578,7 +37578,7 @@
     "_font": null,
     "_isSystemFontUsed": true,
     "_spacingX": 0,
-    "_isItalic": false,
+    "_isItalic": true,
     "_isBold": true,
     "_isUnderline": false,
     "_underlineHeight": 2,
