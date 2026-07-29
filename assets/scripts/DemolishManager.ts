@@ -8,6 +8,7 @@ import { BaseSystem } from './BaseSystem';
 import { GameHUDUI } from './GameHUDUI';
 import { TurretPlacementManager } from './TurretPlacementManager';
 import { ReinforcementNotice } from './ReinforcementNotice';
+import { EnemyManager } from './EnemyManager';
 
 const { ccclass, property } = _decorator;
 
@@ -213,14 +214,17 @@ export class DemolishManager extends Component {
                     // 仍能找到该节点，导致 updatePowerStatus 计数不更新。
                     turret.enabled = false;
                     node.destroy();
+                    EnemyManager.invalidateCache();
                 } else if (plant) {
                     // 发电机是场景预置节点，不能销毁，只能停用并恢复缩放
                     node.active = false;
                     node.setScale(originalScale);
+                    EnemyManager.invalidateCache();
                 } else if (container) {
                     // 先禁用 Container 组件，再销毁节点，确保 updatePowerStatus 正确统计
                     container.enabled = false;
                     node.destroy();
+                    EnemyManager.invalidateCache();
                 }
                 // 更新电力状态
                 BaseSystem.instance?.updatePowerStatus();

@@ -2,6 +2,7 @@ import { _decorator, AudioClip, AudioSource, CCInteger, CCFloat, Component, Even
 import { GlobalContainerStorage } from './GlobalContainerStorage';
 import { ContainerPanelUI } from './ContainerPanelUI';
 import { ReinforcementNotice } from './ReinforcementNotice';
+import { EnemyManager } from './EnemyManager';
 
 const { ccclass, property } = _decorator;
 
@@ -121,6 +122,7 @@ export class Container extends Component {
         this.playAttackSound();
         if (this.hp <= 0) {
             this.playDestroySound();
+            EnemyManager.invalidateCache();
             this.node.destroy();
         }
     }

@@ -51,6 +51,12 @@ export class SpawnZone {
 export class EnemyManager extends Component {
     private static _instance: EnemyManager | null = null;
 
+    // ===== 建筑/炮塔缓存（性能优化：避免每个僵尸每帧遍历场景树） =====
+    private static _cachedTurrets: Node[] = [];
+    private static _cachedBuildings: Node[] = []; // 非防御性建筑：发电机、集装箱
+    private static _cacheTimer = 0;
+    private static readonly CACHE_REBUILD_INTERVAL = 2.0; // 每2秒重建缓存
+
     @property({ type: Prefab, tooltip: '僵尸预制体' })
     enemyPrefab: Prefab | null = null;
 
@@ -129,6 +135,73 @@ export class EnemyManager extends Component {
         } else if (dayNight?.isDay) {
             this.startDayWanderSpawning();
         }
+
+        // 立即构建一次缓存
+        EnemyManager.rebuildCaches();
+    }
+
+    update(dt: number) {
+        // 定期重建建筑/炮塔缓存
+        EnemyManager._cacheTimer -= dt;
+        if (EnemyManager._cacheTimer <= 0) {
+            EnemyManager._cacheTimer = EnemyManager.CACHE_REBUILD_INTERVAL;
+            EnemyManager.rebuildCaches();
+        }
+    }
+
+    // ===== 建筑/炮塔缓存方法 =====
+
+    /** 重建建筑和炮塔缓存（遍历场景树） */
+    static rebuildCaches() {
+        EnemyManager._cachedTurrets = [];
+        EnemyManager._cachedBuildings = [];
+
+        const inst = EnemyManager._instance;
+        if (!inst) return;
+
+        const root = inst.node.scene;
+        if (!root) return;
+
+        EnemyManager._walkSceneForCache(root);
+    }
+
+    private static _walkSceneForCache(node: Node) {
+        if (!node || !node.isValid) return;
+
+        // 炮塔
+        const turret = node.getComponent('Turret') as any;
+        if (turret && turret.enabled) {
+            EnemyManager._cachedTurrets.push(node);
+        }
+
+        // 非防御性建筑：发电机、集装箱
+        const plant = node.getComponent('PlantGenerator') as any;
+        if (plant && plant.isPlaced) {
+            EnemyManager._cachedBuildings.push(node);
+        }
+        const container = node.getComponent('Container') as any;
+        if (container && container.enabled) {
+            EnemyManager._cachedBuildings.push(node);
+        }
+
+        for (const child of node.children) {
+            EnemyManager._walkSceneForCache(child);
+        }
+    }
+
+    /** 获取缓存的炮塔列表（过滤已销毁节点） */
+    static getCachedTurrets(): Node[] {
+        return EnemyManager._cachedTurrets.filter(n => n && n.isValid && n.active);
+    }
+
+    /** 获取缓存的非防御性建筑列表（发电机、集装箱） */
+    static getCachedBuildings(): Node[] {
+        return EnemyManager._cachedBuildings.filter(n => n && n.isValid && n.active);
+    }
+
+    /** 立即标记缓存需要重建（建筑放置/销毁时调用） */
+    static invalidateCache() {
+        EnemyManager._cacheTimer = 0;
     }
 
     private resolveEnemyRoot(): Node {

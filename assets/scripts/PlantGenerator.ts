@@ -1,4 +1,5 @@
 import { _decorator, AudioClip, AudioSource, CCInteger, CCFloat, Component, find, Vec3 } from 'cc';
+import { EnemyManager } from './EnemyManager';
 
 const { ccclass, property } = _decorator;
 
@@ -144,6 +145,7 @@ export class PlantGenerator extends Component {
         PlantGenerator.placedMap.set(this.plantId, this);
         // 通知所有监听者（如 PlantPanelUI 刷新按钮状态）
         PlantGenerator.invokePlacedCallbacks();
+        EnemyManager.invalidateCache();
     }
 
     /** 检查该 ID 的发电机是否已被放置且处于激活状态 */

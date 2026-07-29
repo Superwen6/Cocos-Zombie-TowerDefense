@@ -585,6 +585,7 @@ export class SaveSystem {
 
         // 更新电力状态
         BaseSystem.instance?.updatePowerStatus();
+        EnemyManager.invalidateCache();
     }
 
     /** 收集场景中所有资源矿点的数据 */

@@ -17,6 +17,7 @@ import { ReinforcementNotice } from './ReinforcementNotice';
 import { CollisionWorld, ColliderGroup } from './CollisionWorld';
 import { YSortManager } from './YSortManager';
 import { HealthBar } from './HealthBar';
+import { EnemyManager } from './EnemyManager';
 
 const { ccclass, property } = _decorator;
 
@@ -709,12 +710,14 @@ export class TurretPlacementManager extends Component {
                         container.enabled = true;
                         container.onPlaced(); // 立即注册，避免 start() 延迟一帧导致电力统计滞后
                         BaseSystem.instance?.updatePowerStatus();
+                        EnemyManager.invalidateCache();
                     }
                 } else {
                     const turret = ghost.getComponent(Turret);
                     if (turret) {
                         turret.enabled = true;
                         BaseSystem.instance?.updatePowerStatus();
+                        EnemyManager.invalidateCache();
                     }
                 }
                 buildingNode = ghost;

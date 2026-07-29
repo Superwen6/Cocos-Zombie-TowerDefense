@@ -7,6 +7,7 @@ import { PlantGenerator } from './PlantGenerator';
 import { Container } from './Container';
 import { Turret } from './Turret';
 import { DayNightEvents, DayNightPhase, DayNightSystem } from './DayNightSystem';
+import { EnemyManager } from './EnemyManager';
 
 const { ccclass, property } = _decorator;
 
@@ -443,13 +444,14 @@ export class ZombieMove extends Component {
         let nearest: Node | null = null;
         let nearestDist = this.buildingScanRadius;
 
-        this.findNonDefensiveBuildings(this.node.scene ?? this.node, (node) => {
+        const cachedBuildings = EnemyManager.getCachedBuildings();
+        for (const node of cachedBuildings) {
             const d = Vec3.distance(selfPos, node.worldPosition);
             if (d < nearestDist) {
                 nearestDist = d;
                 nearest = node;
             }
-        });
+        }
 
         if (nearest) {
             this._buildingTarget = nearest;
@@ -481,74 +483,22 @@ export class ZombieMove extends Component {
         this._aiState = 'CHASE_PLAYER';
     }
 
-    /** 递归查找场景中已建成的非防御性建筑：发电机、集装箱（游荡僵尸预定目标） */
-    private findNonDefensiveBuildings(root: Node, callback: (node: Node) => void) {
-        if (!root || !root.isValid) return;
-        const plant = root.getComponent(PlantGenerator);
-        if (plant && plant.isPlaced) {
-            callback(root);
-        }
-        const container = root.getComponent(Container);
-        if (container && container.enabled) {
-            callback(root);
-        }
-        for (const child of root.children) {
-            this.findNonDefensiveBuildings(child, callback);
-        }
-    }
-
-    /** 递归查找场景中所有已建成的可攻击建筑：炮塔、发电机、集装箱、基地 */
-    private findTargetableBuildings(root: Node, callback: (node: Node) => void) {
-        if (!root || !root.isValid) return;
-        // 只扫描已建成的建筑
-        const turret = root.getComponent(Turret);
-        if (turret && turret.enabled) {
-            callback(root);
-        }
-        const plant = root.getComponent(PlantGenerator);
-        if (plant && plant.isPlaced) {
-            callback(root);
-        }
-        const container = root.getComponent(Container);
-        if (container && container.enabled) {
-            callback(root);
-        }
-        // 基地节点
-        if (this._baseNode && root === this._baseNode) {
-            callback(root);
-        }
-        for (const child of root.children) {
-            this.findTargetableBuildings(child, callback);
-        }
-    }
-
     /** 夜间进攻型僵尸：扫描范围内最近的炮塔，返回节点或 null */
     private findNearestTurret(): Node | null {
         const selfPos = this.node.worldPosition;
         let nearest: Node | null = null;
         let nearestDist = this.buildingScanRadius;
 
-        this.walkSceneForTurrets(this.node.scene ?? this.node, (node) => {
-            const d = Vec3.distance(selfPos, node.worldPosition);
+        const cachedTurrets = EnemyManager.getCachedTurrets();
+        for (const turretNode of cachedTurrets) {
+            const d = Vec3.distance(selfPos, turretNode.worldPosition);
             if (d < nearestDist) {
                 nearestDist = d;
-                nearest = node;
+                nearest = turretNode;
             }
-        });
+        }
 
         return nearest;
-    }
-
-    /** 递归遍历场景查找已建成的炮塔 */
-    private walkSceneForTurrets(root: Node, callback: (node: Node) => void) {
-        if (!root || !root.isValid) return;
-        const turret = root.getComponent(Turret);
-        if (turret && turret.enabled) {
-            callback(root);
-        }
-        for (const child of root.children) {
-            this.walkSceneForTurrets(child, callback);
-        }
     }
 
     // ========== AI 状态更新 ==========

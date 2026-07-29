@@ -18,6 +18,7 @@ import { BulletSound } from './BulletSound';
 import { ZombieMove } from './ZombieMove';
 import { CollisionWorld, Collider2D, ColliderGroup } from './CollisionWorld';
 import { BaseSystem } from './BaseSystem';
+import { EnemyManager } from './EnemyManager';
 
 const { ccclass, property } = _decorator;
 
@@ -249,6 +250,7 @@ export class Turret extends Component {
 
         if (this.hp <= 0) {
             this.playDestroySound();
+            EnemyManager.invalidateCache();
             this.node.destroy();
         }
     }
