@@ -429,12 +429,18 @@ export class AttributeUpgradePanel extends Component {
         const levels = AttributeUpgradePanel._pendingLevels;
         if ((levels['TurretReinforcement'] ?? 0) >= 1 && panel.reinforceActionBtn) {
             panel.reinforceActionBtn.active = true;
+            const btn = panel.reinforceActionBtn.getComponent(Button);
+            if (btn) btn.node.on(Button.EventType.CLICK, () => panel.enterReinforceMode(), panel);
         }
         if ((levels['Blast'] ?? 0) >= 1 && panel.blastActionBtn) {
             panel.blastActionBtn.active = true;
+            const btn = panel.blastActionBtn.getComponent(Button);
+            if (btn) btn.node.on(Button.EventType.CLICK, () => panel.enterBlastMode(), panel);
         }
         if ((levels['Pistol'] ?? 0) >= 1 && panel.weaponActionBtn) {
             panel.weaponActionBtn.active = true;
+            const btn = panel.weaponActionBtn.getComponent(Button);
+            if (btn) btn.node.on(Button.EventType.CLICK, () => panel.toggleWeaponMode(), panel);
         }
     }
 
@@ -808,6 +814,7 @@ export class AttributeUpgradePanel extends Component {
         btnNode.active = false;
         const btn = btnNode.getComponent(Button);
         if (btn) {
+            btn.node.targetOff(this); // 防止 restoreCanvasButtons 已绑定后重复绑定
             btn.node.on(Button.EventType.CLICK, handler, this);
         }
     }
