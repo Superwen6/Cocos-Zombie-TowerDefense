@@ -10,6 +10,7 @@ import { Turret } from './Turret';
 import { Container } from './Container';
 import { ResourceItem } from './ResourceItem';
 import { ResourceSpawner } from './ResourceSpawner';
+import { AttributeUpgradePanel } from './AttributeUpgradePanel';
 import { director, instantiate, Node, Prefab } from 'cc';
 
 const SAVE_KEY = 'game_save_v1';
@@ -106,6 +107,12 @@ export interface SaveData {
     buildings: BuildingSaveData[];
     /** 地图资源矿点（木/铁/铜） */
     resources: ResourceSaveData[];
+    /** 属性升级面板：按钮等级（按钮名 → 等级） */
+    upgradeLevels: Record<string, number>;
+    /** 爆破已使用次数 */
+    blastCount: number;
+    /** 已强化的炮塔 UUID 列表 */
+    reinforcedTurretIds: string[];
 }
 
 export class SaveSystem {
@@ -186,6 +193,9 @@ export class SaveSystem {
             zombies: EnemyManager.getZombieData(),
             buildings: SaveSystem.getBuildingData(),
             resources: SaveSystem.getResourceData(),
+            upgradeLevels: AttributeUpgradePanel.getUpgradeLevels(),
+            blastCount: AttributeUpgradePanel.getBlastCount(),
+            reinforcedTurretIds: AttributeUpgradePanel.getReinforcedTurretIds(),
         };
 
         try {
@@ -338,6 +348,11 @@ export class SaveSystem {
         // 恢复地图资源矿点
         if (data.resources && data.resources.length > 0) {
             SaveSystem.restoreResources(data.resources);
+        }
+
+        // 恢复属性升级面板按钮等级
+        if (data.upgradeLevels) {
+            AttributeUpgradePanel.setPendingLevels(data.upgradeLevels, data.blastCount ?? 0, data.reinforcedTurretIds ?? []);
         }
     }
 

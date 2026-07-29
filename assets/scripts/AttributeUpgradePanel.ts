@@ -231,6 +231,13 @@ export class AttributeUpgradePanel extends Component {
     private _panelVisible = false;
     private static _pendingOpen = false;
 
+    /** 待恢复的按钮等级（存档恢复用） */
+    private static _pendingLevels: Record<string, number> | null = null;
+    /** 待恢复的爆破次数 */
+    private static _pendingBlastCount = 0;
+    /** 待恢复的已强化炮塔 ID */
+    private static _pendingReinforcedIds: string[] = [];
+
     /** 按钮状态 Map（生存 + 工程） */
     private _upgradeStates: Map<string, UpgradeState> = new Map();
     /** 每个按钮子树中所有 Sprite 的原始颜色 */
@@ -267,9 +274,6 @@ export class AttributeUpgradePanel extends Component {
         if (this.reinforceActionBtn) this.reinforceActionBtn.active = false;
         if (this.blastActionBtn) this.blastActionBtn.active = false;
         if (this.weaponActionBtn) this.weaponActionBtn.active = false;
-        // 面板节点在编辑器中 inactive，onLoad 仅在面板被激活时执行
-        // 打开按钮的绑定由 ensureOpenPanelBinding（GameHUDUI.start() 调用）统一处理
-        // 不在 onLoad 中绑定按钮，避免 double-binding
     }
 
     private _initialized = false;
@@ -293,6 +297,9 @@ export class AttributeUpgradePanel extends Component {
 
             // 所有分类同时显示（不再使用 Tab 切换）
             this.showAllContent();
+
+            // 恢复存档中的按钮等级
+            this.restorePendingLevels();
         }
 
         if (AttributeUpgradePanel._pendingOpen) {
@@ -381,6 +388,43 @@ export class AttributeUpgradePanel extends Component {
                 panel.showPanel();
             }
         }, panel);
+    }
+
+    /** 获取当前所有按钮等级（供 SaveSystem 存档） */
+    public static getUpgradeLevels(): Record<string, number> {
+        const panel = AttributeUpgradePanel.findPanelInstance();
+        if (!panel) return {};
+        const levels: Record<string, number> = {};
+        for (const [name, state] of panel._upgradeStates) {
+            if (state.level > 0) levels[name] = state.level;
+        }
+        return levels;
+    }
+
+    /** 获取爆破已使用次数（供 SaveSystem 存档） */
+    public static getBlastCount(): number {
+        const panel = AttributeUpgradePanel.findPanelInstance();
+        return panel ? panel._blastCount : 0;
+    }
+
+    /** 获取已强化炮塔 UUID 列表（供 SaveSystem 存档） */
+    public static getReinforcedTurretIds(): string[] {
+        const panel = AttributeUpgradePanel.findPanelInstance();
+        return panel ? [...panel._reinforcedTurretIds] : [];
+    }
+
+    /** 设置待恢复的按钮等级（供 SaveSystem 读档） */
+    public static setPendingLevels(levels: Record<string, number>, blastCount: number, reinforcedIds: string[]) {
+        AttributeUpgradePanel._pendingLevels = levels;
+        AttributeUpgradePanel._pendingBlastCount = blastCount;
+        AttributeUpgradePanel._pendingReinforcedIds = reinforcedIds;
+    }
+
+    /** 查找面板实例（通过 Canvas 查找，即使节点 inactive 也能获取组件） */
+    private static findPanelInstance(): AttributeUpgradePanel | null {
+        const panelNode = find('Canvas/AttributeUpgradePanel');
+        if (!panelNode) return null;
+        return panelNode.getComponent(AttributeUpgradePanel);
     }
 
     private bindCloseButton() {
@@ -1437,5 +1481,40 @@ export class AttributeUpgradePanel extends Component {
         for (const child of node.children) {
             this.restoreOriginalColors(child);
         }
+    }
+
+    /** 恢复存档中的按钮等级（在 start() 初始化完成后调用） */
+    private restorePendingLevels() {
+        if (!AttributeUpgradePanel._pendingLevels) return;
+
+        const levels = AttributeUpgradePanel._pendingLevels;
+
+        for (const [name, level] of Object.entries(levels)) {
+            const state = this._upgradeStates.get(name);
+            if (!state) continue;
+            state.level = Math.min(level, state.maxLevel);
+        }
+
+        // 恢复爆破次数
+        this._blastCount = AttributeUpgradePanel._pendingBlastCount;
+
+        // 恢复已强化炮塔 ID
+        this._reinforcedTurretIds = new Set(AttributeUpgradePanel._pendingReinforcedIds);
+
+        // 恢复 Canvas 操作按钮显示
+        if ((this._upgradeStates.get('TurretReinforcement')?.level ?? 0) >= 1) {
+            this.showCanvasActionBtn(this.reinforceActionBtn, 'TurretReinforcement');
+        }
+        if ((this._upgradeStates.get('Blast')?.level ?? 0) >= 1) {
+            this.showCanvasActionBtn(this.blastActionBtn, 'Blast');
+        }
+        if ((this._upgradeStates.get('Pistol')?.level ?? 0) >= 1) {
+            this.showCanvasActionBtn(this.weaponActionBtn, 'Pistol');
+        }
+
+        // 清除待恢复数据
+        AttributeUpgradePanel._pendingLevels = null;
+        AttributeUpgradePanel._pendingBlastCount = 0;
+        AttributeUpgradePanel._pendingReinforcedIds = [];
     }
 }
