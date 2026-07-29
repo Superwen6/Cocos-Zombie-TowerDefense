@@ -30,6 +30,8 @@ export interface BuildingSaveData {
     hp: number;
     /** 发电机唯一 ID（仅 plant 类型有效） */
     plantId?: number;
+    /** 是否已强化（仅 turret 类型有效） */
+    reinforced?: boolean;
 }
 
 /** 地图资源矿点保存数据 */
@@ -353,6 +355,7 @@ export class SaveSystem {
         // 恢复属性升级面板按钮等级
         if (data.upgradeLevels) {
             AttributeUpgradePanel.setPendingLevels(data.upgradeLevels, data.blastCount ?? 0, data.reinforcedTurretIds ?? []);
+            AttributeUpgradePanel.restoreCanvasButtons();
         }
     }
 
@@ -366,6 +369,7 @@ export class SaveSystem {
         if (!root) return result;
 
         // 收集炮塔
+        const reinforcedIds = AttributeUpgradePanel.getReinforcedTurretIds();
         const turrets = root.getComponentsInChildren(Turret);
         for (const t of turrets) {
             if (!t.enabled || !t.node || !t.node.isValid) continue;
@@ -375,6 +379,7 @@ export class SaveSystem {
                 localX: t.node.position.x,
                 localY: t.node.position.y,
                 hp: t.hp,
+                reinforced: reinforcedIds.includes(t.node.uuid),
             });
         }
 
@@ -475,6 +480,19 @@ export class SaveSystem {
                         turret.scheduleOnce(() => {
                             turret.hp = bd.hp;
                         }, 0);
+                    }
+                    // 恢复强化效果
+                    if (bd.reinforced) {
+                        const t = node.getComponent('Turret') as any;
+                        if (t) {
+                            t.scheduleOnce(() => {
+                                t.attackRange = (t.attackRange ?? 1200) * 1.5;
+                                t.attackInterval = (t.attackInterval ?? 0.5) * (1 / 1.5);
+                                t.damage = (t.damage ?? 10) * 1.5;
+                            }, 0);
+                        }
+                        // 恢复强化外观
+                        AttributeUpgradePanel.applyReinforceVisual(node);
                     }
                     break;
                 }

@@ -420,11 +420,36 @@ export class AttributeUpgradePanel extends Component {
         AttributeUpgradePanel._pendingReinforcedIds = reinforcedIds;
     }
 
+    /** 恢复 Canvas 上的永久操作按钮显示（供 SaveSystem 读档后立即调用，不等面板打开） */
+    public static restoreCanvasButtons() {
+        if (!AttributeUpgradePanel._pendingLevels) return;
+        const panel = AttributeUpgradePanel.findPanelInstance();
+        if (!panel) return;
+
+        const levels = AttributeUpgradePanel._pendingLevels;
+        if ((levels['TurretReinforcement'] ?? 0) >= 1 && panel.reinforceActionBtn) {
+            panel.reinforceActionBtn.active = true;
+        }
+        if ((levels['Blast'] ?? 0) >= 1 && panel.blastActionBtn) {
+            panel.blastActionBtn.active = true;
+        }
+        if ((levels['Pistol'] ?? 0) >= 1 && panel.weaponActionBtn) {
+            panel.weaponActionBtn.active = true;
+        }
+    }
+
     /** 查找面板实例（通过 Canvas 查找，即使节点 inactive 也能获取组件） */
     private static findPanelInstance(): AttributeUpgradePanel | null {
         const panelNode = find('Canvas/AttributeUpgradePanel');
         if (!panelNode) return null;
         return panelNode.getComponent(AttributeUpgradePanel);
+    }
+
+    /** 对炮塔节点应用强化外观（紫色着色，供 SaveSystem 恢复强化炮塔时使用） */
+    public static applyReinforceVisual(turretNode: Node) {
+        const panel = AttributeUpgradePanel.findPanelInstance();
+        if (!panel) return;
+        panel.applyPermanentColorToTurretChildren(turretNode);
     }
 
     private bindCloseButton() {
