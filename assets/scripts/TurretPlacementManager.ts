@@ -736,6 +736,13 @@ export class TurretPlacementManager extends Component {
             if (bar) {
                 bar.bindParent(buildingNode);
                 bar.finishBuild();
+                // setNodeTint 会递归覆盖所有 Sprite 颜色（包括 HealthBar 的 Background/Fill），需要恢复
+                if (bar.backgroundSprite) {
+                    bar.backgroundSprite.color = new Color(122, 122, 122, 199);
+                }
+                if (bar.fillSprite) {
+                    bar.fillSprite.color = new Color(60, 255, 80, 255);
+                }
             }
         }
 
