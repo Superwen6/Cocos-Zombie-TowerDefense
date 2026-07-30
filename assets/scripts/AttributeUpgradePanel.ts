@@ -1,8 +1,9 @@
-import { _decorator, AudioClip, AudioSource, Button, Camera, Color, Component, EventMouse, EventTouch, find, Input, input, Label, Node, RichText, Sprite, tween, Vec3, warn } from 'cc';
+import { _decorator, AudioClip, AudioSource, Button, Camera, Color, Component, director, EventMouse, EventTouch, find, Input, input, Label, Node, RichText, Sprite, tween, Vec3, warn } from 'cc';
 import { PlayerState } from './PlayerState';
 import { PlayerData } from './PlayerData';
 import { TurretPlacementManager } from './TurretPlacementManager';
 import { ReinforcementNotice } from './ReinforcementNotice';
+import { YSortManager } from './YSortManager';
 
 const { ccclass, property } = _decorator;
 
@@ -1122,6 +1123,8 @@ export class AttributeUpgradePanel extends Component {
             return;
         }
 
+        warn(`[Blast] 准备爆破: ${target.name} (路径: ${this.getNodePath(target)})`);
+
         // 播放爆破音效
         if (this._audioSource && this.blastSound) {
             this._audioSource.playOneShot(this.blastSound, 1);
@@ -1159,7 +1162,7 @@ export class AttributeUpgradePanel extends Component {
         this.startBlastCooldownUI();
     }
 
-    /** 查找点击位置的 MapElement（含 MapObstacle 组件的节点） */
+    /** 查找点击位置的 MapElement（含 MapObstacle 组件的节点），排除 Base 子树 */
     private findMapElementAt(worldPos: Vec3): Node | null {
         const scene = this.node.scene;
         if (!scene) return null;
@@ -1167,10 +1170,17 @@ export class AttributeUpgradePanel extends Component {
     }
 
     private findMapElementRecursive(root: Node, worldPos: Vec3, threshold: number): Node | null {
+        // 排除 Base 及其子树，防止误爆破基地节点
+        if (this.isBaseNode(root)) {
+            warn(`[Blast] 跳过 Base 节点: ${root.name}`);
+            return null;
+        }
+
         const obstacle = root.getComponent('MapObstacle') as Component | null;
         if (obstacle && root.active) {
             const dist = Vec3.distance(root.worldPosition, worldPos);
             if (dist <= threshold) {
+                warn(`[Blast] 找到目标: ${root.name} (路径: ${this.getNodePath(root)})`);
                 return root;
             }
         }
@@ -1179,6 +1189,30 @@ export class AttributeUpgradePanel extends Component {
             if (found) return found;
         }
         return null;
+    }
+
+    /** 判断节点是否为 Base 或 Base 的子节点（含被 YSortLayer 迁移的节点） */
+    private isBaseNode(node: Node): boolean {
+        if (node.getComponent('BaseSystem')) return true;
+        // 检查是否原本属于 Base（被 YSortManager 迁移到 YSortLayer 的节点）
+        if (YSortManager.isOriginallyBaseChild(node)) return true;
+        let current: Node | null = node.parent;
+        while (current) {
+            if (current.getComponent('BaseSystem')) return true;
+            current = current.parent;
+        }
+        return false;
+    }
+
+    /** 获取节点路径（调试用） */
+    private getNodePath(node: Node): string {
+        const parts: string[] = [];
+        let current: Node | null = node;
+        while (current) {
+            parts.unshift(current.name);
+            current = current.parent;
+        }
+        return parts.join('/');
     }
 
     // ---- 爆破悬停高亮 ----

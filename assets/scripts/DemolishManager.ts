@@ -117,13 +117,13 @@ export class DemolishManager extends Component {
         }
     }
 
-    /** 查找鼠标位置下的建筑（炮塔、发电机或集装箱），仅限 MapElements 下的节点 */
+    /** 查找鼠标位置下的建筑（炮塔、发电机或集装箱） */
     private findBuildingAt(worldPos: Vec3): Node | null {
         // 1. 检测炮塔（通过 CollisionWorld）
         const hit = CollisionWorld.instance?.checkHit(
             worldPos.x, worldPos.y, 5, 5, [ColliderGroup.Turret],
         );
-        if (hit && hit.node.isValid && hit.node.active && this.isUnderMapElements(hit.node)) {
+        if (hit && hit.node.isValid && hit.node.active) {
             return hit.node;
         }
 
@@ -132,7 +132,7 @@ export class DemolishManager extends Component {
             if (!plant || !plant.isValid || !plant.isPlaced || !plant.node.active) continue;
             const plantPos = plant.node.worldPosition;
             const dist = Vec3.distance(worldPos, plantPos);
-            if (dist < PLANT_CLICK_RADIUS && this.isUnderMapElements(plant.node)) {
+            if (dist < PLANT_CLICK_RADIUS) {
                 return plant.node;
             }
         }
@@ -145,23 +145,13 @@ export class DemolishManager extends Component {
                 if (!container || !container.isValid || !container.isPlaced || container.hp <= 0) continue;
                 const cPos = container.node.worldPosition;
                 const dist = Vec3.distance(worldPos, cPos);
-                if (dist < PLANT_CLICK_RADIUS && this.isUnderMapElements(container.node)) {
+                if (dist < PLANT_CLICK_RADIUS) {
                     return container.node;
                 }
             }
         }
 
         return null;
-    }
-
-    /** 检查节点是否在 MapElements 节点下 */
-    private isUnderMapElements(node: Node): boolean {
-        let current: Node | null = node;
-        while (current) {
-            if (current.name === 'MapElements') return true;
-            current = current.parent;
-        }
-        return false;
     }
 
     /** 拆除建筑 */

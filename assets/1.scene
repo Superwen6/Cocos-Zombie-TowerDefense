@@ -1007,7 +1007,7 @@
     "_enabled": true,
     "__prefab": null,
     "money": 300,
-    "woodCount": 40,
+    "woodCount": 0,
     "copperCount": 0,
     "ironCount": 0,
     "maxWood": 40,
