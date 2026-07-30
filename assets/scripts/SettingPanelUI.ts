@@ -1,4 +1,4 @@
-import { _decorator, Button, Component, Node, director, find, warn } from 'cc';
+import { _decorator, Button, Component, Label, Node, director, find, warn } from 'cc';
 import { SaveSystem } from './SaveSystem';
 
 const { ccclass, property } = _decorator;
@@ -22,6 +22,9 @@ export class SettingPanelUI extends Component {
     @property({ type: Node, tooltip: '退出游戏按钮' })
     exitGameBtn: Node | null = null;
 
+    @property({ type: Label, tooltip: '存档成功提示文本（Btn_SaveGame 下的 notice）' })
+    saveNoticeLabel: Label | null = null;
+
     private static _openPanelBound = false;
     private static _pendingOpen = false;
 
@@ -30,6 +33,11 @@ export class SettingPanelUI extends Component {
         this.bindButton(this.saveGameBtn, this.onSaveGame);
         this.bindButton(this.closeBtn, this.onClose);
         this.bindButton(this.exitGameBtn, this.onExitGame);
+
+        // 存档提示初始隐藏
+        if (this.saveNoticeLabel) {
+            this.saveNoticeLabel.node.active = false;
+        }
     }
 
     start() {
@@ -115,9 +123,22 @@ export class SettingPanelUI extends Component {
         const success = SaveSystem.save();
         if (success) {
             console.log('[SettingPanelUI] 游戏已保存');
+            this.showSaveNotice();
         } else {
             console.warn('[SettingPanelUI] 保存失败');
         }
+    }
+
+    /** 显示存档成功提示，2秒后自动隐藏 */
+    private showSaveNotice() {
+        if (!this.saveNoticeLabel) return;
+        this.saveNoticeLabel.string = '成功';
+        this.saveNoticeLabel.node.active = true;
+        this.scheduleOnce(() => {
+            if (this.saveNoticeLabel?.node?.isValid) {
+                this.saveNoticeLabel.node.active = false;
+            }
+        }, 2);
     }
 
     /** 关闭面板 */
