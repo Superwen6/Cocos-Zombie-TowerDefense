@@ -360,6 +360,9 @@ export class TurretPlacementManager extends Component {
         // 移除虚影上的所有碰撞相关组件，防止推动僵尸
         this.removeCollisionComponents(this.ghostNode);
 
+        // 虚影阶段隐藏血条，建造开始后才显示
+        this.hideHealthBarOnGhost(this.ghostNode);
+
         this.applyGhostVisual(this.ghostNode);
     }
 
@@ -379,6 +382,16 @@ export class TurretPlacementManager extends Component {
         const collider = node.getComponent(Collider2D);
         if (collider) collider.enabled = true;
         node.children.forEach(c => this.restoreCollisionComponents(c));
+    }
+
+    /** 虚影阶段隐藏血条节点（HealthBar 的 Background 和 Fill），建造开始后由 startBuildProgress 恢复 */
+    private hideHealthBarOnGhost(node: Node) {
+        const bar = this.findHealthBar(node);
+        if (bar) {
+            if (bar.backgroundSprite) bar.backgroundSprite.node.active = false;
+            if (bar.fillSprite) bar.fillSprite.node.active = false;
+            if (bar.borderSprite) bar.borderSprite.node.active = false;
+        }
     }
 
     // ── 鼠标移动 ──
