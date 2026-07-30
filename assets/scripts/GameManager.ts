@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, warn } from 'cc';
+import { _decorator, Component, Node, director, find, warn } from 'cc';
 import { CollisionWorld } from './CollisionWorld';
 import { YSortManager } from './YSortManager';
 import { SaveSystem } from './SaveSystem';
@@ -70,5 +70,29 @@ export class GameManager extends Component {
 
     /** 百日生存通关 */
     triggerVictory() {
+        this.showEscapeResult('EscapeSuccess');
+    }
+
+    /** 基地被摧毁，逃脱失败 */
+    triggerDefeat() {
+        this.showEscapeResult('EscapeFail');
+    }
+
+    /** 显示逃脱结果 UI，10 秒后跳转主菜单 */
+    private showEscapeResult(nodeName: string) {
+        const canvas = find('Canvas');
+        if (!canvas) {
+            warn(`[GameManager] 找不到 Canvas 节点`);
+            return;
+        }
+        const escapeNode = canvas.getChildByName(nodeName);
+        if (!escapeNode) {
+            warn(`[GameManager] 找不到 ${nodeName} 节点`);
+            return;
+        }
+        escapeNode.active = true;
+        this.scheduleOnce(() => {
+            director.loadScene('MainMenu');
+        }, 10);
     }
 }

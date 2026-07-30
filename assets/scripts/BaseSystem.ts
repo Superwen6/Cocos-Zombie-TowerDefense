@@ -7,6 +7,7 @@ import { GlobalContainerStorage } from './GlobalContainerStorage';
 import { HealthBar } from './HealthBar';
 import { ReinforcementNotice } from './ReinforcementNotice';
 import { TurretPlacementManager } from './TurretPlacementManager';
+import { GameManager } from './GameManager';
 
 const { ccclass, property } = _decorator;
 
@@ -445,6 +446,11 @@ export class BaseSystem extends Component {
             return;
         }
         this.baseHp = Math.max(0, this.baseHp - amount);
+
+        // 基地血量归零，触发逃脱失败
+        if (this.baseHp <= 0) {
+            GameManager.instance?.triggerDefeat();
+        }
 
         // 播放受攻击音效（距离衰减，1秒冷却）
         this.playAttackSound();
