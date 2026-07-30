@@ -1,4 +1,4 @@
-import { _decorator, AudioClip, AudioSource, CCFloat, Component, Label } from 'cc';
+import { _decorator, AudioClip, AudioSource, Component, Label } from 'cc';
 
 const { ccclass, property } = _decorator;
 
@@ -15,12 +15,6 @@ export class ReinforcementNotice extends Component {
 
     @property({ type: AudioClip, tooltip: '弹出提示音效' })
     popSound: AudioClip | null = null;
-
-    @property({ type: CCFloat, tooltip: '闪烁提示：显示时长（秒）' })
-    blinkShowDuration = 1.0;
-
-    @property({ type: CCFloat, tooltip: '闪烁提示：隐藏间隔（秒）' })
-    blinkHideDuration = 0.5;
 
     onLoad() {
         ReinforcementNotice._instance = this;
@@ -56,48 +50,5 @@ export class ReinforcementNotice extends Component {
                 inst.node.active = false;
             }
         }, duration);
-    }
-
-    /**
-     * 闪烁显示提示文本，闪烁指定次数后隐藏。
-     * @param msg 提示文本
-     * @param times 闪烁次数，默认3次
-     */
-    static showBlink(msg: string, times = 3) {
-        const inst = ReinforcementNotice._instance;
-        if (!inst || !inst._label) return;
-        inst.unscheduleAllCallbacks();
-
-        inst._label.string = msg;
-        inst.node.active = true;
-
-        if (inst._audioSource && inst.popSound) {
-            inst._audioSource.playOneShot(inst.popSound, 1);
-        }
-
-        let count = 0;
-        const showDuration = inst.blinkShowDuration;
-        const hideDuration = inst.blinkHideDuration;
-
-        const blinkCycle = () => {
-            if (count >= times) {
-                if (inst.node?.isValid) {
-                    inst.node.active = false;
-                }
-                return;
-            }
-            // 显示
-            inst.node.active = true;
-            inst.scheduleOnce(() => {
-                // 隐藏
-                inst.node.active = false;
-                count++;
-                inst.scheduleOnce(() => {
-                    blinkCycle();
-                }, hideDuration);
-            }, showDuration);
-        };
-
-        blinkCycle();
     }
 }

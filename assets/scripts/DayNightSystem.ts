@@ -181,10 +181,10 @@ export class DayNightSystem extends Component {
         this.spawnDayResources();
         this.playDayMusic();
 
-        // 第一天大字报消失后，闪烁提示游戏指引
+        // 第一天大字报消失后，显示游戏指引
         if (this.currentDay === 1) {
             this.scheduleOnce(() => {
-                ReinforcementNotice.showBlink('坚守基地！直至最后一天！', 3);
+                ReinforcementNotice.show('坚守基地！直至最后一天！', 10);
             }, 2.5);
         }
     }
