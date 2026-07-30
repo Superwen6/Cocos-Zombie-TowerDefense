@@ -14,6 +14,7 @@ import {
 import { GameManager } from './GameManager';
 import { ResourceSpawner } from './ResourceSpawner';
 import { PlayerState } from './PlayerState';
+import { ReinforcementNotice } from './ReinforcementNotice';
 
 const { ccclass, property } = _decorator;
 
@@ -179,6 +180,13 @@ export class DayNightSystem extends Component {
         this.showDayNotice(`Day ${this.currentDay}`);
         this.spawnDayResources();
         this.playDayMusic();
+
+        // 第一天大字报消失后，闪烁提示游戏指引
+        if (this.currentDay === 1) {
+            this.scheduleOnce(() => {
+                ReinforcementNotice.showBlink('坚守基地！直至最后一天！', 3);
+            }, 2.5);
+        }
     }
 
     update(dt: number) {
