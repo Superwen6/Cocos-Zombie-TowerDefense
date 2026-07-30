@@ -725,6 +725,11 @@ export class TurretPlacementManager extends Component {
             this._buildGhostNode = null;
         }
 
+        // 记录实际建造消耗（MaterialSave 省材料后的实际花费），用于拆除时按实际消耗返还
+        if (buildingNode) {
+            this.recordActualCost(buildingNode);
+        }
+
         // 从建筑节点上查找 HealthBar，绑定并切换战斗模式
         if (buildingNode) {
             const bar = this.findHealthBar(buildingNode);
@@ -740,6 +745,36 @@ export class TurretPlacementManager extends Component {
         // 播放建造完成音效
         if (this._audioSource && this.buildCompleteSound) {
             this._audioSource.playOneShot(this.buildCompleteSound, 1);
+        }
+    }
+
+    /** 记录建筑的实际建造消耗（省材料后的实际花费），用于拆除时按实际消耗返还 */
+    private recordActualCost(buildingNode: Node) {
+        const ps = PlayerState.instance;
+        const saveRate = ps ? ps.materialSaveRate : 0;
+
+        const turret = buildingNode.getComponent(Turret);
+        const plant = buildingNode.getComponent(PlantGenerator);
+        const container = buildingNode.getComponent(Container);
+
+        if (turret) {
+            turret.materialSaveApplied = saveRate > 0;
+            turret.actualCostWood = this.currentCost.wood;
+            turret.actualCostCopper = this.currentCost.copper;
+            turret.actualCostIron = this.currentCost.iron;
+            turret.actualCostMoney = this.currentCost.money;
+        } else if (plant) {
+            plant.materialSaveApplied = saveRate > 0;
+            plant.actualCostWood = this.currentCost.wood;
+            plant.actualCostCopper = this.currentCost.copper;
+            plant.actualCostIron = this.currentCost.iron;
+            plant.actualCostMoney = this.currentCost.money;
+        } else if (container) {
+            container.materialSaveApplied = saveRate > 0;
+            container.actualCostWood = this.currentCost.wood;
+            container.actualCostCopper = this.currentCost.copper;
+            container.actualCostIron = this.currentCost.iron;
+            container.actualCostMoney = this.currentCost.money;
         }
     }
 

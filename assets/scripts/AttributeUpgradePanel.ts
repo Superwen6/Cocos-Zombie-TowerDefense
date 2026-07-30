@@ -35,7 +35,8 @@ const AFFECTED_BUTTONS: Record<string, string[]> = {
     Stealth: ['Stealth'],
     // 工程
     RemoteRepair: ['RemoteRepair', 'RemoteMaterial', 'MaterialSave'],
-    RemoteMaterial: ['RemoteMaterial', 'TurretReinforcement'],
+    RemoteMaterial: ['RemoteMaterial', 'MaterialRetun'],
+    MaterialRetun: ['MaterialRetun', 'TurretReinforcement'],
     TurretReinforcement: ['TurretReinforcement'],
     MaterialSave: ['MaterialSave', 'PowerSaving'],
     PowerSaving: ['PowerSaving', 'Blast'],
@@ -72,6 +73,7 @@ const BUTTON_DESCRIPTIONS: Record<string, string> = {
     RemoteRepair: 'LV1，远程维修建筑',
     RemoteMaterial: 'LV1，远程用材料维修',
     TurretReinforcement: 'LV1，强化炮塔属性 (消耗：6木 3铜 1铁)',
+    MaterialRetun: 'LV3，拆除建筑返还材料',
     MaterialSave: 'LV3，全局节省材料',
     PowerSaving: 'LV3，全局节省电力',
     Blast: 'LV1，爆破拆除地图元素（最多10次）',
@@ -135,6 +137,9 @@ export class AttributeUpgradePanel extends Component {
 
     @property({ type: Node, tooltip: '炮塔强化按钮（分支一）' })
     turretReinforcementButton: Node | null = null;
+
+    @property({ type: Node, tooltip: '材料返还按钮（分支一）' })
+    materialRetunButton: Node | null = null;
 
     @property({ type: Node, tooltip: '省材料按钮（分支二）' })
     materialSaveButton: Node | null = null;
@@ -524,6 +529,7 @@ export class AttributeUpgradePanel extends Component {
         this.registerUpgrade('RemoteRepair', this.remoteRepairButton || this.findButtonIn('RemoteRepair', this.engineeringContent), 1);
         this.registerUpgrade('RemoteMaterial', this.remoteMaterialButton || this.findButtonIn('RemoteMaterial', this.engineeringContent), 1);
         this.registerUpgrade('TurretReinforcement', this.turretReinforcementButton || this.findButtonIn('TurretReinforcement', this.engineeringContent), 1);
+        this.registerUpgrade('MaterialRetun', this.materialRetunButton || this.findButtonIn('MaterialRetun', this.engineeringContent), 3);
         this.registerUpgrade('MaterialSave', this.materialSaveButton || this.findButtonIn('MaterialSave', this.engineeringContent), 3);
         this.registerUpgrade('PowerSaving', this.powerSavingButton || this.findButtonIn('PowerSaving', this.engineeringContent), 3);
         this.registerUpgrade('Blast', this.blastButton || this.findButtonIn('Blast', this.engineeringContent), 1);
@@ -615,8 +621,10 @@ export class AttributeUpgradePanel extends Component {
             case 'RemoteMaterial':
             case 'MaterialSave':
                 return this.getLevel('RemoteRepair') >= 1;
-            case 'TurretReinforcement':
+            case 'MaterialRetun':
                 return this.getLevel('RemoteMaterial') >= 1;
+            case 'TurretReinforcement':
+                return this.getLevel('RemoteMaterial') >= 1 && this.getLevel('MaterialRetun') >= 3;
             case 'PowerSaving':
                 return this.getLevel('MaterialSave') >= 3;
             case 'Blast':
@@ -713,6 +721,9 @@ export class AttributeUpgradePanel extends Component {
                 break;
             case 'RemoteMaterial':
                 ps.remoteMaterialEnabled = true;
+                break;
+            case 'MaterialRetun':
+                ps.materialRefundRate = [0.35, 0.7, 1.0][level - 1];
                 break;
             case 'MaterialSave':
                 ps.materialSaveRate = [0.1, 0.15, 0.2][level - 1];
@@ -1424,6 +1435,7 @@ export class AttributeUpgradePanel extends Component {
         ps.remoteRepairLevel = 0;
         ps.remoteMaterialEnabled = false;
         ps.materialSaveRate = 0;
+        ps.materialRefundRate = 0;
         ps.powerSaveRate = 0;
         ps.attackDamageMultiplier = 1.0;
         ps.weaponAttackInterval = 0.5;

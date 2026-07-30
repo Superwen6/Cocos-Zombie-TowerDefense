@@ -128,6 +128,9 @@ export class PlayerState extends Component {
     @property({ tooltip: '全局省电率 (0-0.2，工程面板升级)' })
     powerSaveRate = 0;
 
+    @property({ tooltip: '拆除建筑材料返还比例 (0-1，工程面板 MaterialRetun 升级)' })
+    materialRefundRate = 0;
+
     // ---- 武器面板升级 ----
 
     @property({ tooltip: '攻击力倍率（武器面板升级）' })

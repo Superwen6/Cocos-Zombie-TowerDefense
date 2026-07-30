@@ -80,6 +80,7 @@ export interface SaveData {
         remoteRepairHealPerSec: number;
         remoteMaterialEnabled: boolean;
         materialSaveRate: number;
+        materialRefundRate: number;
         powerSaveRate: number;
         attackDamageMultiplier: number;
         weaponMode: boolean;
@@ -172,6 +173,7 @@ export class SaveSystem {
                 remoteRepairHealPerSec: ps.remoteRepairHealPerSec,
                 remoteMaterialEnabled: ps.remoteMaterialEnabled,
                 materialSaveRate: ps.materialSaveRate,
+                materialRefundRate: ps.materialRefundRate,
                 powerSaveRate: ps.powerSaveRate,
                 attackDamageMultiplier: ps.attackDamageMultiplier,
                 weaponMode: ps.weaponMode,
@@ -296,6 +298,7 @@ export class SaveSystem {
         ps.remoteRepairHealPerSec = s.remoteRepairHealPerSec;
         ps.remoteMaterialEnabled = s.remoteMaterialEnabled;
         ps.materialSaveRate = s.materialSaveRate;
+        ps.materialRefundRate = s.materialRefundRate;
         ps.powerSaveRate = s.powerSaveRate;
         ps.attackDamageMultiplier = s.attackDamageMultiplier;
         ps.weaponMode = s.weaponMode;

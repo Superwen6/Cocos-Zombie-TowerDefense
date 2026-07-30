@@ -51,6 +51,13 @@ export class PlantGenerator extends Component {
     @property({ type: CCInteger, tooltip: '建造消耗金币' })
     costMoney = 500;
 
+    // 以下为运行时记录（非编辑器属性），用于拆除时按实际消耗返还
+    materialSaveApplied = false;
+    actualCostWood = 0;
+    actualCostCopper = 0;
+    actualCostIron = 0;
+    actualCostMoney = 0;
+
     @property({ type: Number, tooltip: '虚影透明度（0~1）', range: [0, 1, 0.05] })
     ghostOpacity = 0.5;
 

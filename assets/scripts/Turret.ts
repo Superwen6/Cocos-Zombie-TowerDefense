@@ -41,6 +41,13 @@ export class Turret extends Component {
     @property({ type: CCInteger, tooltip: '建造消耗美元' })
     costMoney = 0;
 
+    // 以下为运行时记录（非编辑器属性），用于拆除时按实际消耗返还
+    materialSaveApplied = false;
+    actualCostWood = 0;
+    actualCostCopper = 0;
+    actualCostIron = 0;
+    actualCostMoney = 0;
+
     @property({ type: CCInteger, tooltip: '炮塔电力消耗（单位：瓦）' })
     powerCost = 1;
 
