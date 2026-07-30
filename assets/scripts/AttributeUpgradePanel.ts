@@ -1,4 +1,4 @@
-import { _decorator, AudioClip, AudioSource, Button, Camera, Color, Component, director, EventMouse, EventTouch, find, Input, input, Label, Node, RichText, Sprite, tween, Vec3, warn } from 'cc';
+import { _decorator, AudioClip, AudioSource, Button, Camera, Color, Component, director, EventMouse, EventTouch, find, Input, input, Label, Node, RichText, Sprite, tween, Vec3 } from 'cc';
 import { PlayerState } from './PlayerState';
 import { PlayerData } from './PlayerData';
 import { TurretPlacementManager } from './TurretPlacementManager';
@@ -1123,8 +1123,6 @@ export class AttributeUpgradePanel extends Component {
             return;
         }
 
-        warn(`[Blast] 准备爆破: ${target.name} (路径: ${this.getNodePath(target)})`);
-
         // 播放爆破音效
         if (this._audioSource && this.blastSound) {
             this._audioSource.playOneShot(this.blastSound, 1);
@@ -1172,7 +1170,6 @@ export class AttributeUpgradePanel extends Component {
     private findMapElementRecursive(root: Node, worldPos: Vec3, threshold: number): Node | null {
         // 排除 Base 及其子树，防止误爆破基地节点
         if (this.isBaseNode(root)) {
-            warn(`[Blast] 跳过 Base 节点: ${root.name}`);
             return null;
         }
 
@@ -1180,7 +1177,6 @@ export class AttributeUpgradePanel extends Component {
         if (obstacle && root.active) {
             const dist = Vec3.distance(root.worldPosition, worldPos);
             if (dist <= threshold) {
-                warn(`[Blast] 找到目标: ${root.name} (路径: ${this.getNodePath(root)})`);
                 return root;
             }
         }
@@ -1202,17 +1198,6 @@ export class AttributeUpgradePanel extends Component {
             current = current.parent;
         }
         return false;
-    }
-
-    /** 获取节点路径（调试用） */
-    private getNodePath(node: Node): string {
-        const parts: string[] = [];
-        let current: Node | null = node;
-        while (current) {
-            parts.unshift(current.name);
-            current = current.parent;
-        }
-        return parts.join('/');
     }
 
     // ---- 爆破悬停高亮 ----
