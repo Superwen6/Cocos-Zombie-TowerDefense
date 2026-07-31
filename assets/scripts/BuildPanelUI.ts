@@ -442,16 +442,24 @@ export class BuildPanelUI extends Component {
     /** 设置 CostDisplay 下某个子节点的 Value Label，含颜色反馈 */
     private setCostChildValue(costDisplay: Node, childName: string, text: string, affordable: boolean = true) {
         const costNode = costDisplay.getChildByName(childName);
-        if (!costNode) return;
-        const valueNode = costNode.getChildByName('Value');
-        if (!valueNode) return;
-        const label = valueNode.getComponent(Label);
-        if (label) {
-            label.string = text;
-            label.color = affordable
-                ? new Color(255, 255, 255, 255)
-                : new Color(255, 0, 0, 255);
+        if (!costNode) {
+            log(`[BuildPanelUI] setCostChildValue: CostDisplay 下未找到 ${childName}，父节点=${costDisplay.name}`);
+            return;
         }
+        const valueNode = costNode.getChildByName('Value');
+        if (!valueNode) {
+            log(`[BuildPanelUI] setCostChildValue: ${costNode.name} 下未找到 Value 子节点`);
+            return;
+        }
+        const label = valueNode.getComponent(Label);
+        if (!label) {
+            log(`[BuildPanelUI] setCostChildValue: Value 节点上无 Label 组件`);
+            return;
+        }
+        label.string = text;
+        label.color = affordable
+            ? new Color(255, 255, 255, 255)
+            : new Color(255, 0, 0, 255);
     }
 
     // ==================== 按钮绑定 ====================

@@ -1012,7 +1012,7 @@
     "costMoney": 0,
     "powerCost": 2,
     "maxHp": 150,
-    "damage": 6,
+    "damage": 100,
     "attackInterval": 0.5,
     "attackRange": 500,
     "bulletPrefab": {

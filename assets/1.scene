@@ -742,7 +742,7 @@
     "attackDamage": 10,
     "repairPerHit": 10,
     "repairRange": 50,
-    "moveSpeed": 150,
+    "moveSpeed": 600,
     "fatigue": 0,
     "exhaustedHpDrain": 2,
     "profession": "Collector",
@@ -85467,9 +85467,9 @@
     "darkMask": {
       "__id__": 98
     },
-    "dayDuration": 120,
-    "nightDuration": 90,
-    "transitionTime": 15,
+    "dayDuration": 30,
+    "nightDuration": 30,
+    "transitionTime": 10,
     "maxNightAlpha": 0.66,
     "enableLog": true,
     "currentDay": 1,
