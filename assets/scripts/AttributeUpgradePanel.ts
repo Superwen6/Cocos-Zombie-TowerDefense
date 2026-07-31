@@ -70,7 +70,7 @@ const BUTTON_DESCRIPTIONS: Record<string, string> = {
     doublecollect: 'LV1，资源采集量翻倍',
     bagexpand: 'LV1，背包容量*1.5',
     collectmaster: 'LV2，资源采集暴增',
-    Stealth: 'LV1，降低僵尸感知范围',
+    Stealth: 'LV1，血量低于15%自动隐身10秒（完全不被检测），结束后缩短僵尸检测距离',
     RemoteRepair: 'LV1，远程维修建筑',
     RemoteMaterial: 'LV1，远程用材料维修',
     TurretReinforcement: 'LV1，强化炮塔属性 (消耗：6木 3铜 1铁)',
@@ -719,6 +719,7 @@ export class AttributeUpgradePanel extends Component {
                 ps.ironCollectMultiplier = level === 1 ? 3.0 : 4.0;
                 break;
             case 'Stealth':
+                PlayerState.stealthLevel = 1;
                 PlayerState.zombieAlertRadiusMultiplier = 0.2;
                 break;
             case 'RemoteRepair':
@@ -1456,6 +1457,7 @@ export class AttributeUpgradePanel extends Component {
         ps.ironCollectMultiplier = 1.0;
         ps.backpackCapacityMultiplier = 1.0;
         PlayerState.zombieAlertRadiusMultiplier = 1.0;
+        PlayerState.stealthLevel = 0;
         ps.remoteRepairLevel = 0;
         ps.remoteMaterialEnabled = false;
         ps.materialSaveRate = 0;
@@ -1610,6 +1612,12 @@ export class AttributeUpgradePanel extends Component {
         }
         if ((this._upgradeStates.get('Pistol')?.level ?? 0) >= 1) {
             this.showCanvasActionBtn(this.weaponActionBtn, 'Pistol');
+        }
+
+        // 恢复潜行技能等级
+        if ((this._upgradeStates.get('Stealth')?.level ?? 0) >= 1) {
+            PlayerState.stealthLevel = 1;
+            PlayerState.zombieAlertRadiusMultiplier = 0.2;
         }
 
         // 清除待恢复数据

@@ -111,6 +111,24 @@ export class PlayerState extends Component {
     /** 僵尸感知距离倍率（生存面板潜行升级，越低越好） */
     static zombieAlertRadiusMultiplier = 1.0;
 
+    /** 潜行技能等级（0=未激活，1=已激活） */
+    static stealthLevel = 0;
+
+    @property({ tooltip: '是否处于隐身状态' })
+    isStealthed = false;
+
+    @property({ tooltip: '隐身剩余时间（秒）' })
+    stealthTimer = 0;
+
+    @property({ tooltip: '隐身持续时间（秒）' })
+    stealthDuration = 10;
+
+    @property({ tooltip: '隐身时透明度（0-255）' })
+    stealthOpacity = 80;
+
+    @property({ tooltip: '触发隐身的血量百分比阈值' })
+    stealthHpThreshold = 0.15;
+
     // ---- 工程面板升级 ----
 
     @property({ tooltip: '远程维修等级 (0-1)' })
@@ -303,6 +321,9 @@ export class PlayerState extends Component {
         // 远程维修：自动回血范围内炮塔
         this.updateRemoteRepair(dt);
 
+        // 潜行技能：低血量自动隐身
+        this.updateStealthState(dt);
+
         this._statusLogTimer += dt;
         if (this._statusLogTimer >= this.statusLogInterval) {
             this._statusLogTimer = 0;
@@ -430,6 +451,45 @@ export class PlayerState extends Component {
         }
     }
 
+    /** 潜行技能：低血量自动隐身逻辑 */
+    private updateStealthState(dt: number) {
+        if (PlayerState.stealthLevel < 1) return;
+
+        const effectiveMaxHp = this.getEffectiveMaxHp();
+        const isLowHp = this.hp > 0 && this.hp / effectiveMaxHp <= this.stealthHpThreshold;
+
+        if (isLowHp && !this.isStealthed) {
+            // 触发隐身
+            this.isStealthed = true;
+            this.stealthTimer = this.stealthDuration;
+            this.setPlayerOpacity(this.stealthOpacity);
+            PlayerState.zombieAlertRadiusMultiplier = 0; // 完全不被检测
+        } else if (this.isStealthed) {
+            this.stealthTimer -= dt;
+            if (this.stealthTimer <= 0) {
+                // 隐身时间结束，恢复检测距离缩短效果
+                this.isStealthed = false;
+                this.setPlayerOpacity(255);
+                PlayerState.zombieAlertRadiusMultiplier = 0.2;
+            }
+        }
+
+        if (!isLowHp && this.isStealthed) {
+            // 血量恢复，解除隐身
+            this.isStealthed = false;
+            this.stealthTimer = 0;
+            this.setPlayerOpacity(255);
+            PlayerState.zombieAlertRadiusMultiplier = 0.2;
+        }
+    }
+
+    /** 设置玩家贴图透明度 */
+    private setPlayerOpacity(opacity: number) {
+        if (!this.playerSprite) return;
+        const color = this.playerSprite.color.clone();
+        this.playerSprite.color = new Color(color.r, color.g, color.b, opacity);
+    }
+
     /** 查找场景中所有可伤害的建筑（Turret, PlantGenerator, Container） */
     private findAllDamageableBuildings(): Component[] {
         const scene = this.node.scene;
@@ -495,6 +555,14 @@ export class PlayerState extends Component {
         // 恢复血量与疲劳
         this.hp = this.getEffectiveMaxHp();
         this.fatigue = 0;
+
+        // 重置隐身状态
+        this.isStealthed = false;
+        this.stealthTimer = 0;
+        this.setPlayerOpacity(255);
+        if (PlayerState.stealthLevel >= 1) {
+            PlayerState.zombieAlertRadiusMultiplier = 0.2;
+        }
 
         // 移动到基地位置
         if (this._baseNode) {
