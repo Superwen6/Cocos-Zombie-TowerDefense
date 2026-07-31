@@ -27,11 +27,11 @@ const REINFORCE_HOVER_RADIUS = 80;
 
 /** 升级依赖链：点击某个按钮后，哪些按钮的视觉状态需要刷新 */
 const AFFECTED_BUTTONS: Record<string, string[]> = {
-    Walkspeed: ['Walkspeed', 'FatigueReduce', 'WoodCollect'],
+    Walkspeed: ['Walkspeed', 'FatigueReduce', 'doublecollect'],
     FatigueReduce: ['FatigueReduce', 'HPIncrease'],
-    WoodCollect: ['WoodCollect', 'CopperCollect'],
-    CopperCollect: ['CopperCollect', 'IronCollect'],
-    IronCollect: ['IronCollect', 'Stealth'],
+    doublecollect: ['doublecollect', 'bagexpand'],
+    bagexpand: ['bagexpand', 'collectmaster'],
+    collectmaster: ['collectmaster', 'Stealth'],
     HPIncrease: ['HPIncrease'],
     Stealth: ['Stealth'],
     // 工程
@@ -67,9 +67,9 @@ const BUTTON_DESCRIPTIONS: Record<string, string> = {
     Walkspeed: 'LV2，移动速度加快',
     FatigueReduce: 'LV2，疲劳增长减缓',
     HPIncrease: 'LV3，生命值提升',
-    WoodCollect: 'LV3，木材采集效率提升',
-    CopperCollect: 'LV3，铜矿采集效率提升',
-    IronCollect: 'LV3，铁矿采集效率提升',
+    doublecollect: 'LV1，资源采集量翻倍',
+    bagexpand: 'LV1，背包容量*1.5',
+    collectmaster: 'LV2，资源采集暴增',
     Stealth: 'LV1，降低僵尸感知范围',
     RemoteRepair: 'LV1，远程维修建筑',
     RemoteMaterial: 'LV1，远程用材料维修',
@@ -117,14 +117,14 @@ export class AttributeUpgradePanel extends Component {
     @property({ type: Node, tooltip: '血量提升升级按钮' })
     hpIncreaseButton: Node | null = null;
 
-    @property({ type: Node, tooltip: '木材采集升级按钮' })
-    woodCollectButton: Node | null = null;
+    @property({ type: Node, tooltip: '资源采集翻倍升级按钮' })
+    doublecollectButton: Node | null = null;
 
-    @property({ type: Node, tooltip: '铜矿采集升级按钮' })
-    copperCollectButton: Node | null = null;
+    @property({ type: Node, tooltip: '背包扩容升级按钮' })
+    bagexpandButton: Node | null = null;
 
-    @property({ type: Node, tooltip: '铁矿采集升级按钮' })
-    ironCollectButton: Node | null = null;
+    @property({ type: Node, tooltip: '资源采集暴增升级按钮' })
+    collectmasterButton: Node | null = null;
 
     @property({ type: Node, tooltip: '潜行升级按钮' })
     stealthButton: Node | null = null;
@@ -520,9 +520,9 @@ export class AttributeUpgradePanel extends Component {
         this.registerUpgrade('Walkspeed', this.walkspeedButton || this.findButtonIn('Walkspeed', this.survivalContent), 2);
         this.registerUpgrade('FatigueReduce', this.fatigueReduceButton || this.findButtonIn('FatigueReduce', this.survivalContent), 2);
         this.registerUpgrade('HPIncrease', this.hpIncreaseButton || this.findButtonIn('HPIncrease', this.survivalContent), 3);
-        this.registerUpgrade('WoodCollect', this.woodCollectButton || this.findButtonIn('WoodCollect', this.survivalContent), 3);
-        this.registerUpgrade('CopperCollect', this.copperCollectButton || this.findButtonIn('CopperCollect', this.survivalContent), 3);
-        this.registerUpgrade('IronCollect', this.ironCollectButton || this.findButtonIn('IronCollect', this.survivalContent), 3);
+        this.registerUpgrade('doublecollect', this.doublecollectButton || this.findButtonIn('doublecollect', this.survivalContent), 1);
+        this.registerUpgrade('bagexpand', this.bagexpandButton || this.findButtonIn('bagexpand', this.survivalContent), 1);
+        this.registerUpgrade('collectmaster', this.collectmasterButton || this.findButtonIn('collectmaster', this.survivalContent), 2);
         this.registerUpgrade('Stealth', this.stealthButton || this.findButtonIn('Stealth', this.survivalContent), 1);
     }
 
@@ -607,16 +607,16 @@ export class AttributeUpgradePanel extends Component {
             // 生存
             case 'Walkspeed': return true;
             case 'FatigueReduce':
-            case 'WoodCollect':
+            case 'doublecollect':
                 return this.getLevel('Walkspeed') >= 2;
             case 'HPIncrease':
                 return this.getLevel('FatigueReduce') >= 2;
-            case 'CopperCollect':
-                return this.getLevel('WoodCollect') >= 3;
-            case 'IronCollect':
-                return this.getLevel('CopperCollect') >= 3;
+            case 'bagexpand':
+                return this.getLevel('doublecollect') >= 1;
+            case 'collectmaster':
+                return this.getLevel('bagexpand') >= 1;
             case 'Stealth':
-                return this.getLevel('IronCollect') >= 3;
+                return this.getLevel('collectmaster') >= 2;
             // 工程
             case 'RemoteRepair': return true;
             case 'RemoteMaterial':
@@ -705,14 +705,18 @@ export class AttributeUpgradePanel extends Component {
                 ps.hpMultiplier = [1.5, 2.0, 3.0][level - 1];
                 ps.hp = ps.getEffectiveMaxHp();
                 break;
-            case 'WoodCollect':
-                ps.woodCollectMultiplier = level + 1;
+            case 'doublecollect':
+                ps.woodCollectMultiplier = 2.0;
+                ps.copperCollectMultiplier = 2.0;
+                ps.ironCollectMultiplier = 2.0;
                 break;
-            case 'CopperCollect':
-                ps.copperCollectMultiplier = level + 1;
+            case 'bagexpand':
+                ps.backpackCapacityMultiplier = 1.5;
                 break;
-            case 'IronCollect':
-                ps.ironCollectMultiplier = level + 1;
+            case 'collectmaster':
+                ps.woodCollectMultiplier = level === 1 ? 3.0 : 4.0;
+                ps.copperCollectMultiplier = level === 1 ? 3.0 : 4.0;
+                ps.ironCollectMultiplier = level === 1 ? 3.0 : 4.0;
                 break;
             case 'Stealth':
                 PlayerState.zombieAlertRadiusMultiplier = 0.2;
@@ -1450,6 +1454,7 @@ export class AttributeUpgradePanel extends Component {
         ps.woodCollectMultiplier = 1.0;
         ps.copperCollectMultiplier = 1.0;
         ps.ironCollectMultiplier = 1.0;
+        ps.backpackCapacityMultiplier = 1.0;
         PlayerState.zombieAlertRadiusMultiplier = 1.0;
         ps.remoteRepairLevel = 0;
         ps.remoteMaterialEnabled = false;

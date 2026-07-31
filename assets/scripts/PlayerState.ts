@@ -105,6 +105,9 @@ export class PlayerState extends Component {
     @property({ tooltip: '铁矿采集倍率（生存面板升级）' })
     ironCollectMultiplier = 1.0;
 
+    @property({ tooltip: '背包容量倍率（生存面板bagexpand升级）' })
+    backpackCapacityMultiplier = 1.0;
+
     /** 僵尸感知距离倍率（生存面板潜行升级，越低越好） */
     static zombieAlertRadiusMultiplier = 1.0;
 
@@ -392,6 +395,11 @@ export class PlayerState extends Component {
             case 'iron': return this.ironCollectMultiplier;
             default: return 1.0;
         }
+    }
+
+    /** 获取背包有效容量上限（基础上限 × 背包容量倍率） */
+    getEffectiveBackpackMax(baseMax: number): number {
+        return Math.round(baseMax * this.backpackCapacityMultiplier);
     }
 
     /** 远程维修：范围内所有受损建筑自动回血 */
