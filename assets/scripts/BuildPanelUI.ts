@@ -400,13 +400,17 @@ export class BuildPanelUI extends Component {
         return powerCost;
     }
 
-    /** 更新 CostDisplay 下各个 CostWood/CostIron/CostCopper/CostPower 的 Value Label */
+    /** 更新 CostDisplay 下各个 CostWood/CostIron/CostCopper/CostPower 的 Value Label。
+     * CostPower 与 CostDisplay 是兄弟节点，其他三个是 CostDisplay 的子节点。 */
     private updateCostDisplayChildren(costDisplay: Node, cost: TurretPlacementCost | null, data: PlayerData | null, powerValue: number = 0, isGenerator: boolean = false) {
+        // CostPower 是 CostDisplay 的兄弟节点，需要用父节点来查找
+        const powerParent = costDisplay.parent ?? costDisplay;
+
         if (!cost || !data) {
             this.setCostChildValue(costDisplay, 'CostWood', '?/?', false);
             this.setCostChildValue(costDisplay, 'CostIron', '?/?', false);
             this.setCostChildValue(costDisplay, 'CostCopper', '?/?', false);
-            this.setCostChildValue(costDisplay, 'CostPower', '?/?', false);
+            this.setCostChildValue(powerParent, 'CostPower', '?/?', false);
             return;
         }
 
@@ -429,13 +433,13 @@ export class BuildPanelUI extends Component {
 
         if (isGenerator) {
             // 发电机：显示发电量，始终白色
-            this.setCostChildValue(costDisplay, 'CostPower', `${powerValue}`, true);
+            this.setCostChildValue(powerParent, 'CostPower', `${powerValue}`, true);
         } else {
             // 集装箱：应用省电率，显示单数字耗电量，不足时变红
             const powerSave = ps ? ps.powerSaveRate : 0;
             const actualPower = powerValue - Math.round(powerValue * powerSave);
             const gen = BaseSystem.instance ? BaseSystem.instance.totalPowerGen : 0;
-            this.setCostChildValue(costDisplay, 'CostPower', `${actualPower}`, gen >= actualPower);
+            this.setCostChildValue(powerParent, 'CostPower', `${actualPower}`, gen >= actualPower);
         }
     }
 
