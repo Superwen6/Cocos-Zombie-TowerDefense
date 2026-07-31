@@ -443,7 +443,8 @@ export class BuildPanelUI extends Component {
     private setCostChildValue(costDisplay: Node, childName: string, text: string, affordable: boolean = true) {
         const costNode = costDisplay.getChildByName(childName);
         if (!costNode) {
-            log(`[BuildPanelUI] setCostChildValue: CostDisplay 下未找到 ${childName}，父节点=${costDisplay.name}`);
+            const childrenNames = costDisplay.children.map(c => c.name).join(', ');
+            log(`[BuildPanelUI] setCostChildValue: CostDisplay 下未找到 ${childName}，父节点=${costDisplay.name}，子节点列表=[${childrenNames}]`);
             return;
         }
         const valueNode = costNode.getChildByName('Value');
