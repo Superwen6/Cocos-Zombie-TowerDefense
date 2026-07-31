@@ -438,7 +438,7 @@
     "__prefab": {
       "__id__": 18
     },
-    "buildTime": 5,
+    "buildTime": 4,
     "backgroundSprite": {
       "__id__": 6
     },
@@ -589,10 +589,10 @@
       "__id__": 27
     },
     "maxHp": 200,
-    "buildTime": 5,
-    "costWood": 1,
-    "costCopper": 0,
-    "costIron": 0,
+    "buildTime": 4,
+    "costWood": 15,
+    "costCopper": 6,
+    "costIron": 2,
     "costMoney": 0,
     "powerCost": 2,
     "maxStorageWood": 40,

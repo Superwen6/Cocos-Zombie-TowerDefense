@@ -435,7 +435,7 @@
     "__prefab": {
       "__id__": 18
     },
-    "buildTime": 5,
+    "buildTime": 3,
     "backgroundSprite": {
       "__id__": 6
     },
@@ -587,7 +587,7 @@
     },
     "plantId": 1,
     "maxHp": 100,
-    "buildTime": 4,
+    "buildTime": 3,
     "powerGenerate": 10,
     "powerCost": 0,
     "placeCenter": {
@@ -597,8 +597,8 @@
       "z": 0
     },
     "placeRadius": 200,
-    "costWood": 0,
-    "costCopper": 0,
+    "costWood": 5,
+    "costCopper": 2,
     "costIron": 0,
     "costMoney": 0,
     "ghostOpacity": 0.2,
