@@ -1,4 +1,4 @@
-import { _decorator, AudioClip, AudioSource, Button, Camera, Color, Component, director, EventMouse, EventTouch, find, Input, input, Label, Node, RichText, Sprite, tween, Vec3 } from 'cc';
+import { _decorator, AudioClip, AudioSource, Button, Camera, Color, Component, director, EventMouse, EventTouch, find, Input, input, Label, Node, RichText, Sprite, tween, Vec3, warn } from 'cc';
 import { PlayerState } from './PlayerState';
 import { PlayerData } from './PlayerData';
 import { TurretPlacementManager } from './TurretPlacementManager';
@@ -44,9 +44,9 @@ const AFFECTED_BUTTONS: Record<string, string[]> = {
     Blast: ['Blast'],
     // 武器
     AttackIncrease: ['AttackIncrease', 'Pistol', 'greedy'],
-    Pistol: ['Pistol', 'Micromsg', 'Rifle', 'Machinegun'],
-    Micromsg: ['Micromsg'],
-    Rifle: ['Rifle'],
+    Pistol: ['Pistol', 'Micromsg'],
+    Micromsg: ['Micromsg', 'Rifle'],
+    Rifle: ['Rifle', 'Machinegun'],
     Machinegun: ['Machinegun'],
     greedy: ['greedy'],
 };
@@ -642,9 +642,11 @@ export class AttributeUpgradePanel extends Component {
             case 'greedy':
                 return this.getLevel('AttackIncrease') >= 3;
             case 'Micromsg':
-            case 'Rifle':
-            case 'Machinegun':
                 return this.getLevel('Pistol') >= 1;
+            case 'Rifle':
+                return this.getLevel('Micromsg') >= 1;
+            case 'Machinegun':
+                return this.getLevel('Rifle') >= 1;
             default:
                 return false;
         }
