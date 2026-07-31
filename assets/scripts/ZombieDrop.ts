@@ -1,5 +1,6 @@
 import { _decorator, Component } from 'cc';
 import { PlayerData } from './PlayerData';
+import { PlayerState } from './PlayerState';
 import { GlobalContainerStorage } from './GlobalContainerStorage';
 import { GameHUDUI } from './GameHUDUI';
 
@@ -63,7 +64,8 @@ export class ZombieDrop extends Component {
         }
 
         // 金钱 → 直接加给玩家
-        if (Math.random() < this.moneyDropChance) {
+        const moneyMult = PlayerState.instance?.moneyDropMultiplier ?? 1.0;
+        if (Math.random() < this.moneyDropChance * moneyMult) {
             data?.addMoney(this.moneyAmount);
             GameHUDUI.flashResourceGreen('money');
         }

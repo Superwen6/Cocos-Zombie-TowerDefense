@@ -43,11 +43,12 @@ const AFFECTED_BUTTONS: Record<string, string[]> = {
     PowerSaving: ['PowerSaving', 'Blast'],
     Blast: ['Blast'],
     // 武器
-    AttackIncrease: ['AttackIncrease', 'Pistol'],
+    AttackIncrease: ['AttackIncrease', 'Pistol', 'greedy'],
     Pistol: ['Pistol', 'Micromsg', 'Rifle', 'Machinegun'],
     Micromsg: ['Micromsg'],
     Rifle: ['Rifle'],
     Machinegun: ['Machinegun'],
+    greedy: ['greedy'],
 };
 
 /** 炮塔强化消耗 */
@@ -70,7 +71,7 @@ const BUTTON_DESCRIPTIONS: Record<string, string> = {
     doublecollect: 'LV1，资源采集量翻倍',
     bagexpand: 'LV1，背包容量*1.5',
     collectmaster: 'LV2，资源采集暴增',
-    Stealth: 'LV1，血量低于15%自动隐身10秒（完全不被检测），结束后缩短僵尸检测距离',
+    Stealth: 'LV1，危机状况隐身与潜行',
     RemoteRepair: 'LV1，远程维修建筑',
     RemoteMaterial: 'LV1，远程用材料维修',
     TurretReinforcement: 'LV1，强化炮塔属性 (消耗：6木 3铜 1铁)',
@@ -83,6 +84,7 @@ const BUTTON_DESCRIPTIONS: Record<string, string> = {
     Micromsg: 'LV1，切换微型冲锋枪',
     Rifle: 'LV1，切换步枪模式',
     Machinegun: 'LV1，切换机关枪模式',
+    greedy: 'LV1，所有僵尸金钱掉落概率*2',
 };
 
 /**
@@ -166,6 +168,9 @@ export class AttributeUpgradePanel extends Component {
 
     @property({ type: Node, tooltip: '机关枪按钮' })
     machinegunButton: Node | null = null;
+
+    @property({ type: Node, tooltip: '贪婪按钮（金钱掉落*2）' })
+    greedyButton: Node | null = null;
 
     // ---- 武器攻击间隔（属性检查器可调） ----
     @property({ tooltip: '手枪攻击间隔（秒）' })
@@ -542,6 +547,7 @@ export class AttributeUpgradePanel extends Component {
         this.registerUpgrade('Micromsg', this.micromsgButton || this.findButtonIn('Micromsg', this.weaponContent), 1);
         this.registerUpgrade('Rifle', this.rifleButton || this.findButtonIn('Rifle', this.weaponContent), 1);
         this.registerUpgrade('Machinegun', this.machinegunButton || this.findButtonIn('Machinegun', this.weaponContent), 1);
+        this.registerUpgrade('greedy', this.greedyButton || this.findButtonIn('greedy', this.weaponContent), 1);
     }
 
     private registerUpgrade(name: string, node: Node | null, maxLevel: number) {
@@ -633,6 +639,7 @@ export class AttributeUpgradePanel extends Component {
             // 武器
             case 'AttackIncrease': return true;
             case 'Pistol':
+            case 'greedy':
                 return this.getLevel('AttackIncrease') >= 3;
             case 'Micromsg':
             case 'Rifle':
@@ -764,6 +771,9 @@ export class AttributeUpgradePanel extends Component {
             case 'Machinegun':
                 ps.weaponAttackInterval = this.machinegunAttackInterval;
                 ps.weaponDamage = this.machinegunDamage;
+                break;
+            case 'greedy':
+                ps.moneyDropMultiplier = 2.0;
                 break;
         }
     }
@@ -1466,6 +1476,7 @@ export class AttributeUpgradePanel extends Component {
         ps.weaponAttackInterval = 0.5;
         ps.weaponDamage = 10;
         ps.weaponMode = false;
+        ps.moneyDropMultiplier = 1.0;
 
         // 隐藏 Canvas 操作按钮
         if (this.reinforceActionBtn) this.reinforceActionBtn.active = false;

@@ -167,6 +167,9 @@ export class PlayerState extends Component {
     @property({ tooltip: '武器伤害值（由武器类型决定）' })
     weaponDamage = 10;
 
+    @property({ tooltip: '金钱掉落概率倍率（武器面板greedy升级）' })
+    moneyDropMultiplier = 1.0;
+
     @property({ tooltip: '基地节点名（用于自动查找）' })
     baseNodeName = 'Base';
 
