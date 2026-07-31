@@ -463,7 +463,6 @@ export class PlayerState extends Component {
         switch (this._stealthPhase) {
             case 'normal':
                 if (isLowHp) {
-                    console.log(`[Stealth] 触发隐身！hp=${this.hp}/${effectiveMaxHp} ratio=${(hpRatio*100).toFixed(1)}%`);
                     this._stealthPhase = 'stealthed';
                     this._stealthTimer = this.stealthDuration;
                     this.setPlayerOpacity(this.stealthOpacity);
@@ -474,7 +473,6 @@ export class PlayerState extends Component {
 
             case 'stealthed':
                 if (!isLowHp) {
-                    console.log(`[Stealth] 血量恢复，stealthed -> normal hp=${this.hp}/${effectiveMaxHp}`);
                     this._stealthPhase = 'normal';
                     this._stealthTimer = 0;
                     this.setPlayerOpacity(255);
@@ -483,7 +481,6 @@ export class PlayerState extends Component {
                 } else {
                     this._stealthTimer -= dt;
                     if (this._stealthTimer <= 0) {
-                        console.log('[Stealth] 隐身时间结束，stealthed -> reduced');
                         this._stealthPhase = 'reduced';
                         this.setPlayerOpacity(255);
                         PlayerState.isPlayerInvisible = false;
@@ -494,7 +491,6 @@ export class PlayerState extends Component {
 
             case 'reduced':
                 if (!isLowHp) {
-                    console.log(`[Stealth] 血量恢复，reduced -> normal hp=${this.hp}/${effectiveMaxHp}`);
                     this._stealthPhase = 'normal';
                     this.setPlayerOpacity(255);
                     PlayerState.zombieAlertRadiusMultiplier = 1.0;
@@ -505,13 +501,9 @@ export class PlayerState extends Component {
 
     /** 设置玩家贴图透明度 */
     private setPlayerOpacity(opacity: number) {
-        if (!this.playerSprite) {
-            console.warn('[Stealth] setPlayerOpacity 失败：playerSprite 为 null，请在编辑器中绑定 PlayerState.playerSprite');
-            return;
-        }
+        if (!this.playerSprite) return;
         const color = this.playerSprite.color.clone();
         this.playerSprite.color = new Color(color.r, color.g, color.b, opacity);
-        console.log(`[Stealth] setPlayerOpacity opacity=${opacity} sprite=${this.playerSprite.node.name}`);
     }
 
     /** 查找场景中所有可伤害的建筑（Turret, PlantGenerator, Container） */
