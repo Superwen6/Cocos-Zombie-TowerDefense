@@ -35,7 +35,7 @@ const PLANT_REQUIRED_FOR_LEVEL: Record<number, number> = {
 
 const FALLBACK_SAFE_RADIUS = 300;
 const FALLBACK_HP_REGEN = 0;
-const FALLBACK_MAX_BASE_HP = 500;
+const FALLBACK_MAX_BASE_HP = 1000;
 
 @ccclass('BaseSystem')
 export class BaseSystem extends Component {
@@ -48,10 +48,10 @@ export class BaseSystem extends Component {
     maxLevel = 5;
 
     @property({ type: CCInteger, tooltip: '基地当前耐久度' })
-    baseHp = 500;
+    baseHp = 1000;
 
     @property({ type: CCInteger, tooltip: '基地最大耐久度' })
-    maxBaseHp = 500;
+    maxBaseHp = 1000;
 
     @property({ type: CCFloat, tooltip: '基地矩形碰撞半宽（僵尸攻击目标矩形）' })
     baseHalfW = 220;
@@ -66,7 +66,7 @@ export class BaseSystem extends Component {
     hpRegens: number[] = [0, 1, 2, 4, 8];
 
     @property({ type: [CCInteger], tooltip: '各等级基地最大耐久 (Lv1-Lv5)' })
-    maxBaseHpByLevel: number[] = [500, 600, 700, 800, 1000];
+    maxBaseHpByLevel: number[] = [1000, 600, 700, 800, 1000];
 
     @property({ type: [CCInteger], tooltip: '升级所需木头 (Lv1→2, Lv2→3, Lv3→4, Lv4→5)' })
     upgradeWood: number[] = [100, 250, 250, 500];
