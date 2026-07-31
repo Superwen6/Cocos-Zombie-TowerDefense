@@ -487,7 +487,7 @@ export class PlayerState extends Component {
                         this._stealthPhase = 'reduced';
                         this.setPlayerOpacity(255);
                         PlayerState.isPlayerInvisible = false;
-                        PlayerState.zombieAlertRadiusMultiplier = 0.2;
+                        PlayerState.zombieAlertRadiusMultiplier = 0.5;
                     }
                 }
                 break;
