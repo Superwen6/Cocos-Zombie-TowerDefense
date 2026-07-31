@@ -720,7 +720,6 @@ export class AttributeUpgradePanel extends Component {
                 break;
             case 'Stealth':
                 PlayerState.stealthLevel = 1;
-                PlayerState.zombieAlertRadiusMultiplier = 0.2;
                 break;
             case 'RemoteRepair':
                 ps.remoteRepairLevel = 1;
@@ -1617,7 +1616,6 @@ export class AttributeUpgradePanel extends Component {
         // 恢复潜行技能等级
         if ((this._upgradeStates.get('Stealth')?.level ?? 0) >= 1) {
             PlayerState.stealthLevel = 1;
-            PlayerState.zombieAlertRadiusMultiplier = 0.2;
         }
 
         // 清除待恢复数据

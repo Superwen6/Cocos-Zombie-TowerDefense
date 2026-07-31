@@ -114,12 +114,6 @@ export class PlayerState extends Component {
     /** 潜行技能等级（0=未激活，1=已激活） */
     static stealthLevel = 0;
 
-    @property({ tooltip: '是否处于隐身状态' })
-    isStealthed = false;
-
-    @property({ tooltip: '隐身剩余时间（秒）' })
-    stealthTimer = 0;
-
     @property({ tooltip: '隐身持续时间（秒）' })
     stealthDuration = 10;
 
@@ -128,6 +122,10 @@ export class PlayerState extends Component {
 
     @property({ tooltip: '触发隐身的血量百分比阈值' })
     stealthHpThreshold = 0.15;
+
+    /** 潜行阶段：normal / stealthed / reduced */
+    private _stealthPhase: 'normal' | 'stealthed' | 'reduced' = 'normal';
+    private _stealthTimer = 0;
 
     // ---- 工程面板升级 ----
 
@@ -451,35 +449,50 @@ export class PlayerState extends Component {
         }
     }
 
-    /** 潜行技能：低血量自动隐身逻辑 */
+    /** 潜行技能：低血量自动隐身状态机 */
     private updateStealthState(dt: number) {
         if (PlayerState.stealthLevel < 1) return;
 
         const effectiveMaxHp = this.getEffectiveMaxHp();
         const isLowHp = this.hp > 0 && this.hp / effectiveMaxHp <= this.stealthHpThreshold;
 
-        if (isLowHp && !this.isStealthed) {
-            // 触发隐身
-            this.isStealthed = true;
-            this.stealthTimer = this.stealthDuration;
-            this.setPlayerOpacity(this.stealthOpacity);
-            PlayerState.zombieAlertRadiusMultiplier = 0; // 完全不被检测
-        } else if (this.isStealthed) {
-            this.stealthTimer -= dt;
-            if (this.stealthTimer <= 0) {
-                // 隐身时间结束，恢复检测距离缩短效果
-                this.isStealthed = false;
-                this.setPlayerOpacity(255);
-                PlayerState.zombieAlertRadiusMultiplier = 0.2;
-            }
-        }
+        switch (this._stealthPhase) {
+            case 'normal':
+                if (isLowHp) {
+                    // 血量低于阈值，触发隐身
+                    this._stealthPhase = 'stealthed';
+                    this._stealthTimer = this.stealthDuration;
+                    this.setPlayerOpacity(this.stealthOpacity);
+                    PlayerState.zombieAlertRadiusMultiplier = 0;
+                }
+                break;
 
-        if (!isLowHp && this.isStealthed) {
-            // 血量恢复，解除隐身
-            this.isStealthed = false;
-            this.stealthTimer = 0;
-            this.setPlayerOpacity(255);
-            PlayerState.zombieAlertRadiusMultiplier = 0.2;
+            case 'stealthed':
+                if (!isLowHp) {
+                    // 血量恢复，解除隐身回到 normal
+                    this._stealthPhase = 'normal';
+                    this._stealthTimer = 0;
+                    this.setPlayerOpacity(255);
+                    PlayerState.zombieAlertRadiusMultiplier = 1.0;
+                } else {
+                    this._stealthTimer -= dt;
+                    if (this._stealthTimer <= 0) {
+                        // 隐身时间结束，进入检测距离缩短阶段
+                        this._stealthPhase = 'reduced';
+                        this.setPlayerOpacity(255);
+                        PlayerState.zombieAlertRadiusMultiplier = 0.2;
+                    }
+                }
+                break;
+
+            case 'reduced':
+                if (!isLowHp) {
+                    // 血量恢复，回到 normal
+                    this._stealthPhase = 'normal';
+                    this.setPlayerOpacity(255);
+                    PlayerState.zombieAlertRadiusMultiplier = 1.0;
+                }
+                break;
         }
     }
 
@@ -557,12 +570,10 @@ export class PlayerState extends Component {
         this.fatigue = 0;
 
         // 重置隐身状态
-        this.isStealthed = false;
-        this.stealthTimer = 0;
+        this._stealthPhase = 'normal';
+        this._stealthTimer = 0;
         this.setPlayerOpacity(255);
-        if (PlayerState.stealthLevel >= 1) {
-            PlayerState.zombieAlertRadiusMultiplier = 0.2;
-        }
+        PlayerState.zombieAlertRadiusMultiplier = 1.0;
 
         // 移动到基地位置
         if (this._baseNode) {
