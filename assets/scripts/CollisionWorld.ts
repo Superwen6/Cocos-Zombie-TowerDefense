@@ -57,11 +57,21 @@ function rectsOverlap(
     return Math.abs(ax - bx) < ahw + bhw && Math.abs(ay - by) < ahh + bhh;
 }
 
+/** 空间哈希网格单元格大小（像素） */
+const GRID_CELL_SIZE = 120;
+/** 网格 key 乘数，需大于最大网格坐标 */
+const GRID_KEY_MULT = 100003;
+
 @ccclass('CollisionWorld')
 export class CollisionWorld extends Component {
     static instance: CollisionWorld | null = null;
 
     private _colliders: Collider2D[] = [];
+
+    // ===== 空间哈希网格（性能优化：O(1) 附近碰撞体查询） =====
+    private _gridDirty = true;
+    private readonly _grid = new Map<number, Collider2D[]>();
+    private readonly _groupCache = new Map<ColliderGroup, Collider2D[]>();
 
     onLoad() {
         CollisionWorld.instance = this;
@@ -73,24 +83,94 @@ export class CollisionWorld extends Component {
         }
     }
 
+    /** 每帧结束时标记网格脏，下一帧首次查询时重建 */
+    lateUpdate() {
+        this._gridDirty = true;
+    }
+
     register(c: Collider2D) {
         this._colliders.push(c);
+        this._gridDirty = true;
     }
 
     unregister(c: Collider2D) {
         const idx = this._colliders.indexOf(c);
         if (idx >= 0) this._colliders.splice(idx, 1);
+        this._gridDirty = true;
     }
 
-    /** 获取指定碰撞组的所有碰撞体 */
-    getCollidersByGroup(group: ColliderGroup): Collider2D[] {
-        const result: Collider2D[] = [];
+    // ===== 空间哈希网格方法 =====
+
+    private static cellKey(cx: number, cy: number): number {
+        return cx * GRID_KEY_MULT + cy;
+    }
+
+    /** 惰性重建网格和分组缓存 */
+    private ensureGrid() {
+        if (!this._gridDirty) return;
+        this._grid.clear();
+        this._groupCache.clear();
+
         for (const c of this._colliders) {
-            if (c.group === group && c.node.active) {
-                result.push(c);
+            if (!c.node || !c.node.isValid || !c.node.active) continue;
+
+            const wp = c.node.worldPosition;
+            const cx = Math.floor(wp.x / GRID_CELL_SIZE);
+            const cy = Math.floor(wp.y / GRID_CELL_SIZE);
+            const key = CollisionWorld.cellKey(cx, cy);
+            let cell = this._grid.get(key);
+            if (!cell) {
+                cell = [];
+                this._grid.set(key, cell);
+            }
+            cell.push(c);
+
+            // 分组缓存
+            let groupList = this._groupCache.get(c.group);
+            if (!groupList) {
+                groupList = [];
+                this._groupCache.set(c.group, groupList);
+            }
+            groupList.push(c);
+        }
+
+        this._gridDirty = false;
+    }
+
+    /** 获取指定位置附近的碰撞体（用于碰撞检测，避免全量遍历） */
+    private getNearby(x: number, y: number, range: number): Collider2D[] {
+        this.ensureGrid();
+
+        const result: Collider2D[] = [];
+        const seen = new Set<Collider2D>();
+        const cellRange = Math.ceil(range / GRID_CELL_SIZE) + 1;
+        const cx = Math.floor(x / GRID_CELL_SIZE);
+        const cy = Math.floor(y / GRID_CELL_SIZE);
+
+        for (let dx = -cellRange; dx <= cellRange; dx++) {
+            for (let dy = -cellRange; dy <= cellRange; dy++) {
+                const key = CollisionWorld.cellKey(cx + dx, cy + dy);
+                const cell = this._grid.get(key);
+                if (cell) {
+                    for (const c of cell) {
+                        if (!seen.has(c)) {
+                            seen.add(c);
+                            result.push(c);
+                        }
+                    }
+                }
             }
         }
         return result;
+    }
+
+    /** 获取指定碰撞组的所有碰撞体（使用网格缓存，O(1)） */
+    getCollidersByGroup(group: ColliderGroup): Collider2D[] {
+        this.ensureGrid();
+        const list = this._groupCache.get(group);
+        if (!list) return [];
+        // 过滤已销毁节点
+        return list.filter(c => c.node && c.node.isValid && c.node.active);
     }
 
     /**
@@ -140,6 +220,7 @@ export class CollisionWorld extends Component {
     /**
      * 单步碰撞结算：从 (fromX,fromY) 移动到 (toX,toY)。
      * 使用 fromX/fromY 判断推开方向，确保实体被推回起始侧而非穿透。
+     * 使用空间哈希网格仅检查附近碰撞体，避免全量遍历。
      */
     private _resolveStep(
         self: Collider2D,
@@ -149,7 +230,11 @@ export class CollisionWorld extends Component {
         let resultX = toX;
         let resultY = toY;
 
-        for (const other of this._colliders) {
+        const maxHalf = Math.max(self.halfW, self.halfH);
+        const searchRange = maxHalf + GRID_CELL_SIZE;
+        const nearby = this.getNearby(toX, toY, searchRange);
+
+        for (const other of nearby) {
             if (other === self) continue;
             if (!other.node.active || !other.node.worldPosition) continue;
             if (!willBlock(self.group, other.group)) continue;
@@ -219,6 +304,7 @@ export class CollisionWorld extends Component {
 
     /**
      * 检测指定位置是否与目标碰撞组的物体重叠。
+     * 使用空间哈希网格仅检查附近碰撞体。
      * @param excludeSelf 排除自身碰撞体（避免检测到自己），可选
      * @returns 第一个命中的碰撞体，未命中返回 null
      */
@@ -227,7 +313,10 @@ export class CollisionWorld extends Component {
         targetGroups: ColliderGroup[],
         excludeSelf?: Collider2D,
     ): Collider2D | null {
-        for (const other of this._colliders) {
+        const searchRange = Math.max(halfW, halfH) + GRID_CELL_SIZE;
+        const nearby = this.getNearby(x, y, searchRange);
+
+        for (const other of nearby) {
             if (other === excludeSelf) continue;
             if (!other.node.active || !other.node.worldPosition) continue;
             if (!targetGroups.includes(other.group)) continue;
@@ -340,7 +429,10 @@ export class CollisionWorld extends Component {
     }
 
     private checkOverlapAt(halfW: number, halfH: number, group: ColliderGroup, x: number, y: number): boolean {
-        for (const other of this._colliders) {
+        const searchRange = Math.max(halfW, halfH) + GRID_CELL_SIZE;
+        const nearby = this.getNearby(x, y, searchRange);
+
+        for (const other of nearby) {
             if (!other.node.active || !other.node.worldPosition) continue;
             if (!willBlock(group, other.group)) continue;
 

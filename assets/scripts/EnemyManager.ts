@@ -20,6 +20,18 @@ import { YSortManager } from './YSortManager';
 
 const { ccclass, property } = _decorator;
 
+/** 僵尸存档数据 */
+export interface ZombieSaveData {
+    /** 僵尸相对于父节点（YSortLayer）的本地坐标，不受 GameWorld 移动影响 */
+    localX: number;
+    localY: number;
+    hp: number;
+    maxHp: number;
+    isDayWanderer: boolean;
+    /** 僵尸类型名称（预制体节点名），用于恢复时精确匹配预制体 */
+    zombieType: string;
+}
+
 @ccclass('SpawnZone')
 export class SpawnZone {
     @property({ type: CCFloat, tooltip: '最小 X 坐标（相对于 GameWorld）' })
@@ -37,6 +49,14 @@ export class SpawnZone {
 
 @ccclass('EnemyManager')
 export class EnemyManager extends Component {
+    private static _instance: EnemyManager | null = null;
+
+    // ===== 建筑/炮塔缓存（性能优化：避免每个僵尸每帧遍历场景树） =====
+    private static _cachedTurrets: Node[] = [];
+    private static _cachedBuildings: Node[] = []; // 非防御性建筑：发电机、集装箱
+    private static _cacheTimer = 0;
+    private static readonly CACHE_REBUILD_INTERVAL = 2.0; // 每2秒重建缓存
+
     @property({ type: Prefab, tooltip: '僵尸预制体' })
     enemyPrefab: Prefab | null = null;
 
@@ -89,6 +109,7 @@ export class EnemyManager extends Component {
     private _gameWorldRef: Node | null = null;
 
     onLoad() {
+        EnemyManager._instance = this;
         DayNightSystem.eventTarget.on(
             DayNightEvents.PHASE_CHANGED,
             this.onPhaseChanged,
@@ -97,6 +118,7 @@ export class EnemyManager extends Component {
     }
 
     onDestroy() {
+        EnemyManager._instance = null;
         DayNightSystem.eventTarget.off(
             DayNightEvents.PHASE_CHANGED,
             this.onPhaseChanged,
@@ -113,6 +135,73 @@ export class EnemyManager extends Component {
         } else if (dayNight?.isDay) {
             this.startDayWanderSpawning();
         }
+
+        // 立即构建一次缓存
+        EnemyManager.rebuildCaches();
+    }
+
+    update(dt: number) {
+        // 定期重建建筑/炮塔缓存
+        EnemyManager._cacheTimer -= dt;
+        if (EnemyManager._cacheTimer <= 0) {
+            EnemyManager._cacheTimer = EnemyManager.CACHE_REBUILD_INTERVAL;
+            EnemyManager.rebuildCaches();
+        }
+    }
+
+    // ===== 建筑/炮塔缓存方法 =====
+
+    /** 重建建筑和炮塔缓存（遍历场景树） */
+    static rebuildCaches() {
+        EnemyManager._cachedTurrets = [];
+        EnemyManager._cachedBuildings = [];
+
+        const inst = EnemyManager._instance;
+        if (!inst) return;
+
+        const root = inst.node.scene;
+        if (!root) return;
+
+        EnemyManager._walkSceneForCache(root);
+    }
+
+    private static _walkSceneForCache(node: Node) {
+        if (!node || !node.isValid) return;
+
+        // 炮塔
+        const turret = node.getComponent('Turret') as any;
+        if (turret && turret.enabled) {
+            EnemyManager._cachedTurrets.push(node);
+        }
+
+        // 非防御性建筑：发电机、集装箱
+        const plant = node.getComponent('PlantGenerator') as any;
+        if (plant && plant.isPlaced) {
+            EnemyManager._cachedBuildings.push(node);
+        }
+        const container = node.getComponent('Container') as any;
+        if (container && container.enabled) {
+            EnemyManager._cachedBuildings.push(node);
+        }
+
+        for (const child of node.children) {
+            EnemyManager._walkSceneForCache(child);
+        }
+    }
+
+    /** 获取缓存的炮塔列表（过滤已销毁节点） */
+    static getCachedTurrets(): Node[] {
+        return EnemyManager._cachedTurrets.filter(n => n && n.isValid && n.active);
+    }
+
+    /** 获取缓存的非防御性建筑列表（发电机、集装箱） */
+    static getCachedBuildings(): Node[] {
+        return EnemyManager._cachedBuildings.filter(n => n && n.isValid && n.active);
+    }
+
+    /** 立即标记缓存需要重建（建筑放置/销毁时调用） */
+    static invalidateCache() {
+        EnemyManager._cacheTimer = 0;
     }
 
     private resolveEnemyRoot(): Node {
@@ -239,7 +328,9 @@ export class EnemyManager extends Component {
     /** 白天：在基地周围生成游荡型僵尸（不攻击基地/玩家） */
     private spawnDayWanderer() {
         const prefab = this.pickZombiePrefab();
-        if (!prefab || this.getWandererCount() >= this.maxDayWanderers) return;
+        if (!prefab || this.getWandererCount() >= this.maxDayWanderers) {
+            return;
+        }
 
         const enemy = instantiate(prefab);
         const finalParent = this.resolveEnemyRoot();
@@ -257,11 +348,9 @@ export class EnemyManager extends Component {
             const origin = this.spawnOrigin?.worldPosition ?? Vec3.ZERO;
             const angle = Math.random() * Math.PI * 2;
             const radius = 300 + Math.random() * 600;
-            enemy.setWorldPosition(new Vec3(
-                origin.x + Math.cos(angle) * radius,
-                origin.y + Math.sin(angle) * radius,
-                0
-            ));
+            const x = origin.x + Math.cos(angle) * radius;
+            const y = origin.y + Math.sin(angle) * radius;
+            enemy.setWorldPosition(new Vec3(x, y, 0));
         }
 
         const zombieMove = enemy.getComponent(ZombieMove);
@@ -299,6 +388,84 @@ export class EnemyManager extends Component {
         }
         for (const child of root.children) {
             this.walkZombies(child, visitor);
+        }
+    }
+
+    /** 收集所有存活僵尸的存档数据 */
+    static getZombieData(): ZombieSaveData[] {
+        const inst = EnemyManager._instance;
+        if (!inst) return [];
+
+        const result: ZombieSaveData[] = [];
+        const root = inst.resolveEnemyRoot();
+        inst.walkZombies(root, (zm) => {
+            if (zm.isDead || zm.hp <= 0) return;
+            const typeName = zm.node.name;
+            result.push({
+                localX: zm.node.position.x,
+                localY: zm.node.position.y,
+                hp: zm.hp,
+                maxHp: zm.maxHp,
+                isDayWanderer: zm.isDayWanderer,
+                zombieType: typeName,
+            });
+        });
+        return result;
+    }
+
+    /** 从存档数据恢复僵尸 */
+    static restoreZombies(data: ZombieSaveData[]): void {
+        const inst = EnemyManager._instance;
+        if (!inst || data.length === 0) return;
+
+        const root = inst.resolveEnemyRoot();
+
+        // 先清除场景中已有的僵尸（避免重复）
+        const existingZombies: Node[] = [];
+        inst.walkZombies(root, (zm) => {
+            if (!zm.isDead && zm.node.isValid) {
+                existingZombies.push(zm.node);
+            }
+        });
+        for (const node of existingZombies) {
+            node.destroy();
+        }
+
+        for (const zd of data) {
+            // 根据 zombieType 精确匹配预制体
+            let prefab: Prefab | null = null;
+            const instFatName = inst.fatZombiePrefab?.data?.name ?? inst.fatZombiePrefab?.name ?? '';
+            const instNurseName = inst.nurseZombiePrefab?.data?.name ?? inst.nurseZombiePrefab?.name ?? '';
+            const instNormalName = inst.enemyPrefab?.data?.name ?? inst.enemyPrefab?.name ?? '';
+
+            if (zd.zombieType && inst.fatZombiePrefab && zd.zombieType === instFatName) {
+                prefab = inst.fatZombiePrefab;
+            } else if (zd.zombieType && inst.nurseZombiePrefab && zd.zombieType === instNurseName) {
+                prefab = inst.nurseZombiePrefab;
+            } else if (zd.zombieType && inst.enemyPrefab && zd.zombieType === instNormalName) {
+                prefab = inst.enemyPrefab;
+            } else {
+                // 回退：根据 maxHp 猜测类型
+                if (inst.fatZombiePrefab && zd.maxHp >= 150) {
+                    prefab = inst.fatZombiePrefab;
+                } else if (inst.nurseZombiePrefab && zd.maxHp <= 60) {
+                    prefab = inst.nurseZombiePrefab;
+                } else {
+                    prefab = inst.enemyPrefab;
+                }
+            }
+
+            if (!prefab) continue;
+
+            const enemy = instantiate(prefab);
+            enemy.setParent(root);
+            enemy.setPosition(zd.localX, zd.localY, 0);
+
+            const zm = enemy.getComponent(ZombieMove);
+            if (zm) {
+                zm.init(inst.baseNode ?? enemy, undefined, zd.isDayWanderer);
+                zm.hp = zd.hp;
+            }
         }
     }
 }

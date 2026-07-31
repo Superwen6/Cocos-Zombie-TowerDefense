@@ -77,22 +77,29 @@ export class PlayerData extends Component {
 
     /** 退还建造消耗（取消放置时使用） */
     refundUpgradeCost(wood: number, copper: number, iron: number, money: number) {
-        this.woodCount = Math.min(this.maxWood, this.woodCount + wood);
-        this.copperCount = Math.min(this.maxCopper, this.copperCount + copper);
-        this.ironCount = Math.min(this.maxIron, this.ironCount + iron);
+        const ps = PlayerState.instance;
+        const effMaxWood = ps?.getEffectiveBackpackMax(this.maxWood) ?? this.maxWood;
+        const effMaxCopper = ps?.getEffectiveBackpackMax(this.maxCopper) ?? this.maxCopper;
+        const effMaxIron = ps?.getEffectiveBackpackMax(this.maxIron) ?? this.maxIron;
+        this.woodCount = Math.min(effMaxWood, this.woodCount + wood);
+        this.copperCount = Math.min(effMaxCopper, this.copperCount + copper);
+        this.ironCount = Math.min(effMaxIron, this.ironCount + iron);
         this.money = Math.min(this.maxMoney, this.money + money);
     }
 
     addWood(amount: number) {
-        this.woodCount = Math.min(this.maxWood, this.woodCount + amount);
+        const effectiveMax = PlayerState.instance?.getEffectiveBackpackMax(this.maxWood) ?? this.maxWood;
+        this.woodCount = Math.min(effectiveMax, this.woodCount + amount);
     }
 
     addCopper(amount: number) {
-        this.copperCount = Math.min(this.maxCopper, this.copperCount + amount);
+        const effectiveMax = PlayerState.instance?.getEffectiveBackpackMax(this.maxCopper) ?? this.maxCopper;
+        this.copperCount = Math.min(effectiveMax, this.copperCount + amount);
     }
 
     addIron(amount: number) {
-        this.ironCount = Math.min(this.maxIron, this.ironCount + amount);
+        const effectiveMax = PlayerState.instance?.getEffectiveBackpackMax(this.maxIron) ?? this.maxIron;
+        this.ironCount = Math.min(effectiveMax, this.ironCount + amount);
     }
 
     addMoney(amount: number) {

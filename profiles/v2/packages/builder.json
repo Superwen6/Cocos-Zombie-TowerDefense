@@ -65,10 +65,14 @@
           "useSplashScreen": true,
           "bundleCommonChunk": false,
           "packAutoAtlas": true,
-          "startScene": "8faf2079-a7f9-48b1-98cc-40d3e1ee36b7",
+          "startScene": "96882b7c-92b5-4a58-ab18-1e3c9eac5e24",
           "outputName": "web-desktop",
           "taskName": "web-desktop",
           "scenes": [
+            {
+              "url": "db://assets/scenes/MainMenu.scene",
+              "uuid": "96882b7c-92b5-4a58-ab18-1e3c9eac5e24"
+            },
             {
               "url": "db://assets/1.scene",
               "uuid": "8faf2079-a7f9-48b1-98cc-40d3e1ee36b7"

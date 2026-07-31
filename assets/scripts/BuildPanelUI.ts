@@ -71,8 +71,13 @@ export class BuildPanelUI extends Component {
     private _refreshTimer = 0;
     private _warningTimer = 0;
     private _panelVisible = false;
-    private static _openPanelBound = false;
     private static _pendingOpen = false;
+
+    onLoad() {
+        // 面板节点在编辑器中 inactive，onLoad 仅在面板被激活时执行
+        // 打开按钮的绑定由 ensureOpenPanelBinding（GameHUDUI.start() 调用）统一处理
+        // 不在 onLoad 中绑定按钮，避免 double-binding
+    }
 
     start() {
         this.bindButton(this.upgradeButton, this.onUpgradeClick, 'upgradeButton');
@@ -90,6 +95,7 @@ export class BuildPanelUI extends Component {
     }
 
     onDestroy() {
+        BuildPanelUI._pendingOpen = false;
         this.unbindButton(this.upgradeButton, this.onUpgradeClick);
         this.unbindButton(this.closePanelButton, this.hidePanel);
     }
@@ -144,17 +150,14 @@ export class BuildPanelUI extends Component {
     }
 
     /**
-     * 确保打开面板按钮的点击事件已绑定。
-     * 支持 UpgradePanel 节点在编辑器中未勾选激活的场景。
-     * 从 GameHUDUI 等始终激活的组件的 start() 中调用。
+     * 确保打开面板按钮的点击事件已绑定（从 GameHUDUI.start() 调用）。
+     * 面板节点在编辑器中 inactive，onLoad 不执行，因此统一在此绑定。
+     * 每次场景加载只调用一次，不会 double-binding。
      */
     public static ensureOpenPanelBinding() {
-        if (BuildPanelUI._openPanelBound) return;
-        BuildPanelUI._openPanelBound = true;
-
         const upgradePanel = find('Canvas/UpgradePanel');
         if (!upgradePanel) {
-            warn('[BuildPanelUI] 找不到 Canvas/UpgradePanel，打开面板按钮绑定失败');
+            warn('[BuildPanelUI] 找不到 Canvas/UpgradePanel');
             return;
         }
         const buildPanel = upgradePanel.getComponent(BuildPanelUI);
@@ -169,7 +172,6 @@ export class BuildPanelUI extends Component {
         }
         btn.node.on(Button.EventType.CLICK, () => {
             if (!upgradePanel.active) {
-                // 节点未激活 → 先激活，start() 会通过 _pendingOpen 显示面板
                 BuildPanelUI._pendingOpen = true;
                 upgradePanel.active = true;
             } else {
@@ -370,13 +372,17 @@ export class BuildPanelUI extends Component {
         return powerCost;
     }
 
-    /** 更新 CostDisplay 下各个 CostWood/CostIron/CostCopper/CostPower 的 Value Label */
+    /** 更新 CostDisplay 下各个 CostWood/CostIron/CostCopper/CostPower 的 Value Label。
+     * CostPower 与 CostDisplay 是兄弟节点，其他三个是 CostDisplay 的子节点。 */
     private updateCostDisplayChildren(costDisplay: Node, cost: TurretPlacementCost | null, data: PlayerData | null, powerValue: number = 0, isGenerator: boolean = false) {
+        // CostPower 是 CostDisplay 的兄弟节点，需要用父节点来查找
+        const powerParent = costDisplay.parent ?? costDisplay;
+
         if (!cost || !data) {
             this.setCostChildValue(costDisplay, 'CostWood', '?/?', false);
             this.setCostChildValue(costDisplay, 'CostIron', '?/?', false);
             this.setCostChildValue(costDisplay, 'CostCopper', '?/?', false);
-            this.setCostChildValue(costDisplay, 'CostPower', '?/?', false);
+            this.setCostChildValue(powerParent, 'CostPower', '?/?', false);
             return;
         }
 
@@ -399,13 +405,13 @@ export class BuildPanelUI extends Component {
 
         if (isGenerator) {
             // 发电机：显示发电量，始终白色
-            this.setCostChildValue(costDisplay, 'CostPower', `${powerValue}`, true);
+            this.setCostChildValue(powerParent, 'CostPower', `${powerValue}`, true);
         } else {
             // 集装箱：应用省电率，显示单数字耗电量，不足时变红
             const powerSave = ps ? ps.powerSaveRate : 0;
             const actualPower = powerValue - Math.round(powerValue * powerSave);
             const gen = BaseSystem.instance ? BaseSystem.instance.totalPowerGen : 0;
-            this.setCostChildValue(costDisplay, 'CostPower', `${actualPower}`, gen >= actualPower);
+            this.setCostChildValue(powerParent, 'CostPower', `${actualPower}`, gen >= actualPower);
         }
     }
 
@@ -416,12 +422,11 @@ export class BuildPanelUI extends Component {
         const valueNode = costNode.getChildByName('Value');
         if (!valueNode) return;
         const label = valueNode.getComponent(Label);
-        if (label) {
-            label.string = text;
-            label.color = affordable
-                ? new Color(255, 255, 255, 255)
-                : new Color(255, 0, 0, 255);
-        }
+        if (!label) return;
+        label.string = text;
+        label.color = affordable
+            ? new Color(255, 255, 255, 255)
+            : new Color(255, 0, 0, 255);
     }
 
     // ==================== 按钮绑定 ====================
@@ -439,7 +444,7 @@ export class BuildPanelUI extends Component {
     }
 
     private unbindButton(button: Button | null, handler: () => void) {
-        if (button?.node.isValid) {
+        if (button?.node?.isValid) {
             button.node.off(Button.EventType.CLICK, handler, this);
         }
     }

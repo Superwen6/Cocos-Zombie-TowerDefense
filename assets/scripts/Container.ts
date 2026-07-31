@@ -2,6 +2,7 @@ import { _decorator, AudioClip, AudioSource, CCInteger, CCFloat, Component, Even
 import { GlobalContainerStorage } from './GlobalContainerStorage';
 import { ContainerPanelUI } from './ContainerPanelUI';
 import { ReinforcementNotice } from './ReinforcementNotice';
+import { EnemyManager } from './EnemyManager';
 
 const { ccclass, property } = _decorator;
 
@@ -35,6 +36,13 @@ export class Container extends Component {
 
     @property({ type: CCInteger, tooltip: '建造消耗金币' })
     costMoney = 300;
+
+    // 以下为运行时记录（非编辑器属性），用于拆除时按实际消耗返还
+    materialSaveApplied = false;
+    actualCostWood = 0;
+    actualCostCopper = 0;
+    actualCostIron = 0;
+    actualCostMoney = 0;
 
     @property({ type: CCInteger, tooltip: '自身耗电量' })
     powerCost = 2;
@@ -121,6 +129,7 @@ export class Container extends Component {
         this.playAttackSound();
         if (this.hp <= 0) {
             this.playDestroySound();
+            EnemyManager.invalidateCache();
             this.node.destroy();
         }
     }

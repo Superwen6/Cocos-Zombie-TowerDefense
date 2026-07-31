@@ -1,4 +1,5 @@
 import { _decorator, AudioClip, AudioSource, CCInteger, CCFloat, Component, find, Vec3 } from 'cc';
+import { EnemyManager } from './EnemyManager';
 
 const { ccclass, property } = _decorator;
 
@@ -49,6 +50,13 @@ export class PlantGenerator extends Component {
 
     @property({ type: CCInteger, tooltip: '建造消耗金币' })
     costMoney = 500;
+
+    // 以下为运行时记录（非编辑器属性），用于拆除时按实际消耗返还
+    materialSaveApplied = false;
+    actualCostWood = 0;
+    actualCostCopper = 0;
+    actualCostIron = 0;
+    actualCostMoney = 0;
 
     @property({ type: Number, tooltip: '虚影透明度（0~1）', range: [0, 1, 0.05] })
     ghostOpacity = 0.5;
@@ -144,6 +152,7 @@ export class PlantGenerator extends Component {
         PlantGenerator.placedMap.set(this.plantId, this);
         // 通知所有监听者（如 PlantPanelUI 刷新按钮状态）
         PlantGenerator.invokePlacedCallbacks();
+        EnemyManager.invalidateCache();
     }
 
     /** 检查该 ID 的发电机是否已被放置且处于激活状态 */

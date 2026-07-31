@@ -1,8 +1,9 @@
-import { _decorator, Component, Node, warn } from 'cc';
+import { _decorator, AudioClip, AudioSource, Component, Node, director, find, warn } from 'cc';
 import { CollisionWorld } from './CollisionWorld';
 import { YSortManager } from './YSortManager';
+import { SaveSystem } from './SaveSystem';
 
-const { ccclass } = _decorator;
+const { ccclass, property } = _decorator;
 
 /**
  * 全局游戏流程管理（通关、失败等）。
@@ -11,6 +12,18 @@ const { ccclass } = _decorator;
 @ccclass('GameManager')
 export class GameManager extends Component {
     static instance: GameManager | null = null;
+    /** 是否正在从存档恢复游戏（onLoad 中设置，供其他组件 start 时判断） */
+    static isRestoringSave = false;
+
+    @property({ type: AudioClip, tooltip: '逃脱成功（胜利）音效' })
+    victorySound: AudioClip | null = null;
+
+    @property({ type: AudioClip, tooltip: '逃脱失败（失败）音效' })
+    defeatSound: AudioClip | null = null;
+
+    private _audioSource: AudioSource | null = null;
+    /** 防止重复触发胜利/失败 */
+    private _gameEnded = false;
 
     onLoad() {
         if (GameManager.instance && GameManager.instance !== this) {
@@ -19,6 +32,10 @@ export class GameManager extends Component {
             return;
         }
         GameManager.instance = this;
+        // 在 onLoad 中设置标志（所有 start 之前），避免 hasPendingLoad 被 consume 后的竞态
+        GameManager.isRestoringSave = SaveSystem.hasPendingLoad();
+        // 确保 AudioSource 存在
+        this._audioSource = this.node.getComponent(AudioSource) || this.node.addComponent(AudioSource);
         // 确保 CollisionWorld 在 onLoad 中创建，保证其他组件 start 时可用
         this.ensureCollisionWorld();
         this.ensureYSortManager();
@@ -27,6 +44,16 @@ export class GameManager extends Component {
     onDestroy() {
         if (GameManager.instance === this) {
             GameManager.instance = null;
+        }
+    }
+
+    start() {
+        // 检查是否有待加载的存档（从主菜单载入游戏时）
+        if (GameManager.isRestoringSave) {
+            const data = SaveSystem.consumePendingLoad();
+            if (data) {
+                SaveSystem.apply(data);
+            }
         }
     }
 
@@ -55,5 +82,39 @@ export class GameManager extends Component {
 
     /** 百日生存通关 */
     triggerVictory() {
+        if (this._gameEnded) return;
+        this._gameEnded = true;
+        if (this._audioSource && this.victorySound) {
+            this._audioSource.playOneShot(this.victorySound, 1);
+        }
+        this.showEscapeResult('EscapeSuccess');
+    }
+
+    /** 基地被摧毁，逃脱失败 */
+    triggerDefeat() {
+        if (this._gameEnded) return;
+        this._gameEnded = true;
+        if (this._audioSource && this.defeatSound) {
+            this._audioSource.playOneShot(this.defeatSound, 1);
+        }
+        this.showEscapeResult('EscapeFail');
+    }
+
+    /** 显示逃脱结果 UI，10 秒后跳转主菜单 */
+    private showEscapeResult(nodeName: string) {
+        const canvas = find('Canvas');
+        if (!canvas) {
+            warn(`[GameManager] 找不到 Canvas 节点`);
+            return;
+        }
+        const escapeNode = canvas.getChildByName(nodeName);
+        if (!escapeNode) {
+            warn(`[GameManager] 找不到 ${nodeName} 节点`);
+            return;
+        }
+        escapeNode.active = true;
+        this.scheduleOnce(() => {
+            director.loadScene('MainMenu');
+        }, 10);
     }
 }

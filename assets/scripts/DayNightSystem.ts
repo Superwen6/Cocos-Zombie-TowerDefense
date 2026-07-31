@@ -9,11 +9,13 @@ import {
     Label,
     Sprite,
     UIOpacity,
+    log,
     warn,
 } from 'cc';
 import { GameManager } from './GameManager';
 import { ResourceSpawner } from './ResourceSpawner';
 import { PlayerState } from './PlayerState';
+import { ReinforcementNotice } from './ReinforcementNotice';
 
 const { ccclass, property } = _decorator;
 
@@ -172,9 +174,20 @@ export class DayNightSystem extends Component {
     }
 
     start() {
+        // 读档恢复时跳过白天初始化（音乐/天数大字报），由 SaveSystem.apply 的 forcePhase 接管
+        if (GameManager.isRestoringSave) {
+            return;
+        }
         this.showDayNotice(`Day ${this.currentDay}`);
         this.spawnDayResources();
         this.playDayMusic();
+
+        // 第一天大字报消失后，显示游戏指引
+        if (this.currentDay === 1) {
+            this.scheduleOnce(() => {
+                ReinforcementNotice.show('坚守基地！直至最后一天！', 10);
+            }, 2.5);
+        }
     }
 
     update(dt: number) {
@@ -191,14 +204,23 @@ export class DayNightSystem extends Component {
         this.updateMaskSmoothly();
     }
 
-    forcePhase(phase: DayNightPhase) {
+    forcePhase(phase: DayNightPhase, skipAnnounce = false) {
         if (this._phase === phase) {
+            // 同阶段（如读档恢复白天存档）：仍需播放背景音乐，但跳过提示音效
+            if (skipAnnounce) {
+                this.onPhaseMusicChanged(phase, true);
+            }
             return;
         }
         const previous = this._phase;
         this._phase = phase;
         this._elapsed = 0;
-        this.emitPhaseChanged(previous);
+        this.emitPhaseChanged(previous, skipAnnounce);
+    }
+
+    /** 设置当前阶段已流逝时间（秒），用于存档恢复 */
+    forceElapsed(elapsed: number) {
+        this._elapsed = elapsed;
     }
 
     /**
@@ -283,7 +305,7 @@ export class DayNightSystem extends Component {
         this.emitPhaseChanged(previous);
     }
 
-    private emitPhaseChanged(previousPhase: DayNightPhase) {
+    private emitPhaseChanged(previousPhase: DayNightPhase, skipAnnounce = false) {
         const detail: DayNightPhaseChangedDetail = {
             phase: this._phase,
             previousPhase,
@@ -294,11 +316,12 @@ export class DayNightSystem extends Component {
         DayNightSystem.eventTarget.emit(DayNightEvents.PHASE_CHANGED, detail);
 
         // 阶段切换音乐
-        this.onPhaseMusicChanged(this._phase);
+        this.onPhaseMusicChanged(this._phase, skipAnnounce);
     }
 
     /** 进入新的一天 */
     private onEnterNewDay() {
+        log(`[DayNightSystem] onEnterNewDay 触发，当前天数=${this.currentDay}，最大天数=${this.maxDays}`);
         if (this.currentDay >= this.maxDays) {
             if (GameManager.instance) {
                 GameManager.instance.triggerVictory();
@@ -307,6 +330,7 @@ export class DayNightSystem extends Component {
         }
 
         this.currentDay += 1;
+        log(`[DayNightSystem] 进入第 ${this.currentDay} 天`);
         this.showDayNotice(`Day ${this.currentDay}`);
         this.spawnDayResources();
 
@@ -318,13 +342,14 @@ export class DayNightSystem extends Component {
 
     /** 统一封装资源刷新逻辑 */
     private spawnDayResources() {
-        if (this.resourceSpawner) {
-            this.resourceSpawner.spawnDayResources();
+        const spawner = this.resourceSpawner
+            || this.getComponent(ResourceSpawner)
+            || ResourceSpawner.instance;
+        if (spawner) {
+            log(`[DayNightSystem] 调用资源刷新，当前第 ${this.currentDay} 天`);
+            spawner.spawnDayResources();
         } else {
-            const spawner = this.getComponent(ResourceSpawner);
-            if (spawner) {
-                spawner.spawnDayResources();
-            }
+            warn('[DayNightSystem] 未找到 ResourceSpawner，资源刷新跳过');
         }
     }
 
@@ -420,13 +445,21 @@ export class DayNightSystem extends Component {
     }
 
     /** 根据阶段切换音乐 */
-    private onPhaseMusicChanged(phase: DayNightPhase) {
+    private onPhaseMusicChanged(phase: DayNightPhase, skipAnnounce = false) {
         switch (phase) {
             case DayNightPhase.DAY:
-                this.playDayMusic();
+                if (skipAnnounce) {
+                    this._playDayBgMusic();
+                } else {
+                    this.playDayMusic();
+                }
                 break;
             case DayNightPhase.NIGHT:
-                this.playNightMusic();
+                if (skipAnnounce) {
+                    this._playNightBgMusic();
+                } else {
+                    this.playNightMusic();
+                }
                 break;
             // DUSK/DAWN 过渡阶段不切换音乐，保持当前音乐
         }

@@ -8,8 +8,11 @@ export class ButtonSound extends Component {
 
     private _audioSource: AudioSource | null = null;
 
-    start() {
+    onLoad() {
         this._audioSource = this.node.addComponent(AudioSource);
+    }
+
+    start() {
         this._bindAllButtons();
     }
 
@@ -31,7 +34,7 @@ export class ButtonSound extends Component {
     private _bindButton(node: Node) {
         const btn = node.getComponent(Button);
         if (!btn) return;
-        node.on(Button.EventType.CLICK, this.play, this);
+        node.on(Node.EventType.TOUCH_END, this.play, this);
     }
 
     /** 播放按钮点击音效 */

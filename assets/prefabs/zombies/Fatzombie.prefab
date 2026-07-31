@@ -287,9 +287,9 @@
     "__prefab": {
       "__id__": 13
     },
-    "maxHp": 150,
+    "maxHp": 200,
     "damage": 2,
-    "moveSpeed": 50,
+    "moveSpeed": 90,
     "attackRange": 45,
     "alertRadius": 300,
     "buildingScanRadius": 250,
@@ -485,11 +485,11 @@
     "__prefab": {
       "__id__": 15
     },
-    "woodDropChance": 0.08,
-    "copperDropChance": 0.04,
-    "ironDropChance": 0.02,
-    "moneyDropChance": 0.3,
-    "moneyAmount": 10,
+    "woodDropChance": 0.15,
+    "copperDropChance": 0.08,
+    "ironDropChance": 0.07,
+    "moneyDropChance": 0.15,
+    "moneyAmount": 50,
     "_id": ""
   },
   {

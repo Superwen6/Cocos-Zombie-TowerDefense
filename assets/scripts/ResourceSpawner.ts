@@ -6,6 +6,7 @@ const { ccclass, property } = _decorator;
 
 @ccclass('ResourceSpawner')
 export class ResourceSpawner extends Component {
+    public static instance: ResourceSpawner | null = null;
 
     @property({ type: Prefab, tooltip: '铁矿预制体' })
     ironPrefab: Prefab | null = null;
@@ -52,8 +53,35 @@ export class ResourceSpawner extends Component {
     @property({ type: CCFloat, tooltip: '地图最大 Y 坐标（相对于 CoordinateReference）' })
     mapMaxY = 3350;
 
+    onLoad() {
+        ResourceSpawner.instance = this;
+    }
+
     start() {
         // 第一天也交由 DayNightSystem 在 showDayNotice 后触发，避免重复
+    }
+
+    onDestroy() {
+        if (ResourceSpawner.instance === this) {
+            ResourceSpawner.instance = null;
+        }
+    }
+
+    /** 获取资源根节点（供 SaveSystem 使用） */
+    public getResourceRoot(): Node | null {
+        return YSortManager.getSortLayer()
+            || this.resourceRoot
+            || find('GameWorld/ResourceRoot');
+    }
+
+    /** 根据资源类型获取对应预制体（供 SaveSystem 使用） */
+    public getPrefabByType(type: string): Prefab | null {
+        switch (type) {
+            case 'iron': return this.ironPrefab;
+            case 'copper': return this.copperPrefab;
+            case 'wood': return this.woodPrefab;
+            default: return null;
+        }
     }
 
     public spawnDayResources() {
@@ -69,6 +97,8 @@ export class ResourceSpawner extends Component {
         const currentCount = this.getResourceCount(root);
         const remaining = Math.max(0, this.mapResourceLimit - currentCount);
         const actualSpawnCount = Math.min(this.spawnCount, remaining);
+
+        log(`[ResourceSpawner] 资源刷新诊断：当前资源=${currentCount}，上限=${this.mapResourceLimit}，每日生成=${this.spawnCount}，实际生成=${actualSpawnCount}`);
 
         if (actualSpawnCount <= 0) {
             log(`[ResourceSpawner] 地图资源已达上限 (${currentCount}/${this.mapResourceLimit})，今日不生成新资源`);

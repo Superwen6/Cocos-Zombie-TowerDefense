@@ -28,6 +28,9 @@ export class YSortManager extends Component {
     private _gameWorld: Node | null = null;
     private _playerNode: Node | null = null;
 
+    /** 记录从 Base 迁移到 YSortLayer 的节点 UUID（供 Blast 等逻辑排除） */
+    private static _baseChildUUIDs: Set<string> = new Set();
+
     onLoad() {
         if (YSortManager.instance && YSortManager.instance !== this) {
             this.destroy();
@@ -83,6 +86,11 @@ export class YSortManager extends Component {
         );
     }
 
+    /** 检查节点是否原本属于 Base（被 YSortLayer 迁移前） */
+    static isOriginallyBaseChild(node: Node): boolean {
+        return YSortManager._baseChildUUIDs.has(node.uuid);
+    }
+
     private ensureSortLayer(gameWorld: Node): Node {
         let layer = gameWorld.getChildByName(Y_SORT_LAYER_NAME);
         if (layer) {
@@ -119,6 +127,10 @@ export class YSortManager extends Component {
             }
             const children = root.children.slice();
             for (const child of children) {
+                // 记录从 Base 迁移的节点，供 Blast 等逻辑排除
+                if (name === 'Base') {
+                    YSortManager._baseChildUUIDs.add(child.uuid);
+                }
                 this.reparentIfSortable(child);
             }
         }

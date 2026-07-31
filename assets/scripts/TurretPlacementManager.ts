@@ -17,6 +17,7 @@ import { ReinforcementNotice } from './ReinforcementNotice';
 import { CollisionWorld, ColliderGroup } from './CollisionWorld';
 import { YSortManager } from './YSortManager';
 import { HealthBar } from './HealthBar';
+import { EnemyManager } from './EnemyManager';
 
 const { ccclass, property } = _decorator;
 
@@ -359,6 +360,9 @@ export class TurretPlacementManager extends Component {
         // 移除虚影上的所有碰撞相关组件，防止推动僵尸
         this.removeCollisionComponents(this.ghostNode);
 
+        // 虚影阶段隐藏血条，建造开始后才显示
+        this.hideHealthBarOnGhost(this.ghostNode);
+
         this.applyGhostVisual(this.ghostNode);
     }
 
@@ -378,6 +382,16 @@ export class TurretPlacementManager extends Component {
         const collider = node.getComponent(Collider2D);
         if (collider) collider.enabled = true;
         node.children.forEach(c => this.restoreCollisionComponents(c));
+    }
+
+    /** 虚影阶段隐藏血条节点（HealthBar 的 Background 和 Fill），建造开始后由 startBuildProgress 恢复 */
+    private hideHealthBarOnGhost(node: Node) {
+        const bar = this.findHealthBar(node);
+        if (bar) {
+            if (bar.backgroundSprite) bar.backgroundSprite.node.active = false;
+            if (bar.fillSprite) bar.fillSprite.node.active = false;
+            if (bar.borderSprite) bar.borderSprite.node.active = false;
+        }
     }
 
     // ── 鼠标移动 ──
@@ -548,6 +562,11 @@ export class TurretPlacementManager extends Component {
         return this.placementRoot ?? mapElements ?? gameWorld ?? this.node;
     }
 
+    /** 公开的放置根节点访问（供 SaveSystem 等外部模块使用） */
+    public getPlacementRootPublic(): Node {
+        return this.getPlacementRoot();
+    }
+
     private unregisterInput() {
         input.off(Input.EventType.MOUSE_MOVE, this.onMouseMove, this);
         input.off(Input.EventType.MOUSE_DOWN, this.onMouseDown, this);
@@ -596,6 +615,11 @@ export class TurretPlacementManager extends Component {
             if (found) return found;
         }
         return null;
+    }
+
+    /** 公开的 HealthBar 查找方法（供 SaveSystem 等外部模块使用） */
+    public findHealthBarPublic(node: Node): HealthBar | null {
+        return this.findHealthBar(node);
     }
 
     /** 启动建造进度条 */
@@ -699,17 +723,24 @@ export class TurretPlacementManager extends Component {
                         container.enabled = true;
                         container.onPlaced(); // 立即注册，避免 start() 延迟一帧导致电力统计滞后
                         BaseSystem.instance?.updatePowerStatus();
+                        EnemyManager.invalidateCache();
                     }
                 } else {
                     const turret = ghost.getComponent(Turret);
                     if (turret) {
                         turret.enabled = true;
                         BaseSystem.instance?.updatePowerStatus();
+                        EnemyManager.invalidateCache();
                     }
                 }
                 buildingNode = ghost;
             }
             this._buildGhostNode = null;
+        }
+
+        // 记录实际建造消耗（MaterialSave 省材料后的实际花费），用于拆除时按实际消耗返还
+        if (buildingNode) {
+            this.recordActualCost(buildingNode);
         }
 
         // 从建筑节点上查找 HealthBar，绑定并切换战斗模式
@@ -718,6 +749,13 @@ export class TurretPlacementManager extends Component {
             if (bar) {
                 bar.bindParent(buildingNode);
                 bar.finishBuild();
+                // setNodeTint 会递归覆盖所有 Sprite 颜色（包括 HealthBar 的 Background/Fill），需要恢复
+                if (bar.backgroundSprite) {
+                    bar.backgroundSprite.color = new Color(122, 122, 122, 199);
+                }
+                if (bar.fillSprite) {
+                    bar.fillSprite.color = new Color(60, 255, 80, 255);
+                }
             }
         }
 
@@ -727,6 +765,36 @@ export class TurretPlacementManager extends Component {
         // 播放建造完成音效
         if (this._audioSource && this.buildCompleteSound) {
             this._audioSource.playOneShot(this.buildCompleteSound, 1);
+        }
+    }
+
+    /** 记录建筑的实际建造消耗（省材料后的实际花费），用于拆除时按实际消耗返还 */
+    private recordActualCost(buildingNode: Node) {
+        const ps = PlayerState.instance;
+        const saveRate = ps ? ps.materialSaveRate : 0;
+
+        const turret = buildingNode.getComponent(Turret);
+        const plant = buildingNode.getComponent(PlantGenerator);
+        const container = buildingNode.getComponent(Container);
+
+        if (turret) {
+            turret.materialSaveApplied = saveRate > 0;
+            turret.actualCostWood = this.currentCost.wood;
+            turret.actualCostCopper = this.currentCost.copper;
+            turret.actualCostIron = this.currentCost.iron;
+            turret.actualCostMoney = this.currentCost.money;
+        } else if (plant) {
+            plant.materialSaveApplied = saveRate > 0;
+            plant.actualCostWood = this.currentCost.wood;
+            plant.actualCostCopper = this.currentCost.copper;
+            plant.actualCostIron = this.currentCost.iron;
+            plant.actualCostMoney = this.currentCost.money;
+        } else if (container) {
+            container.materialSaveApplied = saveRate > 0;
+            container.actualCostWood = this.currentCost.wood;
+            container.actualCostCopper = this.currentCost.copper;
+            container.actualCostIron = this.currentCost.iron;
+            container.actualCostMoney = this.currentCost.money;
         }
     }
 

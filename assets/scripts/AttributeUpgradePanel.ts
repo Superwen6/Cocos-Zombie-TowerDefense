@@ -1,8 +1,9 @@
-import { _decorator, AudioClip, AudioSource, Button, Camera, Color, Component, EventMouse, EventTouch, find, Input, input, Label, Node, RichText, Sprite, tween, Vec3, warn } from 'cc';
+import { _decorator, AudioClip, AudioSource, Button, Camera, Color, Component, director, EventMouse, EventTouch, find, Input, input, Label, Node, RichText, Sprite, tween, Vec3, warn } from 'cc';
 import { PlayerState } from './PlayerState';
 import { PlayerData } from './PlayerData';
 import { TurretPlacementManager } from './TurretPlacementManager';
 import { ReinforcementNotice } from './ReinforcementNotice';
+import { YSortManager } from './YSortManager';
 
 const { ccclass, property } = _decorator;
 
@@ -26,26 +27,28 @@ const REINFORCE_HOVER_RADIUS = 80;
 
 /** 升级依赖链：点击某个按钮后，哪些按钮的视觉状态需要刷新 */
 const AFFECTED_BUTTONS: Record<string, string[]> = {
-    Walkspeed: ['Walkspeed', 'FatigueReduce', 'WoodCollect'],
+    Walkspeed: ['Walkspeed', 'FatigueReduce', 'doublecollect'],
     FatigueReduce: ['FatigueReduce', 'HPIncrease'],
-    WoodCollect: ['WoodCollect', 'CopperCollect'],
-    CopperCollect: ['CopperCollect', 'IronCollect'],
-    IronCollect: ['IronCollect', 'Stealth'],
+    doublecollect: ['doublecollect', 'bagexpand'],
+    bagexpand: ['bagexpand', 'collectmaster'],
+    collectmaster: ['collectmaster', 'Stealth'],
     HPIncrease: ['HPIncrease'],
     Stealth: ['Stealth'],
     // 工程
     RemoteRepair: ['RemoteRepair', 'RemoteMaterial', 'MaterialSave'],
-    RemoteMaterial: ['RemoteMaterial', 'TurretReinforcement'],
+    RemoteMaterial: ['RemoteMaterial', 'MaterialRetun'],
+    MaterialRetun: ['MaterialRetun', 'TurretReinforcement'],
     TurretReinforcement: ['TurretReinforcement'],
     MaterialSave: ['MaterialSave', 'PowerSaving'],
     PowerSaving: ['PowerSaving', 'Blast'],
     Blast: ['Blast'],
     // 武器
-    AttackIncrease: ['AttackIncrease', 'Pistol'],
-    Pistol: ['Pistol', 'Micromsg', 'Rifle', 'Machinegun'],
-    Micromsg: ['Micromsg'],
-    Rifle: ['Rifle'],
+    AttackIncrease: ['AttackIncrease', 'Pistol', 'greedy'],
+    Pistol: ['Pistol', 'Micromsg'],
+    Micromsg: ['Micromsg', 'Rifle'],
+    Rifle: ['Rifle', 'Machinegun'],
     Machinegun: ['Machinegun'],
+    greedy: ['greedy'],
 };
 
 /** 炮塔强化消耗 */
@@ -65,13 +68,14 @@ const BUTTON_DESCRIPTIONS: Record<string, string> = {
     Walkspeed: 'LV2，移动速度加快',
     FatigueReduce: 'LV2，疲劳增长减缓',
     HPIncrease: 'LV3，生命值提升',
-    WoodCollect: 'LV3，木材采集效率提升',
-    CopperCollect: 'LV3，铜矿采集效率提升',
-    IronCollect: 'LV3，铁矿采集效率提升',
-    Stealth: 'LV1，降低僵尸感知范围',
+    doublecollect: 'LV1，资源采集量翻倍',
+    bagexpand: 'LV1，背包容量*1.5',
+    collectmaster: 'LV2，资源采集暴增',
+    Stealth: 'LV1，危机状况隐身与潜行',
     RemoteRepair: 'LV1，远程维修建筑',
     RemoteMaterial: 'LV1，远程用材料维修',
     TurretReinforcement: 'LV1，强化炮塔属性 (消耗：6木 3铜 1铁)',
+    MaterialRetun: 'LV3，拆除建筑返还材料',
     MaterialSave: 'LV3，全局节省材料',
     PowerSaving: 'LV3，全局节省电力',
     Blast: 'LV1，爆破拆除地图元素（最多10次）',
@@ -80,6 +84,7 @@ const BUTTON_DESCRIPTIONS: Record<string, string> = {
     Micromsg: 'LV1，切换微型冲锋枪',
     Rifle: 'LV1，切换步枪模式',
     Machinegun: 'LV1，切换机关枪模式',
+    greedy: 'LV1，所有僵尸金钱掉落概率*2',
 };
 
 /**
@@ -114,14 +119,14 @@ export class AttributeUpgradePanel extends Component {
     @property({ type: Node, tooltip: '血量提升升级按钮' })
     hpIncreaseButton: Node | null = null;
 
-    @property({ type: Node, tooltip: '木材采集升级按钮' })
-    woodCollectButton: Node | null = null;
+    @property({ type: Node, tooltip: '资源采集翻倍升级按钮' })
+    doublecollectButton: Node | null = null;
 
-    @property({ type: Node, tooltip: '铜矿采集升级按钮' })
-    copperCollectButton: Node | null = null;
+    @property({ type: Node, tooltip: '背包扩容升级按钮' })
+    bagexpandButton: Node | null = null;
 
-    @property({ type: Node, tooltip: '铁矿采集升级按钮' })
-    ironCollectButton: Node | null = null;
+    @property({ type: Node, tooltip: '资源采集暴增升级按钮' })
+    collectmasterButton: Node | null = null;
 
     @property({ type: Node, tooltip: '潜行升级按钮' })
     stealthButton: Node | null = null;
@@ -135,6 +140,9 @@ export class AttributeUpgradePanel extends Component {
 
     @property({ type: Node, tooltip: '炮塔强化按钮（分支一）' })
     turretReinforcementButton: Node | null = null;
+
+    @property({ type: Node, tooltip: '材料返还按钮（分支一）' })
+    materialRetunButton: Node | null = null;
 
     @property({ type: Node, tooltip: '省材料按钮（分支二）' })
     materialSaveButton: Node | null = null;
@@ -160,6 +168,9 @@ export class AttributeUpgradePanel extends Component {
 
     @property({ type: Node, tooltip: '机关枪按钮' })
     machinegunButton: Node | null = null;
+
+    @property({ type: Node, tooltip: '贪婪按钮（金钱掉落*2）' })
+    greedyButton: Node | null = null;
 
     // ---- 武器攻击间隔（属性检查器可调） ----
     @property({ tooltip: '手枪攻击间隔（秒）' })
@@ -229,8 +240,18 @@ export class AttributeUpgradePanel extends Component {
     cancelResetButtonNode: Node | null = null;
 
     private _panelVisible = false;
-    private static _openPanelBound = false;
     private static _pendingOpen = false;
+
+    /** 待恢复的按钮等级（存档恢复用） */
+    private static _pendingLevels: Record<string, number> | null = null;
+    /** 待恢复的爆破次数 */
+    private static _pendingBlastCount = 0;
+    /** 待恢复的爆破冷却结束时间戳 */
+    private static _pendingBlastCooldownEndTime = 0;
+    /** 待恢复的已爆破 MapObstacle 标识 */
+    private static _pendingBlastedIds: string[] = [];
+    /** 待恢复的已强化炮塔 ID */
+    private static _pendingReinforcedIds: string[] = [];
 
     /** 按钮状态 Map（生存 + 工程） */
     private _upgradeStates: Map<string, UpgradeState> = new Map();
@@ -249,6 +270,9 @@ export class AttributeUpgradePanel extends Component {
 
     /** 已爆破次数 */
     private _blastCount = 0;
+
+    /** 已爆破的 MapObstacle 标识集合（格式：name_x_y，供存档恢复） */
+    private _blastedObstacleIds: Set<string> = new Set();
 
     /** 爆破冷却结束时间戳 */
     private _blastCooldownEndTime = 0;
@@ -272,26 +296,32 @@ export class AttributeUpgradePanel extends Component {
 
     private _initialized = false;
 
-    start() {
-        // 仅在首次初始化时注册升级按钮，避免重复调用 start() 时覆盖已有升级状态
-        if (!this._initialized) {
-            this._initialized = true;
-            this.bindCloseButton();
-            this.initSurvivalUpgrades();
-            this.initEngineeringUpgrades();
-            this.initWeaponUpgrades();
-            this.initCanvasActionButtons();
-            this.bindResetButton();
-            this.bindConfirmPanel();
+    /** 确保面板已初始化（_upgradeStates + 事件绑定），可被 restoreCanvasButtons 提前调用 */
+    private ensureInitialized() {
+        if (this._initialized) return;
+        this._initialized = true;
+        this.bindCloseButton();
+        this.initSurvivalUpgrades();
+        this.initEngineeringUpgrades();
+        this.initWeaponUpgrades();
+        this.initCanvasActionButtons();
+        this.bindResetButton();
+        this.bindConfirmPanel();
 
-            // 描述标签初始隐藏
-            if (this.attributeDescribeLabel) {
-                this.attributeDescribeLabel.node.active = false;
-            }
-
-            // 所有分类同时显示（不再使用 Tab 切换）
-            this.showAllContent();
+        // 描述标签初始隐藏
+        if (this.attributeDescribeLabel) {
+            this.attributeDescribeLabel.node.active = false;
         }
+
+        // 所有分类同时显示（不再使用 Tab 切换）
+        this.showAllContent();
+
+        // 恢复存档中的按钮等级
+        this.restorePendingLevels();
+    }
+
+    start() {
+        this.ensureInitialized();
 
         if (AttributeUpgradePanel._pendingOpen) {
             AttributeUpgradePanel._pendingOpen = false;
@@ -302,12 +332,18 @@ export class AttributeUpgradePanel extends Component {
     }
 
     onDestroy() {
-        if (this.closeButton?.node.isValid) {
+        AttributeUpgradePanel._pendingOpen = false;
+        // 解绑 Btn_OpenAttribute（由 ensureOpenPanelBinding 绑定，target 为 this）
+        const btnNode = find('Canvas/Btn_OpenAttribute');
+        if (btnNode?.isValid) {
+            btnNode.targetOff(this);
+        }
+        if (this.closeButton?.node?.isValid) {
             this.closeButton.node.off(Button.EventType.CLICK, this.hidePanel, this);
         }
         if (this.resetButton?.isValid) {
             const resetBtn = this.resetButton.getComponent(Button);
-            if (resetBtn?.node.isValid) {
+            if (resetBtn?.node?.isValid) {
                 resetBtn.node.off(Button.EventType.CLICK, this.onResetClick, this);
             }
         }
@@ -337,10 +373,12 @@ export class AttributeUpgradePanel extends Component {
         return this._panelVisible;
     }
 
+    /**
+     * 确保打开面板按钮的点击事件已绑定（从 GameHUDUI.start() 调用）。
+     * 面板节点在编辑器中 inactive，onLoad 不执行，因此统一在此绑定。
+     * 每次场景加载只调用一次，不会 double-binding。
+     */
     public static ensureOpenPanelBinding() {
-        if (AttributeUpgradePanel._openPanelBound) return;
-        AttributeUpgradePanel._openPanelBound = true;
-
         const panelNode = find('Canvas/AttributeUpgradePanel');
         if (!panelNode) {
             warn('[AttributeUpgradePanel] 找不到 Canvas/AttributeUpgradePanel');
@@ -371,6 +409,85 @@ export class AttributeUpgradePanel extends Component {
                 panel.showPanel();
             }
         }, panel);
+    }
+
+    /** 获取当前所有按钮等级（供 SaveSystem 存档） */
+    public static getUpgradeLevels(): Record<string, number> {
+        const panel = AttributeUpgradePanel.findPanelInstance();
+        if (!panel) return {};
+        const levels: Record<string, number> = {};
+        for (const [name, state] of panel._upgradeStates) {
+            if (state.level > 0) levels[name] = state.level;
+        }
+        return levels;
+    }
+
+    /** 获取爆破已使用次数（供 SaveSystem 存档） */
+    public static getBlastCount(): number {
+        const panel = AttributeUpgradePanel.findPanelInstance();
+        return panel ? panel._blastCount : 0;
+    }
+
+    /** 获取爆破冷却结束时间戳（供 SaveSystem 存档） */
+    public static getBlastCooldownEndTime(): number {
+        const panel = AttributeUpgradePanel.findPanelInstance();
+        return panel ? panel._blastCooldownEndTime : 0;
+    }
+
+    /** 获取已爆破的 MapObstacle 标识列表（供 SaveSystem 存档） */
+    public static getBlastedObstacleIds(): string[] {
+        const panel = AttributeUpgradePanel.findPanelInstance();
+        return panel ? [...panel._blastedObstacleIds] : [];
+    }
+
+    /** 获取已强化炮塔 UUID 列表（供 SaveSystem 存档） */
+    public static getReinforcedTurretIds(): string[] {
+        const panel = AttributeUpgradePanel.findPanelInstance();
+        return panel ? [...panel._reinforcedTurretIds] : [];
+    }
+
+    /** 设置待恢复的按钮等级（供 SaveSystem 读档） */
+    public static setPendingLevels(levels: Record<string, number>, blastCount: number, reinforcedIds: string[], blastedIds: string[], blastCooldownEndTime: number) {
+        AttributeUpgradePanel._pendingLevels = levels;
+        AttributeUpgradePanel._pendingBlastCount = blastCount;
+        AttributeUpgradePanel._pendingReinforcedIds = reinforcedIds;
+        AttributeUpgradePanel._pendingBlastedIds = blastedIds;
+        AttributeUpgradePanel._pendingBlastCooldownEndTime = blastCooldownEndTime;
+    }
+
+    /** 恢复 Canvas 上的永久操作按钮显示（供 SaveSystem 读档后立即调用，不等面板打开） */
+    public static restoreCanvasButtons() {
+        const pendingLevels = AttributeUpgradePanel._pendingLevels;
+        if (!pendingLevels) return;
+        const panel = AttributeUpgradePanel.findPanelInstance();
+        if (!panel) return;
+
+        // 先确保面板已初始化（_upgradeStates + 事件绑定），再显示按钮
+        panel.ensureInitialized();
+
+        if ((pendingLevels['TurretReinforcement'] ?? 0) >= 1 && panel.reinforceActionBtn) {
+            panel.reinforceActionBtn.active = true;
+        }
+        if ((pendingLevels['Blast'] ?? 0) >= 1 && panel.blastActionBtn) {
+            panel.blastActionBtn.active = true;
+        }
+        if ((pendingLevels['Pistol'] ?? 0) >= 1 && panel.weaponActionBtn) {
+            panel.weaponActionBtn.active = true;
+        }
+    }
+
+    /** 查找面板实例（通过 Canvas 查找，即使节点 inactive 也能获取组件） */
+    private static findPanelInstance(): AttributeUpgradePanel | null {
+        const panelNode = find('Canvas/AttributeUpgradePanel');
+        if (!panelNode) return null;
+        return panelNode.getComponent(AttributeUpgradePanel);
+    }
+
+    /** 对炮塔节点应用强化外观（紫色着色，供 SaveSystem 恢复强化炮塔时使用） */
+    public static applyReinforceVisual(turretNode: Node) {
+        const panel = AttributeUpgradePanel.findPanelInstance();
+        if (!panel) return;
+        panel.applyPermanentColorToTurretChildren(turretNode);
     }
 
     private bindCloseButton() {
@@ -408,9 +525,9 @@ export class AttributeUpgradePanel extends Component {
         this.registerUpgrade('Walkspeed', this.walkspeedButton || this.findButtonIn('Walkspeed', this.survivalContent), 2);
         this.registerUpgrade('FatigueReduce', this.fatigueReduceButton || this.findButtonIn('FatigueReduce', this.survivalContent), 2);
         this.registerUpgrade('HPIncrease', this.hpIncreaseButton || this.findButtonIn('HPIncrease', this.survivalContent), 3);
-        this.registerUpgrade('WoodCollect', this.woodCollectButton || this.findButtonIn('WoodCollect', this.survivalContent), 3);
-        this.registerUpgrade('CopperCollect', this.copperCollectButton || this.findButtonIn('CopperCollect', this.survivalContent), 3);
-        this.registerUpgrade('IronCollect', this.ironCollectButton || this.findButtonIn('IronCollect', this.survivalContent), 3);
+        this.registerUpgrade('doublecollect', this.doublecollectButton || this.findButtonIn('doublecollect', this.survivalContent), 1);
+        this.registerUpgrade('bagexpand', this.bagexpandButton || this.findButtonIn('bagexpand', this.survivalContent), 1);
+        this.registerUpgrade('collectmaster', this.collectmasterButton || this.findButtonIn('collectmaster', this.survivalContent), 2);
         this.registerUpgrade('Stealth', this.stealthButton || this.findButtonIn('Stealth', this.survivalContent), 1);
     }
 
@@ -418,6 +535,7 @@ export class AttributeUpgradePanel extends Component {
         this.registerUpgrade('RemoteRepair', this.remoteRepairButton || this.findButtonIn('RemoteRepair', this.engineeringContent), 1);
         this.registerUpgrade('RemoteMaterial', this.remoteMaterialButton || this.findButtonIn('RemoteMaterial', this.engineeringContent), 1);
         this.registerUpgrade('TurretReinforcement', this.turretReinforcementButton || this.findButtonIn('TurretReinforcement', this.engineeringContent), 1);
+        this.registerUpgrade('MaterialRetun', this.materialRetunButton || this.findButtonIn('MaterialRetun', this.engineeringContent), 3);
         this.registerUpgrade('MaterialSave', this.materialSaveButton || this.findButtonIn('MaterialSave', this.engineeringContent), 3);
         this.registerUpgrade('PowerSaving', this.powerSavingButton || this.findButtonIn('PowerSaving', this.engineeringContent), 3);
         this.registerUpgrade('Blast', this.blastButton || this.findButtonIn('Blast', this.engineeringContent), 1);
@@ -429,6 +547,7 @@ export class AttributeUpgradePanel extends Component {
         this.registerUpgrade('Micromsg', this.micromsgButton || this.findButtonIn('Micromsg', this.weaponContent), 1);
         this.registerUpgrade('Rifle', this.rifleButton || this.findButtonIn('Rifle', this.weaponContent), 1);
         this.registerUpgrade('Machinegun', this.machinegunButton || this.findButtonIn('Machinegun', this.weaponContent), 1);
+        this.registerUpgrade('greedy', this.greedyButton || this.findButtonIn('greedy', this.weaponContent), 1);
     }
 
     private registerUpgrade(name: string, node: Node | null, maxLevel: number) {
@@ -473,14 +592,13 @@ export class AttributeUpgradePanel extends Component {
 
     private unbindAllButtons() {
         for (const [name, state] of this._upgradeStates) {
+            if (!state.node || !state.node.isValid) continue;
             const btn = state.node.getComponent(Button);
-            if (btn?.node.isValid) {
+            if (btn?.node?.isValid) {
                 btn.node.off(Button.EventType.CLICK, () => this.onUpgradeClick(name), this);
             }
-            if (state.node.isValid) {
-                state.node.off(Node.EventType.MOUSE_ENTER, () => this.onButtonHover(name), this);
-                state.node.off(Node.EventType.MOUSE_LEAVE, () => this.onButtonHoverEnd(), this);
-            }
+            state.node.off(Node.EventType.MOUSE_ENTER, () => this.onButtonHover(name), this);
+            state.node.off(Node.EventType.MOUSE_LEAVE, () => this.onButtonHoverEnd(), this);
         }
     }
 
@@ -495,23 +613,25 @@ export class AttributeUpgradePanel extends Component {
             // 生存
             case 'Walkspeed': return true;
             case 'FatigueReduce':
-            case 'WoodCollect':
+            case 'doublecollect':
                 return this.getLevel('Walkspeed') >= 2;
             case 'HPIncrease':
                 return this.getLevel('FatigueReduce') >= 2;
-            case 'CopperCollect':
-                return this.getLevel('WoodCollect') >= 3;
-            case 'IronCollect':
-                return this.getLevel('CopperCollect') >= 3;
+            case 'bagexpand':
+                return this.getLevel('doublecollect') >= 1;
+            case 'collectmaster':
+                return this.getLevel('bagexpand') >= 1;
             case 'Stealth':
-                return this.getLevel('IronCollect') >= 3;
+                return this.getLevel('collectmaster') >= 2;
             // 工程
             case 'RemoteRepair': return true;
             case 'RemoteMaterial':
             case 'MaterialSave':
                 return this.getLevel('RemoteRepair') >= 1;
-            case 'TurretReinforcement':
+            case 'MaterialRetun':
                 return this.getLevel('RemoteMaterial') >= 1;
+            case 'TurretReinforcement':
+                return this.getLevel('RemoteMaterial') >= 1 && this.getLevel('MaterialRetun') >= 3;
             case 'PowerSaving':
                 return this.getLevel('MaterialSave') >= 3;
             case 'Blast':
@@ -519,11 +639,14 @@ export class AttributeUpgradePanel extends Component {
             // 武器
             case 'AttackIncrease': return true;
             case 'Pistol':
+            case 'greedy':
                 return this.getLevel('AttackIncrease') >= 3;
             case 'Micromsg':
-            case 'Rifle':
-            case 'Machinegun':
                 return this.getLevel('Pistol') >= 1;
+            case 'Rifle':
+                return this.getLevel('Micromsg') >= 1;
+            case 'Machinegun':
+                return this.getLevel('Rifle') >= 1;
             default:
                 return false;
         }
@@ -591,23 +714,30 @@ export class AttributeUpgradePanel extends Component {
                 ps.hpMultiplier = [1.5, 2.0, 3.0][level - 1];
                 ps.hp = ps.getEffectiveMaxHp();
                 break;
-            case 'WoodCollect':
-                ps.woodCollectMultiplier = level + 1;
+            case 'doublecollect':
+                ps.woodCollectMultiplier = 2.0;
+                ps.copperCollectMultiplier = 2.0;
+                ps.ironCollectMultiplier = 2.0;
                 break;
-            case 'CopperCollect':
-                ps.copperCollectMultiplier = level + 1;
+            case 'bagexpand':
+                ps.backpackCapacityMultiplier = 1.5;
                 break;
-            case 'IronCollect':
-                ps.ironCollectMultiplier = level + 1;
+            case 'collectmaster':
+                ps.woodCollectMultiplier = level === 1 ? 3.0 : 4.0;
+                ps.copperCollectMultiplier = level === 1 ? 3.0 : 4.0;
+                ps.ironCollectMultiplier = level === 1 ? 3.0 : 4.0;
                 break;
             case 'Stealth':
-                PlayerState.zombieAlertRadiusMultiplier = 0.2;
+                PlayerState.stealthLevel = 1;
                 break;
             case 'RemoteRepair':
                 ps.remoteRepairLevel = 1;
                 break;
             case 'RemoteMaterial':
                 ps.remoteMaterialEnabled = true;
+                break;
+            case 'MaterialRetun':
+                ps.materialRefundRate = [0.35, 0.7, 1.0][level - 1];
                 break;
             case 'MaterialSave':
                 ps.materialSaveRate = [0.1, 0.15, 0.2][level - 1];
@@ -644,6 +774,9 @@ export class AttributeUpgradePanel extends Component {
                 ps.weaponAttackInterval = this.machinegunAttackInterval;
                 ps.weaponDamage = this.machinegunDamage;
                 break;
+            case 'greedy':
+                ps.moneyDropMultiplier = 2.0;
+                break;
         }
     }
 
@@ -655,7 +788,7 @@ export class AttributeUpgradePanel extends Component {
         this.exitAllModes();
         this._reinforceMode = true;
         this.setupModeInput();
-        if (this.reinforceActionBtn) {
+        if (this.reinforceActionBtn?.isValid) {
             const btn = this.reinforceActionBtn.getComponent(Button);
             if (btn) btn.interactable = false;
         }
@@ -665,7 +798,7 @@ export class AttributeUpgradePanel extends Component {
     private exitReinforceMode() {
         this._reinforceMode = false;
         this.clearTurretHighlight();
-        if (this.reinforceActionBtn) {
+        if (this.reinforceActionBtn?.isValid) {
             const btn = this.reinforceActionBtn.getComponent(Button);
             if (btn) btn.interactable = true;
         }
@@ -694,7 +827,7 @@ export class AttributeUpgradePanel extends Component {
         this._blastMode = true;
         this.setupModeInput();
 
-        if (this.blastActionBtn) {
+        if (this.blastActionBtn?.isValid) {
             const btn = this.blastActionBtn.getComponent(Button);
             if (btn) btn.interactable = false;
         }
@@ -705,7 +838,7 @@ export class AttributeUpgradePanel extends Component {
     private exitBlastMode() {
         this._blastMode = false;
         this.clearBlastHighlight();
-        if (this.blastActionBtn) {
+        if (this.blastActionBtn?.isValid) {
             const btn = this.blastActionBtn.getComponent(Button);
             if (btn) btn.interactable = true;
         }
@@ -1012,6 +1145,7 @@ export class AttributeUpgradePanel extends Component {
         }
 
         // 播放缩放动画后销毁
+        const targetKey = `${target.name}_${target.position.x.toFixed(1)}_${target.position.y.toFixed(1)}`;
         tween(target)
             .to(0.3, { scale: new Vec3(0, 0, 0) })
             .call(() => {
@@ -1021,6 +1155,7 @@ export class AttributeUpgradePanel extends Component {
             })
             .start();
 
+        this._blastedObstacleIds.add(targetKey);
         this._blastCount++;
         const remain = BLAST_MAX_COUNT - this._blastCount;
 
@@ -1041,7 +1176,7 @@ export class AttributeUpgradePanel extends Component {
         this.startBlastCooldownUI();
     }
 
-    /** 查找点击位置的 MapElement（含 MapObstacle 组件的节点） */
+    /** 查找点击位置的 MapElement（含 MapObstacle 组件的节点），排除 Base 子树 */
     private findMapElementAt(worldPos: Vec3): Node | null {
         const scene = this.node.scene;
         if (!scene) return null;
@@ -1049,6 +1184,11 @@ export class AttributeUpgradePanel extends Component {
     }
 
     private findMapElementRecursive(root: Node, worldPos: Vec3, threshold: number): Node | null {
+        // 排除 Base 及其子树，防止误爆破基地节点
+        if (this.isBaseNode(root)) {
+            return null;
+        }
+
         const obstacle = root.getComponent('MapObstacle') as Component | null;
         if (obstacle && root.active) {
             const dist = Vec3.distance(root.worldPosition, worldPos);
@@ -1061,6 +1201,19 @@ export class AttributeUpgradePanel extends Component {
             if (found) return found;
         }
         return null;
+    }
+
+    /** 判断节点是否为 Base 或 Base 的子节点（含被 YSortLayer 迁移的节点） */
+    private isBaseNode(node: Node): boolean {
+        if (node.getComponent('BaseSystem')) return true;
+        // 检查是否原本属于 Base（被 YSortManager 迁移到 YSortLayer 的节点）
+        if (YSortManager.isOriginallyBaseChild(node)) return true;
+        let current: Node | null = node.parent;
+        while (current) {
+            if (current.getComponent('BaseSystem')) return true;
+            current = current.parent;
+        }
+        return false;
     }
 
     // ---- 爆破悬停高亮 ----
@@ -1313,15 +1466,19 @@ export class AttributeUpgradePanel extends Component {
         ps.woodCollectMultiplier = 1.0;
         ps.copperCollectMultiplier = 1.0;
         ps.ironCollectMultiplier = 1.0;
+        ps.backpackCapacityMultiplier = 1.0;
         PlayerState.zombieAlertRadiusMultiplier = 1.0;
+        PlayerState.stealthLevel = 0;
         ps.remoteRepairLevel = 0;
         ps.remoteMaterialEnabled = false;
         ps.materialSaveRate = 0;
+        ps.materialRefundRate = 0;
         ps.powerSaveRate = 0;
         ps.attackDamageMultiplier = 1.0;
         ps.weaponAttackInterval = 0.5;
         ps.weaponDamage = 10;
         ps.weaponMode = false;
+        ps.moneyDropMultiplier = 1.0;
 
         // 隐藏 Canvas 操作按钮
         if (this.reinforceActionBtn) this.reinforceActionBtn.active = false;
@@ -1330,6 +1487,7 @@ export class AttributeUpgradePanel extends Component {
 
         // 重置爆破计数和强化记录
         this._blastCount = 0;
+        this._blastedObstacleIds.clear();
         this._reinforcedTurretIds.clear();
 
         // 重置爆破冷却
@@ -1370,7 +1528,7 @@ export class AttributeUpgradePanel extends Component {
         this.warningLabel.string = msg;
         this.warningLabel.node.active = true;
         this.scheduleOnce(() => {
-            if (this.warningLabel?.node.isValid) {
+            if (this.warningLabel?.node?.isValid) {
                 this.warningLabel.node.active = false;
             }
             // 若 warningLabel 与 pointNumberLabel 绑定同一节点，隐藏后恢复点数显示
@@ -1428,5 +1586,56 @@ export class AttributeUpgradePanel extends Component {
         for (const child of node.children) {
             this.restoreOriginalColors(child);
         }
+    }
+
+    /** 恢复存档中的按钮等级（在 start() 初始化完成后调用） */
+    private restorePendingLevels() {
+        if (!AttributeUpgradePanel._pendingLevels) return;
+
+        const levels = AttributeUpgradePanel._pendingLevels;
+
+        for (const [name, level] of Object.entries(levels)) {
+            const state = this._upgradeStates.get(name);
+            if (!state) continue;
+            state.level = Math.min(level, state.maxLevel);
+        }
+
+        // 恢复爆破次数
+        this._blastCount = AttributeUpgradePanel._pendingBlastCount;
+
+        // 恢复爆破冷却时间
+        this._blastCooldownEndTime = AttributeUpgradePanel._pendingBlastCooldownEndTime;
+        if (this._blastCooldownEndTime > Date.now()) {
+            this.startBlastCooldownUI();
+        }
+
+        // 恢复已爆破 MapObstacle 标识
+        this._blastedObstacleIds = new Set(AttributeUpgradePanel._pendingBlastedIds);
+
+        // 恢复已强化炮塔 ID
+        this._reinforcedTurretIds = new Set(AttributeUpgradePanel._pendingReinforcedIds);
+
+        // 恢复 Canvas 操作按钮显示
+        if ((this._upgradeStates.get('TurretReinforcement')?.level ?? 0) >= 1) {
+            this.showCanvasActionBtn(this.reinforceActionBtn, 'TurretReinforcement');
+        }
+        if ((this._upgradeStates.get('Blast')?.level ?? 0) >= 1) {
+            this.showCanvasActionBtn(this.blastActionBtn, 'Blast');
+        }
+        if ((this._upgradeStates.get('Pistol')?.level ?? 0) >= 1) {
+            this.showCanvasActionBtn(this.weaponActionBtn, 'Pistol');
+        }
+
+        // 恢复潜行技能等级
+        if ((this._upgradeStates.get('Stealth')?.level ?? 0) >= 1) {
+            PlayerState.stealthLevel = 1;
+        }
+
+        // 清除待恢复数据
+        AttributeUpgradePanel._pendingLevels = null;
+        AttributeUpgradePanel._pendingBlastCount = 0;
+        AttributeUpgradePanel._pendingBlastCooldownEndTime = 0;
+        AttributeUpgradePanel._pendingReinforcedIds = [];
+        AttributeUpgradePanel._pendingBlastedIds = [];
     }
 }

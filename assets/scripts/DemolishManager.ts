@@ -4,10 +4,12 @@ import { Turret } from './Turret';
 import { PlantGenerator } from './PlantGenerator';
 import { Container } from './Container';
 import { PlayerData } from './PlayerData';
+import { PlayerState } from './PlayerState';
 import { BaseSystem } from './BaseSystem';
 import { GameHUDUI } from './GameHUDUI';
 import { TurretPlacementManager } from './TurretPlacementManager';
 import { ReinforcementNotice } from './ReinforcementNotice';
+import { EnemyManager } from './EnemyManager';
 
 const { ccclass, property } = _decorator;
 
@@ -192,14 +194,39 @@ export class DemolishManager extends Component {
             return;
         }
 
-        // 返还资源（按 demolishRefundRate 比例）
+        // 返还资源：优先使用 MaterialRetun 升级的返还比例，否则使用默认 demolishRefundRate
         const data = PlayerData.instance;
-        const rate = data?.demolishRefundRate ?? 0.5;
+        const ps = PlayerState.instance;
+        const rate = (ps && ps.materialRefundRate > 0) ? ps.materialRefundRate : (data?.demolishRefundRate ?? 0.5);
+
+        // 如果建筑使用了 MaterialSave 省材料建造，按实际消耗返还
+        let refundBaseWood = costWood;
+        let refundBaseCopper = costCopper;
+        let refundBaseIron = costIron;
+        let refundBaseMoney = costMoney;
+
+        if (turret && turret.materialSaveApplied) {
+            refundBaseWood = turret.actualCostWood;
+            refundBaseCopper = turret.actualCostCopper;
+            refundBaseIron = turret.actualCostIron;
+            refundBaseMoney = turret.actualCostMoney;
+        } else if (plant && plant.materialSaveApplied) {
+            refundBaseWood = plant.actualCostWood;
+            refundBaseCopper = plant.actualCostCopper;
+            refundBaseIron = plant.actualCostIron;
+            refundBaseMoney = plant.actualCostMoney;
+        } else if (container && container.materialSaveApplied) {
+            refundBaseWood = container.actualCostWood;
+            refundBaseCopper = container.actualCostCopper;
+            refundBaseIron = container.actualCostIron;
+            refundBaseMoney = container.actualCostMoney;
+        }
+
         if (data) {
-            data.addWood(Math.round(costWood * rate));
-            data.addCopper(Math.round(costCopper * rate));
-            data.addIron(Math.round(costIron * rate));
-            data.addMoney(Math.round(costMoney * rate));
+            data.addWood(Math.round(refundBaseWood * rate));
+            data.addCopper(Math.round(refundBaseCopper * rate));
+            data.addIron(Math.round(refundBaseIron * rate));
+            data.addMoney(Math.round(refundBaseMoney * rate));
         }
 
         // 缩放消失动画
@@ -213,14 +240,17 @@ export class DemolishManager extends Component {
                     // 仍能找到该节点，导致 updatePowerStatus 计数不更新。
                     turret.enabled = false;
                     node.destroy();
+                    EnemyManager.invalidateCache();
                 } else if (plant) {
                     // 发电机是场景预置节点，不能销毁，只能停用并恢复缩放
                     node.active = false;
                     node.setScale(originalScale);
+                    EnemyManager.invalidateCache();
                 } else if (container) {
                     // 先禁用 Container 组件，再销毁节点，确保 updatePowerStatus 正确统计
                     container.enabled = false;
                     node.destroy();
+                    EnemyManager.invalidateCache();
                 }
                 // 更新电力状态
                 BaseSystem.instance?.updatePowerStatus();

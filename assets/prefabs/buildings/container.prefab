@@ -190,8 +190,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 100,
-      "height": 100
+      "width": 60,
+      "height": 10
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -224,12 +224,15 @@
       "r": 122,
       "g": 122,
       "b": 122,
-      "a": 255
+      "a": 200
     },
-    "_spriteFrame": null,
+    "_spriteFrame": {
+      "__uuid__": "78efddcb-50a7-4a18-883b-27d3a7a7a079@f9941",
+      "__expectedType__": "cc.SpriteFrame"
+    },
     "_type": 0,
     "_fillType": 0,
-    "_sizeMode": 1,
+    "_sizeMode": 0,
     "_fillCenter": {
       "__type__": "cc.Vec2",
       "x": 0,
@@ -324,7 +327,7 @@
     "_contentSize": {
       "__type__": "cc.Size",
       "width": 60,
-      "height": 15
+      "height": 10
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -360,7 +363,7 @@
       "a": 255
     },
     "_spriteFrame": {
-      "__uuid__": "24a704da-2867-446d-8d1a-5e920c75e09d@f9941",
+      "__uuid__": "78efddcb-50a7-4a18-883b-27d3a7a7a079@f9941",
       "__expectedType__": "cc.SpriteFrame"
     },
     "_type": 3,
@@ -435,7 +438,7 @@
     "__prefab": {
       "__id__": 18
     },
-    "buildTime": 5,
+    "buildTime": 4,
     "backgroundSprite": {
       "__id__": 6
     },
@@ -586,10 +589,10 @@
       "__id__": 27
     },
     "maxHp": 200,
-    "buildTime": 5,
-    "costWood": 1,
-    "costCopper": 0,
-    "costIron": 0,
+    "buildTime": 4,
+    "costWood": 15,
+    "costCopper": 6,
+    "costIron": 2,
     "costMoney": 0,
     "powerCost": 2,
     "maxStorageWood": 40,

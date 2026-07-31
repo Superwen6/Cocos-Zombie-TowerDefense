@@ -105,8 +105,30 @@ export class PlayerState extends Component {
     @property({ tooltip: '铁矿采集倍率（生存面板升级）' })
     ironCollectMultiplier = 1.0;
 
+    @property({ tooltip: '背包容量倍率（生存面板bagexpand升级）' })
+    backpackCapacityMultiplier = 1.0;
+
     /** 僵尸感知距离倍率（生存面板潜行升级，越低越好） */
     static zombieAlertRadiusMultiplier = 1.0;
+
+    /** 玩家是否处于完全隐身（僵尸已锁定玩家的也会丢失目标） */
+    static isPlayerInvisible = false;
+
+    /** 潜行技能等级（0=未激活，1=已激活） */
+    static stealthLevel = 0;
+
+    @property({ tooltip: '隐身持续时间（秒）' })
+    stealthDuration = 10;
+
+    @property({ tooltip: '隐身时透明度（0-255）' })
+    stealthOpacity = 80;
+
+    @property({ tooltip: '触发隐身的血量百分比阈值' })
+    stealthHpThreshold = 0.15;
+
+    /** 潜行阶段：normal / stealthed / reduced */
+    private _stealthPhase: 'normal' | 'stealthed' | 'reduced' = 'normal';
+    private _stealthTimer = 0;
 
     // ---- 工程面板升级 ----
 
@@ -128,6 +150,9 @@ export class PlayerState extends Component {
     @property({ tooltip: '全局省电率 (0-0.2，工程面板升级)' })
     powerSaveRate = 0;
 
+    @property({ tooltip: '拆除建筑材料返还比例 (0-1，工程面板 MaterialRetun 升级)' })
+    materialRefundRate = 0;
+
     // ---- 武器面板升级 ----
 
     @property({ tooltip: '攻击力倍率（武器面板升级）' })
@@ -141,6 +166,9 @@ export class PlayerState extends Component {
 
     @property({ tooltip: '武器伤害值（由武器类型决定）' })
     weaponDamage = 10;
+
+    @property({ tooltip: '金钱掉落概率倍率（武器面板greedy升级）' })
+    moneyDropMultiplier = 1.0;
 
     @property({ tooltip: '基地节点名（用于自动查找）' })
     baseNodeName = 'Base';
@@ -177,6 +205,15 @@ export class PlayerState extends Component {
     private _respawnLabelTimer = 0;
     private _isDead = false;
 
+    /** 玩家本地坐标（每帧更新，供存档系统使用，相对于 GameWorld） */
+    private _localX = 0;
+    private _localY = 0;
+
+    /** 获取玩家本地 X 坐标（相对于 GameWorld） */
+    get worldX(): number { return this._localX; }
+    /** 获取玩家本地 Y 坐标（相对于 GameWorld） */
+    get worldY(): number { return this._localY; }
+
     onLoad() {
         if (PlayerState.instance && PlayerState.instance !== this) {
             warn('[PlayerState] 场景中存在多个 PlayerState，已销毁重复实例');
@@ -205,8 +242,13 @@ export class PlayerState extends Component {
     }
 
     update(dt: number) {
-        // 受击闪红渐变恢复
-        if (this._flashTimer > 0 && this.playerSprite) {
+        // 每帧更新本地坐标（相对于 GameWorld，供存档系统使用）
+        const lp = this.node.position;
+        this._localX = lp.x;
+        this._localY = lp.y;
+
+        // 受击闪红渐变恢复（隐身时跳过，避免覆盖透明度）
+        if (this._flashTimer > 0 && this.playerSprite && !PlayerState.isPlayerInvisible) {
             this._flashTimer -= dt;
             const t = 1 - Math.max(0, this._flashTimer) / this._flashDuration;
             const r = 255;
@@ -282,6 +324,9 @@ export class PlayerState extends Component {
 
         // 远程维修：自动回血范围内炮塔
         this.updateRemoteRepair(dt);
+
+        // 潜行技能：低血量自动隐身
+        this.updateStealthState(dt);
 
         this._statusLogTimer += dt;
         if (this._statusLogTimer >= this.statusLogInterval) {
@@ -377,6 +422,11 @@ export class PlayerState extends Component {
         }
     }
 
+    /** 获取背包有效容量上限（基础上限 × 背包容量倍率） */
+    getEffectiveBackpackMax(baseMax: number): number {
+        return Math.round(baseMax * this.backpackCapacityMultiplier);
+    }
+
     /** 远程维修：范围内所有受损建筑自动回血 */
     private updateRemoteRepair(dt: number) {
         if (this.remoteRepairLevel <= 0) return;
@@ -403,6 +453,60 @@ export class PlayerState extends Component {
                 building['hp'] = newHp;
             }
         }
+    }
+
+    /** 潜行技能：低血量自动隐身状态机 */
+    private updateStealthState(dt: number) {
+        if (PlayerState.stealthLevel < 1) return;
+
+        const effectiveMaxHp = this.getEffectiveMaxHp();
+        const hpRatio = this.hp / effectiveMaxHp;
+        const isLowHp = this.hp > 0 && hpRatio <= this.stealthHpThreshold;
+
+        switch (this._stealthPhase) {
+            case 'normal':
+                if (isLowHp) {
+                    this._stealthPhase = 'stealthed';
+                    this._stealthTimer = this.stealthDuration;
+                    this.setPlayerOpacity(this.stealthOpacity);
+                    PlayerState.isPlayerInvisible = true;
+                    PlayerState.zombieAlertRadiusMultiplier = 0;
+                }
+                break;
+
+            case 'stealthed':
+                if (!isLowHp) {
+                    this._stealthPhase = 'normal';
+                    this._stealthTimer = 0;
+                    this.setPlayerOpacity(255);
+                    PlayerState.isPlayerInvisible = false;
+                    PlayerState.zombieAlertRadiusMultiplier = 1.0;
+                } else {
+                    this._stealthTimer -= dt;
+                    if (this._stealthTimer <= 0) {
+                        this._stealthPhase = 'reduced';
+                        this.setPlayerOpacity(255);
+                        PlayerState.isPlayerInvisible = false;
+                        PlayerState.zombieAlertRadiusMultiplier = 0.5;
+                    }
+                }
+                break;
+
+            case 'reduced':
+                if (!isLowHp) {
+                    this._stealthPhase = 'normal';
+                    this.setPlayerOpacity(255);
+                    PlayerState.zombieAlertRadiusMultiplier = 1.0;
+                }
+                break;
+        }
+    }
+
+    /** 设置玩家贴图透明度 */
+    private setPlayerOpacity(opacity: number) {
+        if (!this.playerSprite) return;
+        const color = this.playerSprite.color.clone();
+        this.playerSprite.color = new Color(color.r, color.g, color.b, opacity);
     }
 
     /** 查找场景中所有可伤害的建筑（Turret, PlantGenerator, Container） */
@@ -470,6 +574,13 @@ export class PlayerState extends Component {
         // 恢复血量与疲劳
         this.hp = this.getEffectiveMaxHp();
         this.fatigue = 0;
+
+        // 重置隐身状态
+        this._stealthPhase = 'normal';
+        this._stealthTimer = 0;
+        this.setPlayerOpacity(255);
+        PlayerState.isPlayerInvisible = false;
+        PlayerState.zombieAlertRadiusMultiplier = 1.0;
 
         // 移动到基地位置
         if (this._baseNode) {
