@@ -22,6 +22,8 @@ export class GameManager extends Component {
     defeatSound: AudioClip | null = null;
 
     private _audioSource: AudioSource | null = null;
+    /** 防止重复触发胜利/失败 */
+    private _gameEnded = false;
 
     onLoad() {
         if (GameManager.instance && GameManager.instance !== this) {
@@ -80,6 +82,8 @@ export class GameManager extends Component {
 
     /** 百日生存通关 */
     triggerVictory() {
+        if (this._gameEnded) return;
+        this._gameEnded = true;
         if (this._audioSource && this.victorySound) {
             this._audioSource.playOneShot(this.victorySound, 1);
         }
@@ -88,6 +92,8 @@ export class GameManager extends Component {
 
     /** 基地被摧毁，逃脱失败 */
     triggerDefeat() {
+        if (this._gameEnded) return;
+        this._gameEnded = true;
         if (this._audioSource && this.defeatSound) {
             this._audioSource.playOneShot(this.defeatSound, 1);
         }

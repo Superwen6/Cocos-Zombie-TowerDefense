@@ -140,9 +140,12 @@
     },
     "_enabled": true,
     "__prefab": null,
-    "victorySound": null,
+    "victorySound": {
+      "__uuid__": "d14a4a5b-a821-42eb-ae86-a2b90c24129f",
+      "__expectedType__": "cc.AudioClip"
+    },
     "defeatSound": {
-      "__uuid__": "147cf14c-830f-458d-a9df-9aa8e1bf0fa9",
+      "__uuid__": "0979e05b-7f65-4550-8a67-59766c2452a9",
       "__expectedType__": "cc.AudioClip"
     },
     "_id": "c5+yq9RYFN+ZT3UCr3tnGs"
