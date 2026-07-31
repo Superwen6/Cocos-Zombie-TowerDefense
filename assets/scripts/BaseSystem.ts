@@ -1,4 +1,4 @@
-import { _decorator, AudioClip, AudioSource, CCFloat, CCInteger, Color, Component, Node, Sprite, Vec3, find, warn } from 'cc';
+import { _decorator, AudioClip, AudioSource, CCFloat, CCInteger, Color, Component, Node, Sprite, Vec3, find, log, warn } from 'cc';
 import { PlayerData } from './PlayerData';
 import { PlayerState } from './PlayerState';
 import { PlantGenerator } from './PlantGenerator';
@@ -159,8 +159,10 @@ export class BaseSystem extends Component {
         BaseSystem.instance = this;
         this._audioSource = this.node.addComponent(AudioSource);
         this._audioSource.loop = false;
+        log(`[BaseSystem] onLoad: baseHp=${this.baseHp}, maxBaseHp=${this.maxBaseHp}, maxBaseHpByLevel[0]=${this.maxBaseHpByLevel[0]}, currentLevel=${this.currentLevel}`);
         this.syncMaxBaseHpFromLevel();
         this.clampBaseHp();
+        log(`[BaseSystem] onLoad 后: baseHp=${this.baseHp}, maxBaseHp=${this.maxBaseHp}`);
     }
 
     start() {

@@ -11,6 +11,7 @@ import {
     Sprite,
     UITransform,
     Vec3,
+    log,
     view,
 } from 'cc';
 import { BaseSystem } from './BaseSystem';
@@ -230,6 +231,7 @@ export class HealthBar extends Component {
             if (baseSys && typeof baseSys.baseHp === 'number') {
                 hp = baseSys.baseHp;
                 max = baseSys.maxBaseHp || this._maxHp;
+                log(`[HealthBar] syncHealth Base: hp=${hp}, maxBaseHp=${baseSys.maxBaseHp}, max=${max}, _maxHp=${this._maxHp}`);
             }
         }
 

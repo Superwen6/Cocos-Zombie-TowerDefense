@@ -162,8 +162,8 @@
     "__prefab": null,
     "currentLevel": 1,
     "maxLevel": 5,
-    "baseHp": 500,
-    "maxBaseHp": 500,
+    "baseHp": 1000,
+    "maxBaseHp": 1000,
     "baseHalfW": 210,
     "baseHalfH": 140,
     "safeRadii": [
@@ -181,7 +181,7 @@
       8
     ],
     "maxBaseHpByLevel": [
-      800,
+      1000,
       1000,
       1200,
       1400,
