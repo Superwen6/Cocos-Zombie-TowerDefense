@@ -126,6 +126,7 @@ export class PlayerState extends Component {
     /** 潜行阶段：normal / stealthed / reduced */
     private _stealthPhase: 'normal' | 'stealthed' | 'reduced' = 'normal';
     private _stealthTimer = 0;
+    private _stealthLogTimer = 0;
 
     // ---- 工程面板升级 ----
 
@@ -454,12 +455,20 @@ export class PlayerState extends Component {
         if (PlayerState.stealthLevel < 1) return;
 
         const effectiveMaxHp = this.getEffectiveMaxHp();
-        const isLowHp = this.hp > 0 && this.hp / effectiveMaxHp <= this.stealthHpThreshold;
+        const hpRatio = this.hp / effectiveMaxHp;
+        const isLowHp = this.hp > 0 && hpRatio <= this.stealthHpThreshold;
+
+        // 诊断日志（每秒一次）
+        this._stealthLogTimer += dt;
+        if (this._stealthLogTimer >= 1) {
+            this._stealthLogTimer = 0;
+            console.log(`[Stealth] phase=${this._stealthPhase} hp=${this.hp}/${effectiveMaxHp} ratio=${(hpRatio*100).toFixed(1)}% low=${isLowHp} multiplier=${PlayerState.zombieAlertRadiusMultiplier}`);
+        }
 
         switch (this._stealthPhase) {
             case 'normal':
                 if (isLowHp) {
-                    // 血量低于阈值，触发隐身
+                    console.log('[Stealth] 触发隐身！进入 stealthed 阶段');
                     this._stealthPhase = 'stealthed';
                     this._stealthTimer = this.stealthDuration;
                     this.setPlayerOpacity(this.stealthOpacity);
@@ -469,7 +478,7 @@ export class PlayerState extends Component {
 
             case 'stealthed':
                 if (!isLowHp) {
-                    // 血量恢复，解除隐身回到 normal
+                    console.log('[Stealth] 血量恢复，stealthed -> normal');
                     this._stealthPhase = 'normal';
                     this._stealthTimer = 0;
                     this.setPlayerOpacity(255);
@@ -477,7 +486,7 @@ export class PlayerState extends Component {
                 } else {
                     this._stealthTimer -= dt;
                     if (this._stealthTimer <= 0) {
-                        // 隐身时间结束，进入检测距离缩短阶段
+                        console.log('[Stealth] 隐身时间结束，stealthed -> reduced');
                         this._stealthPhase = 'reduced';
                         this.setPlayerOpacity(255);
                         PlayerState.zombieAlertRadiusMultiplier = 0.2;
@@ -487,7 +496,7 @@ export class PlayerState extends Component {
 
             case 'reduced':
                 if (!isLowHp) {
-                    // 血量恢复，回到 normal
+                    console.log('[Stealth] 血量恢复，reduced -> normal');
                     this._stealthPhase = 'normal';
                     this.setPlayerOpacity(255);
                     PlayerState.zombieAlertRadiusMultiplier = 1.0;
