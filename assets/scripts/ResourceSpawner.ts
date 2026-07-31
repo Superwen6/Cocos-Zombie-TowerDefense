@@ -98,6 +98,8 @@ export class ResourceSpawner extends Component {
         const remaining = Math.max(0, this.mapResourceLimit - currentCount);
         const actualSpawnCount = Math.min(this.spawnCount, remaining);
 
+        log(`[ResourceSpawner] 资源刷新诊断：当前资源=${currentCount}，上限=${this.mapResourceLimit}，每日生成=${this.spawnCount}，实际生成=${actualSpawnCount}`);
+
         if (actualSpawnCount <= 0) {
             log(`[ResourceSpawner] 地图资源已达上限 (${currentCount}/${this.mapResourceLimit})，今日不生成新资源`);
             return;

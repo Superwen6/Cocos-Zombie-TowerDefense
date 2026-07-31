@@ -1,4 +1,4 @@
-import { _decorator, Button, Color, Component, find, Label, Prefab, Sprite, SpriteFrame, instantiate, warn } from 'cc';
+import { _decorator, Button, Color, Component, find, Label, Prefab, Sprite, SpriteFrame, instantiate, log, warn } from 'cc';
 import { BaseSystem } from './BaseSystem';
 import { PlayerData } from './PlayerData';
 import { PlayerState } from './PlayerState';
@@ -314,16 +314,26 @@ export class BuildPanelUI extends Component {
     /** 刷新所有植物的消耗显示 */
     private refreshPlantCostDisplays(data: PlayerData | null) {
         const plantPanel = this.getComponent(PlantPanelUI);
-        if (!plantPanel) return;
+        if (!plantPanel) {
+            log('[BuildPanelUI] refreshPlantCostDisplays: PlantPanelUI 组件未找到');
+            return;
+        }
 
         const plantNames = ['Firstplant', 'Secondplant', 'Thirdplant', 'Fourthplant'];
         for (let i = 0; i < plantNames.length; i++) {
             const plantNode = this.node.getChildByName(plantNames[i]);
-            if (!plantNode) continue;
+            if (!plantNode) {
+                log(`[BuildPanelUI] refreshPlantCostDisplays: 未找到节点 ${plantNames[i]}`);
+                continue;
+            }
             const costDisplay = plantNode.getChildByName('CostDisplay');
-            if (!costDisplay) continue;
+            if (!costDisplay) {
+                log(`[BuildPanelUI] refreshPlantCostDisplays: ${plantNames[i]} 下未找到 CostDisplay`);
+                continue;
+            }
 
             const prefab = plantPanel.plantPrefabs?.[i];
+            log(`[BuildPanelUI] refreshPlantCostDisplays: ${plantNames[i]}, prefab=${prefab?.name ?? 'null'}, plantPrefabs长度=${plantPanel.plantPrefabs?.length ?? 0}`);
             if (prefab) {
                 const manager = TurretPlacementManager.instance;
                 const cost = manager ? manager.getCostsFromPrefab(prefab) : null;
@@ -336,14 +346,24 @@ export class BuildPanelUI extends Component {
     /** 刷新集装箱的消耗显示 */
     private refreshContainerCostDisplay(data: PlayerData | null) {
         const containerNode = this.node.getChildByName('container');
-        if (!containerNode) return;
+        if (!containerNode) {
+            log('[BuildPanelUI] refreshContainerCostDisplay: 未找到 container 节点');
+            return;
+        }
         const costDisplay = containerNode.getChildByName('CostDisplay');
-        if (!costDisplay) return;
+        if (!costDisplay) {
+            log('[BuildPanelUI] refreshContainerCostDisplay: container 下未找到 CostDisplay');
+            return;
+        }
 
         const upgradePanel = this.getComponent(UpgradePanelUI);
-        if (!upgradePanel) return;
+        if (!upgradePanel) {
+            log('[BuildPanelUI] refreshContainerCostDisplay: UpgradePanelUI 组件未找到');
+            return;
+        }
 
         const prefab = upgradePanel.containerPrefab;
+        log(`[BuildPanelUI] refreshContainerCostDisplay: containerPrefab=${prefab?.name ?? 'null'}`);
         if (prefab) {
             const manager = TurretPlacementManager.instance;
             const cost = manager ? manager.getCostsFromPrefab(prefab) : null;
@@ -354,20 +374,28 @@ export class BuildPanelUI extends Component {
 
     /** 从发电机预制体读取发电量 */
     private getPowerGenFromPrefab(prefab: Prefab | null): number {
-        if (!prefab) return 0;
+        if (!prefab) {
+            log(`[BuildPanelUI] getPowerGenFromPrefab: prefab 为 null`);
+            return 0;
+        }
         const tempNode = instantiate(prefab);
         const plant = tempNode.getComponent(PlantGenerator);
         const powerGen = plant ? plant.powerGenerate : 0;
+        log(`[BuildPanelUI] getPowerGenFromPrefab: prefab=${prefab.name}, 找到PlantGenerator=${!!plant}, powerGenerate=${powerGen}`);
         tempNode.destroy();
         return powerGen;
     }
 
     /** 从预制体读取耗电量（集装箱等） */
     private getPowerCostFromPrefab(prefab: Prefab | null): number {
-        if (!prefab) return 0;
+        if (!prefab) {
+            log(`[BuildPanelUI] getPowerCostFromPrefab: prefab 为 null`);
+            return 0;
+        }
         const tempNode = instantiate(prefab);
         const container = tempNode.getComponent(Container);
         const powerCost = container ? container.powerCost : 0;
+        log(`[BuildPanelUI] getPowerCostFromPrefab: prefab=${prefab.name}, 找到Container=${!!container}, powerCost=${powerCost}`);
         tempNode.destroy();
         return powerCost;
     }
