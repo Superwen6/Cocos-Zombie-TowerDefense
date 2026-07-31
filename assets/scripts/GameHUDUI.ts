@@ -179,10 +179,11 @@ export class GameHUDUI extends Component {
             }
         }
 
-        // 左下角面板：背包数量 / 背包容量
+        // 左下角面板：背包数量 / 背包容量（应用背包容量倍率）
         if (this.ironText) {
             if (data) {
-                this.ironText.string = `${data.ironCount}/${data.maxIron}`;
+                const effMaxIron = state?.getEffectiveBackpackMax(data.maxIron) ?? data.maxIron;
+                this.ironText.string = `${data.ironCount}/${effMaxIron}`;
             } else {
                 this.ironText.string = '--/--';
             }
@@ -190,7 +191,8 @@ export class GameHUDUI extends Component {
 
         if (this.copperText) {
             if (data) {
-                this.copperText.string = `${data.copperCount}/${data.maxCopper}`;
+                const effMaxCopper = state?.getEffectiveBackpackMax(data.maxCopper) ?? data.maxCopper;
+                this.copperText.string = `${data.copperCount}/${effMaxCopper}`;
             } else {
                 this.copperText.string = '--/--';
             }
@@ -198,7 +200,8 @@ export class GameHUDUI extends Component {
 
         if (this.woodText) {
             if (data) {
-                this.woodText.string = `${data.woodCount}/${data.maxWood}`;
+                const effMaxWood = state?.getEffectiveBackpackMax(data.maxWood) ?? data.maxWood;
+                this.woodText.string = `${data.woodCount}/${effMaxWood}`;
             } else {
                 this.woodText.string = '--/--';
             }
