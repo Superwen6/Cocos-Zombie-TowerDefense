@@ -524,8 +524,13 @@ export class ZombieMove extends Component {
             selfPos, playerNode!.worldPosition, [ColliderGroup.Wall],
         ) ?? false) : false;
 
-        // ===== 死磕玩家状态：LEASH_RADIUS 退出 =====
+        // ===== 死磕玩家状态：LEASH_RADIUS 退出 / 玩家隐身退出 =====
         if (playerExists && (this._aiState === 'CHASE_PLAYER' || this._aiState === 'ATTACK_PLAYER')) {
+            // 玩家隐身 → 丢失目标
+            if (PlayerState.isPlayerInvisible) {
+                this.returnToDefaultTarget();
+                return;
+            }
             // 玩家超出拉扯范围 → 放弃追击，回到预定目标
             if (distToPlayer > LEASH_RADIUS) {
                 this.returnToDefaultTarget();
@@ -563,7 +568,7 @@ export class ZombieMove extends Component {
 
         // ===== MEMORY_TRACK =====
         if (playerExists && this._aiState === 'MEMORY_TRACK') {
-            if (distToPlayer > LEASH_RADIUS || this._memoryTimer <= 0) {
+            if (PlayerState.isPlayerInvisible || distToPlayer > LEASH_RADIUS || this._memoryTimer <= 0) {
                 this.returnToDefaultTarget();
                 return;
             }

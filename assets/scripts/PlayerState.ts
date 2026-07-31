@@ -111,6 +111,9 @@ export class PlayerState extends Component {
     /** 僵尸感知距离倍率（生存面板潜行升级，越低越好） */
     static zombieAlertRadiusMultiplier = 1.0;
 
+    /** 玩家是否处于完全隐身（僵尸已锁定玩家的也会丢失目标） */
+    static isPlayerInvisible = false;
+
     /** 潜行技能等级（0=未激活，1=已激活） */
     static stealthLevel = 0;
 
@@ -241,8 +244,8 @@ export class PlayerState extends Component {
         this._localX = lp.x;
         this._localY = lp.y;
 
-        // 受击闪红渐变恢复
-        if (this._flashTimer > 0 && this.playerSprite) {
+        // 受击闪红渐变恢复（隐身时跳过，避免覆盖透明度）
+        if (this._flashTimer > 0 && this.playerSprite && !PlayerState.isPlayerInvisible) {
             this._flashTimer -= dt;
             const t = 1 - Math.max(0, this._flashTimer) / this._flashDuration;
             const r = 255;
@@ -464,6 +467,7 @@ export class PlayerState extends Component {
                     this._stealthPhase = 'stealthed';
                     this._stealthTimer = this.stealthDuration;
                     this.setPlayerOpacity(this.stealthOpacity);
+                    PlayerState.isPlayerInvisible = true;
                     PlayerState.zombieAlertRadiusMultiplier = 0;
                 }
                 break;
@@ -474,6 +478,7 @@ export class PlayerState extends Component {
                     this._stealthPhase = 'normal';
                     this._stealthTimer = 0;
                     this.setPlayerOpacity(255);
+                    PlayerState.isPlayerInvisible = false;
                     PlayerState.zombieAlertRadiusMultiplier = 1.0;
                 } else {
                     this._stealthTimer -= dt;
@@ -481,6 +486,7 @@ export class PlayerState extends Component {
                         console.log('[Stealth] 隐身时间结束，stealthed -> reduced');
                         this._stealthPhase = 'reduced';
                         this.setPlayerOpacity(255);
+                        PlayerState.isPlayerInvisible = false;
                         PlayerState.zombieAlertRadiusMultiplier = 0.2;
                     }
                 }
@@ -499,9 +505,13 @@ export class PlayerState extends Component {
 
     /** 设置玩家贴图透明度 */
     private setPlayerOpacity(opacity: number) {
-        if (!this.playerSprite) return;
+        if (!this.playerSprite) {
+            console.warn('[Stealth] setPlayerOpacity 失败：playerSprite 为 null，请在编辑器中绑定 PlayerState.playerSprite');
+            return;
+        }
         const color = this.playerSprite.color.clone();
         this.playerSprite.color = new Color(color.r, color.g, color.b, opacity);
+        console.log(`[Stealth] setPlayerOpacity opacity=${opacity} sprite=${this.playerSprite.node.name}`);
     }
 
     /** 查找场景中所有可伤害的建筑（Turret, PlantGenerator, Container） */
@@ -574,6 +584,7 @@ export class PlayerState extends Component {
         this._stealthPhase = 'normal';
         this._stealthTimer = 0;
         this.setPlayerOpacity(255);
+        PlayerState.isPlayerInvisible = false;
         PlayerState.zombieAlertRadiusMultiplier = 1.0;
 
         // 移动到基地位置
