@@ -17,11 +17,8 @@ export class LaserBeam extends Component {
     @property({ type: CCFloat, tooltip: '伤害间隔（秒），每 tickInterval 秒结算一次伤害' })
     tickInterval = 0.2;
 
-    @property({ type: CCFloat, tooltip: '光束视觉宽度（像素）' })
-    beamWidth = 6;
-
-    @property({ type: Node, tooltip: '光束贴图节点（锚点应为左中 0,0.5，宽度由脚本控制）' })
-    beamNode: Node | null = null;
+    @property({ type: [Node], tooltip: '光束图层节点（从外到内：glow 外红光 / mid 中橙光 / core 核心白光），宽度由脚本控制，高度在预制体里按倍率配好' })
+    layerNodes: Node[] = [];
 
     /** 每次 tick 实际伤害值（运行时 = 炮塔伤害 × damageFactor，向上取整） */
     damagePerTick = 1;
@@ -31,7 +28,6 @@ export class LaserBeam extends Component {
     private _originNode: Node | null = null;
     private _originPos: Vec3 | null = null;
     private _attackerNode: Node | null = null;
-    private _beamTransform: UITransform | null = null;
     private _tickTimer = 0;
     private _maxRange = 0;
     private readonly _origin = new Vec3();
@@ -75,7 +71,6 @@ export class LaserBeam extends Component {
         this._attackerNode = attackerNode ?? null;
         this._maxRange = maxRange;
         this.damagePerTick = Math.max(1, Math.round(baseDamage * this.damageFactor));
-        this._beamTransform = this.beamNode?.getComponent(UITransform) ?? null;
         this._tickTimer = 0;
         // 立即渲染光束，避免第一帧显示预制体默认短截状态
         this.updateBeamVisual();
@@ -139,10 +134,14 @@ export class LaserBeam extends Component {
         const angle = Math.atan2(this._dir.y, this._dir.x) * 180 / Math.PI;
         this.node.eulerAngles = new Vec3(0, 0, angle);
 
-        // 光束贴图以左中为锚点向右伸展，宽度 = 到目标的距离
-        if (this._beamTransform) {
-            this._beamTransform.width = dist;
-            this._beamTransform.height = this.beamWidth;
+        // 各图层以左中为锚点向右伸展，宽度 = 到目标的距离（高度在预制体按倍率配置）
+        for (const layer of this.layerNodes) {
+            if (layer?.isValid) {
+                const ut = layer.getComponent(UITransform);
+                if (ut) {
+                    ut.width = dist;
+                }
+            }
         }
     }
 
