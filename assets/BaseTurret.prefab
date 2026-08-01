@@ -1006,17 +1006,17 @@
     "__prefab": {
       "__id__": 43
     },
-    "costWood": 4,
-    "costCopper": 2,
-    "costIron": 1,
+    "costWood": 0,
+    "costCopper": 0,
+    "costIron": 0,
     "costMoney": 0,
     "powerCost": 2,
     "maxHp": 150,
-    "damage": 100,
+    "damage": 10,
     "attackInterval": 0.5,
     "attackRange": 500,
     "bulletPrefab": {
-      "__uuid__": "7fee7fe9-1e7d-4bb7-ace5-cb38a14d1f4d",
+      "__uuid__": "7f5df254-675b-4019-b81e-317ab38582f9",
       "__expectedType__": "cc.Prefab"
     },
     "hpLabel": {

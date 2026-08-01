@@ -14,6 +14,7 @@ import {
     warn,
 } from 'cc';
 import { Bullet } from './Bullet';
+import { LaserBeam } from './LaserBeam';
 import { BulletSound } from './BulletSound';
 import { ZombieMove } from './ZombieMove';
 import { CollisionWorld, Collider2D, ColliderGroup } from './CollisionWorld';
@@ -121,6 +122,7 @@ export class Turret extends Component {
     set hp(v: number) { this._hp = v; }
     private fireTimer = 0;
     private lockedTarget: ZombieMove | null = null;
+    private _activeLaser: LaserBeam | null = null;
     private _collider: Collider2D | null = null;
     private _audioSource: AudioSource | null = null;
     private _attackSoundTimer = 0;
@@ -389,8 +391,24 @@ export class Turret extends Component {
     }
 
     private spawnBullet(x: number, y: number, target: ZombieMove) {
-        // 实例化子弹，初始缩放为 0，避免显示预制体默认角度
+        // 激光束：同一目标只保持一条光束，避免叠加
+        // 先判断已有光束是否存活，存活则只切换目标，不再实例化新节点（避免闪现预制体短截）
+        if (this._activeLaser?.node?.isValid) {
+            this._activeLaser.updateTarget(target.node);
+            return;
+        }
+
         const bulletNode = instantiate(this.bulletPrefab!);
+        const laser = bulletNode.getComponent(LaserBeam);
+        if (laser) {
+            const pos = new Vec3(x, y, 0);
+            LaserBeam.attachToWorld(bulletNode, pos);
+            laser.init(target.node, this.muzzleNode ?? null, pos, this.damage, this.node, this.attackRange);
+            this._activeLaser = laser;
+            return;
+        }
+
+        // 普通子弹：初始缩放为 0，避免显示预制体默认角度
         bulletNode.setScale(0, 0, 1);
         const pos = new Vec3(x, y, 0);
         Bullet.attachToWorld(bulletNode, pos);

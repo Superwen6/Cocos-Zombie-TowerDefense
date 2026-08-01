@@ -597,8 +597,8 @@
       "z": 0
     },
     "placeRadius": 200,
-    "costWood": 5,
-    "costCopper": 2,
+    "costWood": 0,
+    "costCopper": 0,
     "costIron": 0,
     "costMoney": 0,
     "ghostOpacity": 0.2,
