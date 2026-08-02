@@ -48,7 +48,8 @@ const AFFECTED_BUTTONS: Record<string, string[]> = {
     Micromsg: ['Micromsg', 'Rifle'],
     Rifle: ['Rifle', 'Machinegun'],
     Machinegun: ['Machinegun'],
-    greedy: ['greedy'],
+    greedy: ['greedy', 'greedy2'],
+    greedy2: ['greedy2'],
 };
 
 /** 炮塔强化消耗 */
@@ -85,6 +86,7 @@ const BUTTON_DESCRIPTIONS: Record<string, string> = {
     Rifle: 'LV1，切换步枪模式',
     Machinegun: 'LV1，切换机关枪模式',
     greedy: 'LV1，所有僵尸金钱掉落概率*2',
+    greedy2: 'LV1，所有僵尸资源掉落概率*2',
 };
 
 /**
@@ -171,6 +173,9 @@ export class AttributeUpgradePanel extends Component {
 
     @property({ type: Node, tooltip: '贪婪按钮（金钱掉落*2）' })
     greedyButton: Node | null = null;
+
+    @property({ type: Node, tooltip: '贪婪2按钮（所有僵尸资源掉落概率*2）' })
+    greedy2Button: Node | null = null;
 
     // ---- 武器攻击间隔（属性检查器可调） ----
     @property({ tooltip: '手枪攻击间隔（秒）' })
@@ -548,6 +553,7 @@ export class AttributeUpgradePanel extends Component {
         this.registerUpgrade('Rifle', this.rifleButton || this.findButtonIn('Rifle', this.weaponContent), 1);
         this.registerUpgrade('Machinegun', this.machinegunButton || this.findButtonIn('Machinegun', this.weaponContent), 1);
         this.registerUpgrade('greedy', this.greedyButton || this.findButtonIn('greedy', this.weaponContent), 1);
+        this.registerUpgrade('greedy2', this.greedy2Button || this.findButtonIn('greedy2', this.weaponContent), 1);
     }
 
     private registerUpgrade(name: string, node: Node | null, maxLevel: number) {
@@ -641,6 +647,8 @@ export class AttributeUpgradePanel extends Component {
             case 'Pistol':
             case 'greedy':
                 return this.getLevel('AttackIncrease') >= 3;
+            case 'greedy2':
+                return this.getLevel('greedy') >= 1;
             case 'Micromsg':
                 return this.getLevel('Pistol') >= 1;
             case 'Rifle':
@@ -776,6 +784,9 @@ export class AttributeUpgradePanel extends Component {
                 break;
             case 'greedy':
                 ps.moneyDropMultiplier = 2.0;
+                break;
+            case 'greedy2':
+                ps.resourceDropMultiplier = 2.0;
                 break;
         }
     }

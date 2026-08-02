@@ -589,7 +589,7 @@
       "__id__": 27
     },
     "maxHp": 200,
-        "costWood": 4,
+    "costWood": 4,
     "costCopper": 2,
     "costIron": 1,
     "costMoney": 0,

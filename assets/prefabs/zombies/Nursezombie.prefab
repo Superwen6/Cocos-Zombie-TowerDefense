@@ -288,7 +288,7 @@
     "damage": 2,
     "moveSpeed": 130,
     "attackRange": 45,
-    "alertRadius": 300,
+    "alertRadius": 450,
     "buildingScanRadius": 250,
     "wanderLandmarkScanRadius": 500,
     "wanderPatrolRadius": 800,
@@ -403,7 +403,7 @@
       "__id__": 15
     },
     "woodDropChance": 0.14,
-    "copperDropChance": 0.1,
+    "copperDropChance": 0.12,
     "ironDropChance": 0.05,
     "moneyDropChance": 0.3,
     "moneyAmount": 25,

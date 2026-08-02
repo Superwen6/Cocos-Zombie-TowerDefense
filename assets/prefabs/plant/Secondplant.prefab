@@ -587,7 +587,7 @@
     },
     "plantId": 2,
     "maxHp": 100,
-        "powerGenerate": 20,
+    "powerGenerate": 20,
     "powerCost": 0,
     "placeCenter": {
       "__type__": "cc.Vec3",
@@ -596,10 +596,10 @@
       "z": 0
     },
     "placeRadius": 200,
-    "costWood": 0,
-    "costCopper": 0,
-    "costIron": 0,
-    "costMoney": 0,
+    "costWood": 10,
+    "costCopper": 6,
+    "costIron": 2,
+    "costMoney": 20,
     "ghostOpacity": 0.2,
     "destroySound": {
       "__uuid__": "58cd2542-c1a7-4ec9-b614-c1d2badc1589",
