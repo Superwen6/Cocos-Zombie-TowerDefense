@@ -188,6 +188,9 @@ export class PlayerState extends Component {
     @property({ type: AudioClip, tooltip: '疲劳度满后间隔播放的音效' })
     fatigueSound: AudioClip | null = null;
 
+    @property({ type: AudioClip, tooltip: '低血量进入隐身状态时播放一次的音效' })
+    stealthSound: AudioClip | null = null;
+
     private _baseNode: Node | null = null;
     private _statusLogTimer = 0;
     private _fatigueMode: FatigueMode = FatigueMode.IDLE;
@@ -471,6 +474,10 @@ export class PlayerState extends Component {
                     this.setPlayerOpacity(this.stealthOpacity);
                     PlayerState.isPlayerInvisible = true;
                     PlayerState.zombieAlertRadiusMultiplier = 0;
+                    // 进入隐身时播放一次音效
+                    if (this._audioSource && this.stealthSound) {
+                        this._audioSource.playOneShot(this.stealthSound, 1);
+                    }
                 }
                 break;
 
