@@ -35,10 +35,13 @@
       },
       {
         "__id__": 34
+      },
+      {
+        "__id__": 36
       }
     ],
     "_prefab": {
-      "__id__": 36
+      "__id__": 38
     },
     "_lpos": {
       "__type__": "cc.Vec3",
@@ -105,8 +108,8 @@
     },
     "_lscale": {
       "__type__": "cc.Vec3",
-      "x": 1,
-      "y": 1,
+      "x": 0.1,
+      "y": 0.1,
       "z": 1
     },
     "_mobility": 0,
@@ -133,8 +136,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 90,
-      "height": 90
+      "width": 830,
+      "height": 780
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -244,8 +247,8 @@
     },
     "_lscale": {
       "__type__": "cc.Vec3",
-      "x": 1.5,
-      "y": 1.5,
+      "x": 0.1,
+      "y": 0.1,
       "z": 1
     },
     "_mobility": 0,
@@ -272,8 +275,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 50,
-      "height": 50
+      "width": 900,
+      "height": 700
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -770,13 +773,13 @@
     },
     "costWood": 20,
     "costCopper": 10,
-    "costIron": 5,
+    "costIron": 8,
     "costMoney": 0,
-    "powerCost": 10,
-    "maxHp": 150,
-    "damage": 20,
-    "attackInterval": 0.05,
-    "attackRange": 1200,
+    "powerCost": 4,
+    "maxHp": 200,
+    "damage": 6,
+    "attackInterval": 0.2,
+    "attackRange": 500,
     "bulletPrefab": {
       "__uuid__": "1d6466a5-ddf5-4dc3-a7d8-dec9a81c92ba",
       "__expectedType__": "cc.Prefab"
@@ -787,12 +790,12 @@
     },
     "muzzleOffset": 40,
     "barrelDefaultAngle": 180,
-    "rotationSpeed": 360,
+    "rotationSpeed": 80,
     "colliderHalfW": 20,
     "colliderHalfH": 20,
     "enableDualShot": false,
     "dualShotSpread": 15,
-    "homingBullet": true,
+    "homingBullet": false,
     "piercingBullet": false,
     "destroySound": {
       "__uuid__": "58cd2542-c1a7-4ec9-b614-c1d2badc1589",
@@ -833,6 +836,34 @@
   {
     "__type__": "cc.CompPrefabInfo",
     "fileId": "f0Mps+s8VP/ZccfDn682gg"
+  },
+  {
+    "__type__": "cc.UITransform",
+    "_name": "",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "node": {
+      "__id__": 1
+    },
+    "_enabled": true,
+    "__prefab": {
+      "__id__": 37
+    },
+    "_contentSize": {
+      "__type__": "cc.Size",
+      "width": 50,
+      "height": 50
+    },
+    "_anchorPoint": {
+      "__type__": "cc.Vec2",
+      "x": 0.5,
+      "y": 0.5
+    },
+    "_id": ""
+  },
+  {
+    "__type__": "cc.CompPrefabInfo",
+    "fileId": "aeEqymhi9H77xwlNrHxS6N"
   },
   {
     "__type__": "cc.PrefabInfo",

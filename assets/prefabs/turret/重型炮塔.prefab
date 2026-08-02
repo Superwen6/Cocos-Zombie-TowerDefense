@@ -1006,15 +1006,15 @@
     "__prefab": {
       "__id__": 43
     },
-    "costWood": 14,
+    "costWood": 12,
     "costCopper": 7,
     "costIron": 4,
     "costMoney": 0,
-    "powerCost": 5,
-    "maxHp": 150,
-    "damage": 2,
-    "attackInterval": 1,
-    "attackRange": 400,
+    "powerCost": 3,
+    "maxHp": 180,
+    "damage": 22,
+    "attackInterval": 1.5,
+    "attackRange": 350,
     "bulletPrefab": {
       "__uuid__": "70f289cd-3c40-4f89-995f-7c9c5f5cf0c5",
       "__expectedType__": "cc.Prefab"
@@ -1027,7 +1027,7 @@
     },
     "muzzleOffset": 40,
     "barrelDefaultAngle": 180,
-    "rotationSpeed": 40,
+    "rotationSpeed": 35,
     "colliderHalfW": 30,
     "colliderHalfH": 30,
     "enableDualShot": false,

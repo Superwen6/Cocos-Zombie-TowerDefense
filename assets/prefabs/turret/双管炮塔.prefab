@@ -1006,15 +1006,15 @@
     "__prefab": {
       "__id__": 43
     },
-    "costWood": 10,
-    "costCopper": 5,
-    "costIron": 3,
+    "costWood": 12,
+    "costCopper": 8,
+    "costIron": 1,
     "costMoney": 0,
     "powerCost": 3,
     "maxHp": 150,
-    "damage": 1,
-    "attackInterval": 0.1,
-    "attackRange": 500,
+    "damage": 2,
+    "attackInterval": 0.3,
+    "attackRange": 480,
     "bulletPrefab": {
       "__uuid__": "1d6466a5-ddf5-4dc3-a7d8-dec9a81c92ba",
       "__expectedType__": "cc.Prefab"
@@ -1032,7 +1032,7 @@
     "colliderHalfH": 30,
     "enableDualShot": true,
     "dualShotSpread": 20,
-    "homingBullet": true,
+    "homingBullet": false,
     "piercingBullet": false,
     "destroySound": {
       "__uuid__": "58cd2542-c1a7-4ec9-b614-c1d2badc1589",
@@ -1064,7 +1064,7 @@
       "__id__": 45
     },
     "fireSound": {
-      "__uuid__": "272f76f8-6fc6-42ac-9fed-3f4f0a7b2a2c",
+      "__uuid__": "2da9c979-84ab-4cb0-b7e9-e36144698fdb",
       "__expectedType__": "cc.AudioClip"
     },
     "maxDistance": 400,

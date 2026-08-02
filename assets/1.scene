@@ -189,32 +189,32 @@
     ],
     "upgradeWood": [
       30,
-      80,
+      60,
       130,
       180
     ],
     "upgradeCopper": [
       15,
-      40,
+      30,
       65,
       90
     ],
     "upgradeIron": [
       7,
-      20,
+      15,
       32,
       45
     ],
     "upgradeMoney": [
       0,
-      0,
-      0,
+      100,
+      600,
       1000
     ],
     "levelPowerCosts": [
       0,
       2,
-      10,
+      6,
       15,
       20
     ],
@@ -778,6 +778,7 @@
     "weaponAttackInterval": 0.5,
     "weaponDamage": 10,
     "moneyDropMultiplier": 1,
+    "resourceDropMultiplier": 1,
     "baseNodeName": "Base",
     "baseNode": {
       "__id__": 6
@@ -73033,7 +73034,7 @@
         "__id__": 2811
       }
     ],
-    "_active": true,
+    "_active": false,
     "_components": [
       {
         "__id__": 2896
@@ -82536,7 +82537,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": -120,
+      "y": -60,
       "z": 0
     },
     "_lrot": {
@@ -83611,6 +83612,7 @@
     "greedyButton": {
       "__id__": 2859
     },
+    "greedy2Button": null,
     "pistolAttackInterval": 0.5,
     "micromsgAttackInterval": 0.3,
     "rifleAttackInterval": 0.8,

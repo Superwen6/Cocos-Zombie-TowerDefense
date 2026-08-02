@@ -121,7 +121,7 @@ export class PlantPanelUI extends Component {
             wood: Math.round(cost.wood * (1 - saveRate)),
             copper: Math.round(cost.copper * (1 - saveRate)),
             iron: Math.round(cost.iron * (1 - saveRate)),
-            money: Math.round(cost.money * (1 - saveRate)),
+            money: cost.money,
         };
 
         // 等级锁定：基地等级必须 >= plantId 才能建造

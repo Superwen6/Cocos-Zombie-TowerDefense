@@ -280,7 +280,7 @@ export class BuildPanelUI extends Component {
         const actualWood = Math.round(tier.wood * (1 - saveRate));
         const actualCopper = Math.round(tier.copper * (1 - saveRate));
         const actualIron = Math.round(tier.iron * (1 - saveRate));
-        const actualMoney = Math.round(tier.money * (1 - saveRate));
+        const actualMoney = tier.money;
 
         // 基地升级使用仓库资源
         const storage = GlobalContainerStorage.instance;

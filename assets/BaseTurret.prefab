@@ -1014,7 +1014,7 @@
     "maxHp": 150,
     "damage": 10,
     "attackInterval": 0.5,
-    "attackRange": 500,
+    "attackRange": 400,
     "bulletPrefab": {
       "__uuid__": "1d6466a5-ddf5-4dc3-a7d8-dec9a81c92ba",
       "__expectedType__": "cc.Prefab"

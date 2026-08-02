@@ -45,7 +45,7 @@ export class TurretBuildPanelUI extends Component {
                 wood: Math.round(c.wood * (1 - saveRate)),
                 iron: Math.round(c.iron * (1 - saveRate)),
                 copper: Math.round(c.copper * (1 - saveRate)),
-                money: Math.round(c.money * (1 - saveRate)),
+                money: c.money,
             };
         }
         return { wood: 0, iron: 2, copper: 0, money: 5 };

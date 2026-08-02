@@ -487,6 +487,8 @@ export class SaveSystem {
                     node = instantiate(prefab);
                     node.setParent(root);
                     node.setPosition(bd.localX, bd.localY, 0);
+                    // 建造时虚影被强制 setScale(1,1,1)，读档需保持一致，否则机枪炮塔(预制体根scale=0.3)读档后贴图变小
+                    node.setScale(1, 1, 1);
                     const turret = node.getComponent(Turret);
                     if (turret) {
                         turret.enabled = true;

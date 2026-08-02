@@ -313,7 +313,7 @@ export class BaseSystem extends Component {
         const actualWood = Math.round(tier.wood * (1 - saveRate));
         const actualCopper = Math.round(tier.copper * (1 - saveRate));
         const actualIron = Math.round(tier.iron * (1 - saveRate));
-        const actualMoney = Math.round(tier.money * (1 - saveRate));
+        const actualMoney = tier.money;
 
         // 材料从仓库检查，金钱从背包检查
         const storage = GlobalContainerStorage.instance;
@@ -375,7 +375,7 @@ export class BaseSystem extends Component {
         const actualWood = Math.round(tier.wood * (1 - saveRate));
         const actualCopper = Math.round(tier.copper * (1 - saveRate));
         const actualIron = Math.round(tier.iron * (1 - saveRate));
-        const actualMoney = Math.round(tier.money * (1 - saveRate));
+        const actualMoney = tier.money;
 
         // 材料从仓库扣除，金钱从背包扣除
         const storage = GlobalContainerStorage.instance;
