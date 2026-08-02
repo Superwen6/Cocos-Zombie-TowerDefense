@@ -67,9 +67,18 @@ export class ZombieDrop extends Component {
         }
 
         // 金钱 → 直接加给玩家
-        const moneyMult = PlayerState.instance?.moneyDropMultiplier ?? 1.0;
+        const ps = PlayerState.instance;
+        const moneyMult = ps?.moneyDropMultiplier ?? 1.0;
         if (Math.random() < this.moneyDropChance * moneyMult) {
-            data?.addMoney(this.moneyAmount);
+            // 金额随机放大：greedy LV2 随机*1~5，greedy2 LV2 随机*3~5（可叠加）
+            let amountMult = 1;
+            if (ps && ps.greedyMoneyMultMax > 0) {
+                amountMult *= ps.greedyMoneyMultMin + Math.random() * (ps.greedyMoneyMultMax - ps.greedyMoneyMultMin);
+            }
+            if (ps && ps.greedy2MoneyMultMax > 0) {
+                amountMult *= ps.greedy2MoneyMultMin + Math.random() * (ps.greedy2MoneyMultMax - ps.greedy2MoneyMultMin);
+            }
+            data?.addMoney(Math.round(this.moneyAmount * amountMult));
             GameHUDUI.flashResourceGreen('money');
         }
     }

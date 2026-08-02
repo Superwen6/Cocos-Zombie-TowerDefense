@@ -1,0 +1,63 @@
+{
+  "ver": "1.0.8",
+  "importer": "sprite-atlas",
+  "imported": true,
+  "uuid": "4a10682c-6881-4a96-a913-072e0fce1692",
+  "files": [
+    ".json"
+  ],
+  "subMetas": {
+    "ceb4d": {
+      "importer": "sprite-frame",
+      "uuid": "4a10682c-6881-4a96-a913-072e0fce1692@ceb4d",
+      "displayName": "",
+      "id": "ceb4d",
+      "name": "greedy2",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": -19,
+        "offsetY": 9,
+        "trimX": 1,
+        "trimY": 1,
+        "width": 1723,
+        "height": 1619,
+        "rawWidth": 2048,
+        "rawHeight": 2048,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [],
+          "indexes": [],
+          "uv": [],
+          "nuv": [],
+          "minPos": [],
+          "maxPos": []
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "bb40e970-fe47-4b84-9800-30b7dcefad15@6c48a",
+        "atlasUuid": "4a10682c-6881-4a96-a913-072e0fce1692",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "atlasTextureName": "root.png",
+    "format": 3,
+    "uuid": "4a10682c-6881-4a96-a913-072e0fce1692",
+    "textureUuid": "bb40e970-fe47-4b84-9800-30b7dcefad15@6c48a"
+  }
+}

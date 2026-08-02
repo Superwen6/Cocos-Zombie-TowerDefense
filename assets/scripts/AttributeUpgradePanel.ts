@@ -74,7 +74,7 @@ const BUTTON_DESCRIPTIONS: Record<string, string> = {
     collectmaster: 'LV2，资源采集暴增',
     Stealth: 'LV1，危机状况隐身与潜行',
     RemoteRepair: 'LV1，远程维修建筑',
-    RemoteMaterial: 'LV1，远程用材料维修',
+    RemoteMaterial: '远程使用仓库资源',
     TurretReinforcement: 'LV1，强化炮塔属性 (消耗：6木 3铜 1铁)',
     MaterialRetun: 'LV3，拆除建筑返还材料',
     MaterialSave: 'LV3，全局节省材料',
@@ -85,8 +85,8 @@ const BUTTON_DESCRIPTIONS: Record<string, string> = {
     Micromsg: 'LV1，切换微型冲锋枪',
     Rifle: 'LV1，切换步枪模式',
     Machinegun: 'LV1，切换机关枪模式',
-    greedy: 'LV1，所有僵尸金钱掉落概率*2',
-    greedy2: 'LV1，所有僵尸资源掉落概率*2',
+    greedy: 'LV2，提高金钱掉落概率与数量',
+    greedy2: 'LV2，提高资源掉落概率与数量',
 };
 
 /**
@@ -552,8 +552,8 @@ export class AttributeUpgradePanel extends Component {
         this.registerUpgrade('Micromsg', this.micromsgButton || this.findButtonIn('Micromsg', this.weaponContent), 1);
         this.registerUpgrade('Rifle', this.rifleButton || this.findButtonIn('Rifle', this.weaponContent), 1);
         this.registerUpgrade('Machinegun', this.machinegunButton || this.findButtonIn('Machinegun', this.weaponContent), 1);
-        this.registerUpgrade('greedy', this.greedyButton || this.findButtonIn('greedy', this.weaponContent), 1);
-        this.registerUpgrade('greedy2', this.greedy2Button || this.findButtonIn('greedy2', this.weaponContent), 1);
+        this.registerUpgrade('greedy', this.greedyButton || this.findButtonIn('greedy', this.weaponContent), 2);
+        this.registerUpgrade('greedy2', this.greedy2Button || this.findButtonIn('greedy2', this.weaponContent), 2);
     }
 
     private registerUpgrade(name: string, node: Node | null, maxLevel: number) {
@@ -648,7 +648,7 @@ export class AttributeUpgradePanel extends Component {
             case 'greedy':
                 return this.getLevel('AttackIncrease') >= 3;
             case 'greedy2':
-                return this.getLevel('greedy') >= 1;
+                return this.getLevel('greedy') >= 2;
             case 'Micromsg':
                 return this.getLevel('Pistol') >= 1;
             case 'Rifle':
@@ -788,9 +788,13 @@ export class AttributeUpgradePanel extends Component {
                 break;
             case 'greedy':
                 ps.moneyDropMultiplier = 2.0;
+                ps.greedyMoneyMultMin = level >= 2 ? 1 : 0;
+                ps.greedyMoneyMultMax = level >= 2 ? 5 : 0;
                 break;
             case 'greedy2':
                 ps.resourceDropMultiplier = 2.0;
+                ps.greedy2MoneyMultMin = level >= 2 ? 3 : 0;
+                ps.greedy2MoneyMultMax = level >= 2 ? 5 : 0;
                 break;
         }
     }
@@ -1497,6 +1501,11 @@ export class AttributeUpgradePanel extends Component {
         ps.weaponDamage = 10;
         ps.weaponMode = false;
         ps.moneyDropMultiplier = 1.0;
+        ps.resourceDropMultiplier = 1.0;
+        ps.greedyMoneyMultMin = 0;
+        ps.greedyMoneyMultMax = 0;
+        ps.greedy2MoneyMultMin = 0;
+        ps.greedy2MoneyMultMax = 0;
 
         // 隐藏 Canvas 操作按钮
         if (this.reinforceActionBtn) this.reinforceActionBtn.active = false;

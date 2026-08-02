@@ -87,9 +87,6 @@ export class PlayerState extends Component {
     @property({ tooltip: '属性点数上限' })
     maxUpgradePoints = 20;
 
-    /** 已发放属性点的天数（用于限制前 maxUpgradePoints 天每日发点） */
-    upgradePointsGranted = 0;
-
     @property({ tooltip: '行走速度倍率（生存面板升级）' })
     walkSpeedMultiplier = 1.0;
 
@@ -184,6 +181,18 @@ export class PlayerState extends Component {
 
     @property({ tooltip: '资源掉落概率倍率（武器面板greedy2升级）' })
     resourceDropMultiplier = 1.0;
+
+    @property({ tooltip: 'greedy LV2 金钱数量随机倍率下限（0=未激活）' })
+    greedyMoneyMultMin = 0;
+
+    @property({ tooltip: 'greedy LV2 金钱数量随机倍率上限（0=未激活）' })
+    greedyMoneyMultMax = 0;
+
+    @property({ tooltip: 'greedy2 LV2 金钱数量随机倍率下限（0=未激活）' })
+    greedy2MoneyMultMin = 0;
+
+    @property({ tooltip: 'greedy2 LV2 金钱数量随机倍率上限（0=未激活）' })
+    greedy2MoneyMultMax = 0;
 
     @property({ tooltip: '基地节点名（用于自动查找）' })
     baseNodeName = 'Base';
@@ -725,10 +734,9 @@ export class PlayerState extends Component {
         }
     }
 
-    /** 每日增加属性点（仅前 maxUpgradePoints 天发放，第 21 天起不再发放） */
-    addDayUpgradePoints() {
-        if (this.upgradePointsGranted >= this.maxUpgradePoints) return;
+    /** 每日增加属性点（仅第 2~maxUpgradePoints 天发放，第 maxUpgradePoints+1 天起不再发放） */
+    addDayUpgradePoints(currentDay: number) {
+        if (currentDay > this.maxUpgradePoints) return;
         this.upgradePoints += this.upgradePointsPerDay;
-        this.upgradePointsGranted++;
     }
 }

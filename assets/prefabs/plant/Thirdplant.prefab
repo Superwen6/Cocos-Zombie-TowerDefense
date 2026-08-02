@@ -587,7 +587,7 @@
     },
     "plantId": 3,
     "maxHp": 100,
-        "powerGenerate": 40,
+    "powerGenerate": 80,
     "powerCost": 0,
     "placeCenter": {
       "__type__": "cc.Vec3",

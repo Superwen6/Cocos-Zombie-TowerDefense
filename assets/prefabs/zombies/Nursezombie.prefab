@@ -405,7 +405,7 @@
     "woodDropChance": 0.14,
     "copperDropChance": 0.12,
     "ironDropChance": 0.05,
-    "moneyDropChance": 0.3,
+    "moneyDropChance": 0.45,
     "moneyAmount": 25,
     "_id": ""
   },

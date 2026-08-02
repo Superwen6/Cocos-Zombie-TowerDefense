@@ -336,7 +336,7 @@ export class DayNightSystem extends Component {
 
         // 每日增加属性点
         if (PlayerState.instance) {
-            PlayerState.instance.addDayUpgradePoints();
+            PlayerState.instance.addDayUpgradePoints(this.currentDay);
         }
     }
 

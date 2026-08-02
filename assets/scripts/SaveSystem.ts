@@ -69,7 +69,6 @@ export interface SaveData {
         collectorYieldLevel: number;
         collectorFatigueLevel: number;
         upgradePoints: number;
-        upgradePointsGranted: number;
         walkSpeedMultiplier: number;
         hpMultiplier: number;
         fatigueGainMultiplier: number;
@@ -164,7 +163,6 @@ export class SaveSystem {
                 collectorYieldLevel: ps.collectorYieldLevel,
                 collectorFatigueLevel: ps.collectorFatigueLevel,
                 upgradePoints: ps.upgradePoints,
-                upgradePointsGranted: ps.upgradePointsGranted,
                 walkSpeedMultiplier: ps.walkSpeedMultiplier,
                 hpMultiplier: ps.hpMultiplier,
                 fatigueGainMultiplier: ps.fatigueGainMultiplier,
@@ -291,10 +289,6 @@ export class SaveSystem {
         ps.collectorYieldLevel = s.collectorYieldLevel;
         ps.collectorFatigueLevel = s.collectorFatigueLevel;
         ps.upgradePoints = s.upgradePoints;
-        ps.upgradePointsGranted = s.upgradePointsGranted ?? Math.min(
-            ps.maxUpgradePoints,
-            Math.max(0, (data.dayNight?.currentDay ?? 1) - 1),
-        );
         ps.walkSpeedMultiplier = s.walkSpeedMultiplier;
         ps.hpMultiplier = s.hpMultiplier;
         ps.fatigueGainMultiplier = s.fatigueGainMultiplier;
