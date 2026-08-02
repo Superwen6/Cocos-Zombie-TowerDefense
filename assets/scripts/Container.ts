@@ -95,8 +95,10 @@ export class Container extends Component {
         this.hp = this.maxHp;
         GlobalContainerStorage.instance?.registerContainer(this);
 
-        // 首个集装箱建造完成时提示
-        if (GlobalContainerStorage.instance?.containerCount === 1) {
+        // 首个集装箱建造完成时提示（仅首次，读档恢复不重复提示）
+        const gcs = GlobalContainerStorage.instance;
+        if (gcs && gcs.containerCount === 1 && !gcs.firstContainerTipShown) {
+            gcs.firstContainerTipShown = true;
             ReinforcementNotice.show('双击集装箱进入存取面板');
         }
     }

@@ -1011,10 +1011,10 @@
     "costIron": 7,
     "costMoney": 0,
     "powerCost": 8,
-    "maxHp": 150,
+    "maxHp": 200,
     "damage": 20,
-    "attackInterval": 0.001,
-    "attackRange": 800,
+    "attackInterval": 0.18,
+    "attackRange": 550,
     "bulletPrefab": {
       "__uuid__": "089b5d3f-2ee5-4a13-92a1-0314a876a3fb",
       "__expectedType__": "cc.Prefab"

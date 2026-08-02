@@ -70,7 +70,7 @@ const BUTTON_DESCRIPTIONS: Record<string, string> = {
     FatigueReduce: 'LV2，疲劳增长减缓',
     HPIncrease: 'LV3，生命值提升',
     doublecollect: 'LV1，资源采集量翻倍',
-    bagexpand: 'LV1，背包容量*1.5',
+    bagexpand: 'LV1，背包扩容',
     collectmaster: 'LV2，资源采集暴增',
     Stealth: 'LV1，危机状况隐身与潜行',
     RemoteRepair: 'LV1，远程维修建筑',
@@ -728,7 +728,11 @@ export class AttributeUpgradePanel extends Component {
                 ps.ironCollectMultiplier = 2.0;
                 break;
             case 'bagexpand':
-                ps.backpackCapacityMultiplier = 1.5;
+                // 背包扩容为绝对容量：木60 铜32 铁16
+                ps.backpackExpandedWood = 60;
+                ps.backpackExpandedCopper = 32;
+                ps.backpackExpandedIron = 16;
+                ps.backpackCapacityMultiplier = 1.0;
                 break;
             case 'collectmaster':
                 ps.woodCollectMultiplier = level === 1 ? 3.0 : 4.0;
@@ -1478,6 +1482,9 @@ export class AttributeUpgradePanel extends Component {
         ps.copperCollectMultiplier = 1.0;
         ps.ironCollectMultiplier = 1.0;
         ps.backpackCapacityMultiplier = 1.0;
+        ps.backpackExpandedWood = 0;
+        ps.backpackExpandedCopper = 0;
+        ps.backpackExpandedIron = 0;
         PlayerState.zombieAlertRadiusMultiplier = 1.0;
         PlayerState.stealthLevel = 0;
         ps.remoteRepairLevel = 0;
@@ -1609,6 +1616,14 @@ export class AttributeUpgradePanel extends Component {
             const state = this._upgradeStates.get(name);
             if (!state) continue;
             state.level = Math.min(level, state.maxLevel);
+        }
+
+        // 重新应用已升级技能的被动效果（如 bagexpand 背包容量倍率、采集/金钱掉落倍率等），
+        // 否则读档后等级虽恢复但效果仍停留在升级前的默认值
+        for (const [name, state] of this._upgradeStates) {
+            if (state.level >= 1) {
+                this.applyUpgradeEffect(name, state.level);
+            }
         }
 
         // 恢复爆破次数

@@ -1009,12 +1009,12 @@
     "costWood": 72,
     "costCopper": 36,
     "costIron": 18,
-    "costMoney": 600,
+    "costMoney": 0,
     "powerCost": 28,
-    "maxHp": 150,
-    "damage": 20,
-    "attackInterval": 0.1,
-    "attackRange": 500,
+    "maxHp": 400,
+    "damage": 200,
+    "attackInterval": 1,
+    "attackRange": 1000,
     "bulletPrefab": {
       "__uuid__": "1d6466a5-ddf5-4dc3-a7d8-dec9a81c92ba",
       "__expectedType__": "cc.Prefab"

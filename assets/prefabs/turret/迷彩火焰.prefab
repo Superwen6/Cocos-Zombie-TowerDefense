@@ -1009,9 +1009,9 @@
     "costMoney": 0,
     "powerCost": 10,
     "maxHp": 150,
-    "damage": 1,
+    "damage": 40,
     "attackInterval": 0.1,
-    "attackRange": 500,
+    "attackRange": 200,
     "bulletPrefab": {
       "__uuid__": "1d6466a5-ddf5-4dc3-a7d8-dec9a81c92ba",
       "__expectedType__": "cc.Prefab"
@@ -1029,8 +1029,8 @@
     "colliderHalfH": 35,
     "enableDualShot": false,
     "dualShotSpread": 20,
-    "homingBullet": true,
-    "piercingBullet": false,
+    "homingBullet": false,
+    "piercingBullet": true,
     "destroySound": {
       "__uuid__": "58cd2542-c1a7-4ec9-b614-c1d2badc1589",
       "__expectedType__": "cc.AudioClip"

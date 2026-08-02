@@ -1009,12 +1009,12 @@
     "costWood": 64,
     "costCopper": 32,
     "costIron": 16,
-    "costMoney": 500,
+    "costMoney": 0,
     "powerCost": 24,
-    "maxHp": 150,
+    "maxHp": 400,
     "damage": 20,
-    "attackInterval": 0.1,
-    "attackRange": 500,
+    "attackInterval": 0.05,
+    "attackRange": 1000,
     "bulletPrefab": {
       "__uuid__": "1d6466a5-ddf5-4dc3-a7d8-dec9a81c92ba",
       "__expectedType__": "cc.Prefab"
@@ -1027,13 +1027,13 @@
     },
     "muzzleOffset": 40,
     "barrelDefaultAngle": -90,
-    "rotationSpeed": 50,
+    "rotationSpeed": 180,
     "colliderHalfW": 40,
     "colliderHalfH": 40,
     "enableDualShot": true,
     "dualShotSpread": 20,
     "homingBullet": true,
-    "piercingBullet": false,
+    "piercingBullet": true,
     "destroySound": {
       "__uuid__": "58cd2542-c1a7-4ec9-b614-c1d2badc1589",
       "__expectedType__": "cc.AudioClip"

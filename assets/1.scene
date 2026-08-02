@@ -214,9 +214,9 @@
     "levelPowerCosts": [
       0,
       2,
-      6,
-      15,
-      20
+      5,
+      10,
+      15
     ],
     "secondaryBase": {
       "__id__": 5
@@ -763,6 +763,9 @@
     "copperCollectMultiplier": 1,
     "ironCollectMultiplier": 1,
     "backpackCapacityMultiplier": 1,
+    "backpackExpandedWood": 0,
+    "backpackExpandedCopper": 0,
+    "backpackExpandedIron": 0,
     "stealthDuration": 10,
     "stealthOpacity": 80,
     "stealthHpThreshold": 0.15,

@@ -18,6 +18,9 @@ export class GlobalContainerStorage extends Component {
     /** 存储的铁矿 */
     storedIron = 0;
 
+    /** 首个集装箱提示是否已显示（随存档持久化，读档不重复提示） */
+    firstContainerTipShown = false;
+
     /** 最大木材存储上限（所有集装箱 maxStorageWood 之和） */
     private totalMaxWood = 0;
     /** 最大铜矿存储上限 */

@@ -87,6 +87,9 @@ export class PlayerState extends Component {
     @property({ tooltip: '属性点数上限' })
     maxUpgradePoints = 20;
 
+    /** 已发放属性点的天数（用于限制前 maxUpgradePoints 天每日发点） */
+    upgradePointsGranted = 0;
+
     @property({ tooltip: '行走速度倍率（生存面板升级）' })
     walkSpeedMultiplier = 1.0;
 
@@ -107,6 +110,15 @@ export class PlayerState extends Component {
 
     @property({ tooltip: '背包容量倍率（生存面板bagexpand升级）' })
     backpackCapacityMultiplier = 1.0;
+
+    @property({ tooltip: '背包扩容后的木头容量上限（0=未扩容，bagexpand升级后=60）' })
+    backpackExpandedWood = 0;
+
+    @property({ tooltip: '背包扩容后的铜矿容量上限（0=未扩容，bagexpand升级后=32）' })
+    backpackExpandedCopper = 0;
+
+    @property({ tooltip: '背包扩容后的铁矿容量上限（0=未扩容，bagexpand升级后=16）' })
+    backpackExpandedIron = 0;
 
     /** 僵尸感知距离倍率（生存面板潜行升级，越低越好） */
     static zombieAlertRadiusMultiplier = 1.0;
@@ -428,8 +440,15 @@ export class PlayerState extends Component {
         }
     }
 
-    /** 获取背包有效容量上限（基础上限 × 背包容量倍率） */
-    getEffectiveBackpackMax(baseMax: number): number {
+    /** 获取背包有效容量上限：bagexpand扩容后使用绝对上限，否则为基础上限 × 背包容量倍率 */
+    getEffectiveBackpackMax(resourceType: string, baseMax: number): number {
+        let expanded = 0;
+        switch (resourceType) {
+            case 'wood': expanded = this.backpackExpandedWood; break;
+            case 'copper': expanded = this.backpackExpandedCopper; break;
+            case 'iron': expanded = this.backpackExpandedIron; break;
+        }
+        if (expanded > 0) return expanded;
         return Math.round(baseMax * this.backpackCapacityMultiplier);
     }
 
@@ -706,11 +725,10 @@ export class PlayerState extends Component {
         }
     }
 
-    /** 每日增加属性点（不超过上限） */
+    /** 每日增加属性点（仅前 maxUpgradePoints 天发放，第 21 天起不再发放） */
     addDayUpgradePoints() {
-        this.upgradePoints = Math.min(
-            this.maxUpgradePoints,
-            this.upgradePoints + this.upgradePointsPerDay,
-        );
+        if (this.upgradePointsGranted >= this.maxUpgradePoints) return;
+        this.upgradePoints += this.upgradePointsPerDay;
+        this.upgradePointsGranted++;
     }
 }
