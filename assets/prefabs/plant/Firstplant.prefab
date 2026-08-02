@@ -587,8 +587,7 @@
     },
     "plantId": 1,
     "maxHp": 100,
-    "buildTime": 3,
-    "powerGenerate": 10,
+    "powerGenerate": 12,
     "powerCost": 0,
     "placeCenter": {
       "__type__": "cc.Vec3",
@@ -597,9 +596,9 @@
       "z": 0
     },
     "placeRadius": 200,
-    "costWood": 0,
-    "costCopper": 0,
-    "costIron": 0,
+    "costWood": 5,
+    "costCopper": 3,
+    "costIron": 1,
     "costMoney": 0,
     "ghostOpacity": 0.2,
     "destroySound": {
@@ -611,7 +610,7 @@
       "__uuid__": "124a3545-3e2d-45ea-82b0-300217cfc54c",
       "__expectedType__": "cc.AudioClip"
     },
-    "attackSoundMaxDistance": 250,
+    "attackSoundMaxDistance": 300,
     "attackSoundCooldown": 0,
     "_id": ""
   },

@@ -587,8 +587,7 @@
     },
     "plantId": 4,
     "maxHp": 100,
-    "buildTime": 4,
-    "powerGenerate": 80,
+        "powerGenerate": 100,
     "powerCost": 0,
     "placeCenter": {
       "__type__": "cc.Vec3",
@@ -600,7 +599,7 @@
     "costWood": 0,
     "costCopper": 0,
     "costIron": 0,
-    "costMoney": 0,
+    "costMoney": 600,
     "ghostOpacity": 0.2,
     "destroySound": {
       "__uuid__": "58cd2542-c1a7-4ec9-b614-c1d2badc1589",

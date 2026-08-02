@@ -188,35 +188,35 @@
       2000
     ],
     "upgradeWood": [
-      44,
-      0,
-      0,
-      0
+      40,
+      80,
+      130,
+      180
     ],
     "upgradeCopper": [
       20,
-      0,
-      0,
-      0
+      40,
+      65,
+      90
     ],
     "upgradeIron": [
-      12,
-      0,
-      0,
-      0
+      10,
+      20,
+      32,
+      45
     ],
     "upgradeMoney": [
       0,
       0,
       0,
-      0
+      1000
     ],
     "levelPowerCosts": [
       0,
-      2,
-      1,
-      1,
-      1
+      5,
+      10,
+      15,
+      20
     ],
     "secondaryBase": {
       "__id__": 5
@@ -742,7 +742,7 @@
     "attackDamage": 10,
     "repairPerHit": 10,
     "repairRange": 50,
-    "moveSpeed": 600,
+    "moveSpeed": 160,
     "fatigue": 0,
     "exhaustedHpDrain": 2,
     "profession": "Collector",
@@ -86103,9 +86103,9 @@
     "darkMask": {
       "__id__": 98
     },
-    "dayDuration": 30,
-    "nightDuration": 30,
-    "transitionTime": 10,
+    "dayDuration": 120,
+    "nightDuration": 90,
+    "transitionTime": 15,
     "maxNightAlpha": 0.66,
     "enableLog": true,
     "currentDay": 1,

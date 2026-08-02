@@ -1006,11 +1006,11 @@
     "__prefab": {
       "__id__": 43
     },
-    "costWood": 0,
-    "costCopper": 0,
-    "costIron": 0,
-    "costMoney": 0,
-    "powerCost": 1,
+    "costWood": 52,
+    "costCopper": 26,
+    "costIron": 13,
+    "costMoney": 400,
+    "powerCost": 18,
     "maxHp": 150,
     "damage": 20,
     "attackInterval": 0.1,

@@ -22,9 +22,6 @@ export class Container extends Component {
     /** 当前血量（运行时初始化） */
     hp = 200;
 
-    @property({ type: CCFloat, tooltip: '建造时间（秒）' })
-    buildTime = 5.0;
-
     @property({ type: CCInteger, tooltip: '建造消耗木头' })
     costWood = 50;
 
