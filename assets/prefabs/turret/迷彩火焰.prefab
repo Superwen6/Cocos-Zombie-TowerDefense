@@ -1064,7 +1064,7 @@
       "__id__": 45
     },
     "fireSound": {
-      "__uuid__": "195299fb-3503-401b-9c4c-b8fedf35e9d9",
+      "__uuid__": "9f407c6e-c60e-4ff5-8fa1-47f2df8d913e",
       "__expectedType__": "cc.AudioClip"
     },
     "maxDistance": 400,

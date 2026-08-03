@@ -1,7 +1,7 @@
 [
   {
     "__type__": "cc.Prefab",
-    "_name": "镭射子弹",
+    "_name": "黄光子弹",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_native": "",
@@ -13,7 +13,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "镭射子弹",
+    "_name": "黄光子弹",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": null,
@@ -167,7 +167,7 @@
       "a": 255
     },
     "_spriteFrame": {
-      "__uuid__": "da7297e7-cf26-4912-8810-18a92dbe2ae8@c86cc",
+      "__uuid__": "da7297e7-cf26-4912-8810-18a92dbe2ae8@e7223",
       "__expectedType__": "cc.SpriteFrame"
     },
     "_type": 0,

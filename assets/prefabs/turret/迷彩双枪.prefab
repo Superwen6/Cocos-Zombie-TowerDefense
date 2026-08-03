@@ -1016,7 +1016,7 @@
     "attackInterval": 0.2,
     "attackRange": 500,
     "bulletPrefab": {
-      "__uuid__": "1d6466a5-ddf5-4dc3-a7d8-dec9a81c92ba",
+      "__uuid__": "c32feac9-747d-4acb-ac27-623db1697883",
       "__expectedType__": "cc.Prefab"
     },
     "hpLabel": {
@@ -1064,7 +1064,7 @@
       "__id__": 45
     },
     "fireSound": {
-      "__uuid__": "272f76f8-6fc6-42ac-9fed-3f4f0a7b2a2c",
+      "__uuid__": "db8b5fe3-8a4a-41c0-b8c3-71347b8d37cc",
       "__expectedType__": "cc.AudioClip"
     },
     "maxDistance": 400,
