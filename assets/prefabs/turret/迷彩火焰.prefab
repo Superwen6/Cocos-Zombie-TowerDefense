@@ -1016,7 +1016,7 @@
     "attackInterval": 0.1,
     "attackRange": 200,
     "bulletPrefab": {
-      "__uuid__": "1d6466a5-ddf5-4dc3-a7d8-dec9a81c92ba",
+      "__uuid__": "238ecbc2-c945-48fa-a81d-43fa651d9cb5",
       "__expectedType__": "cc.Prefab"
     },
     "hpLabel": {
