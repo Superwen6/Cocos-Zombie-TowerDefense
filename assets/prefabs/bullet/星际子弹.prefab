@@ -1,0 +1,148 @@
+[
+  {
+    "__type__": "cc.Prefab",
+    "_name": "星际子弹",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "_native": "",
+    "data": {
+      "__id__": 1
+    },
+    "optimizationPolicy": 0,
+    "persistent": false
+  },
+  {
+    "__type__": "cc.Node",
+    "_name": "星际子弹",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "_parent": null,
+    "_children": [],
+    "_active": true,
+    "_components": [
+      {
+        "__id__": 2
+      },
+      {
+        "__id__": 4
+      }
+    ],
+    "_prefab": {
+      "__id__": 6
+    },
+    "_lpos": {
+      "__type__": "cc.Vec3",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "_lrot": {
+      "__type__": "cc.Quat",
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "w": 1
+    },
+    "_lscale": {
+      "__type__": "cc.Vec3",
+      "x": 1,
+      "y": 1,
+      "z": 1
+    },
+    "_mobility": 0,
+    "_layer": 1073741824,
+    "_euler": {
+      "__type__": "cc.Vec3",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "_id": ""
+  },
+  {
+    "__type__": "5df5cWKOOZNNbT7pLYXhGBq",
+    "_name": "",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "node": {
+      "__id__": 1
+    },
+    "_enabled": true,
+    "__prefab": {
+      "__id__": 3
+    },
+    "speed": 400,
+    "lifetime": 3,
+    "_id": ""
+  },
+  {
+    "__type__": "cc.CompPrefabInfo",
+    "fileId": "EQ490dCDWYrKz+NNC6UHRO"
+  },
+  {
+    "__type__": "145a7C1QH1CAKuKFvMAVDdX",
+    "_name": "",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "node": {
+      "__id__": 1
+    },
+    "_enabled": true,
+    "__prefab": {
+      "__id__": 5
+    },
+    "coreSize": 16,
+    "coreColor": {
+      "__type__": "cc.Color",
+      "r": 220,
+      "g": 245,
+      "b": 255,
+      "a": 255
+    },
+    "ringColor": {
+      "__type__": "cc.Color",
+      "r": 0,
+      "g": 220,
+      "b": 255,
+      "a": 255
+    },
+    "ringSize": 34,
+    "ringPulseSpeed": 3,
+    "emissionRate": 60,
+    "particleLife": 0.3,
+    "startSize": 12,
+    "endSize": 1,
+    "trailSpeed": 50,
+    "startColor": {
+      "__type__": "cc.Color",
+      "r": 160,
+      "g": 240,
+      "b": 255,
+      "a": 255
+    },
+    "endColor": {
+      "__type__": "cc.Color",
+      "r": 30,
+      "g": 60,
+      "b": 200,
+      "a": 0
+    },
+    "_id": ""
+  },
+  {
+    "__type__": "cc.CompPrefabInfo",
+    "fileId": "fp07UghjRmuS6j4QFC4PKC"
+  },
+  {
+    "__type__": "cc.PrefabInfo",
+    "root": {
+      "__id__": 1
+    },
+    "asset": {
+      "__id__": 0
+    },
+    "fileId": "8ckRjoIHdE5o/msWvxdLpA",
+    "instance": null,
+    "targetOverrides": null
+  }
+]
