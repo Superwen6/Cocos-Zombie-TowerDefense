@@ -91,7 +91,7 @@
     "__prefab": {
       "__id__": 5
     },
-    "coreSize": 26,
+    "coreSize": 10,
     "coreColor": {
       "__type__": "cc.Color",
       "r": 60,
@@ -108,7 +108,7 @@
     },
     "sparkRate": 35,
     "sparkLife": 0.35,
-    "sparkStartSize": 12,
+    "sparkStartSize": 20,
     "sparkEndSize": 2,
     "sparkSpeed": 90,
     "sparkStartColor": {
@@ -127,8 +127,8 @@
     },
     "smokeRate": 20,
     "smokeLife": 0.6,
-    "smokeStartSize": 18,
-    "smokeEndSize": 30,
+    "smokeStartSize": 20,
+    "smokeEndSize": 25,
     "smokeSpeed": 30,
     "smokeColor": {
       "__type__": "cc.Color",

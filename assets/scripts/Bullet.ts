@@ -66,13 +66,6 @@ export class Bullet extends Component {
             );
             this._initialDir.normalize();
         }
-
-        // 延迟一帧恢复缩放，避免显示预制体默认角度
-        setTimeout(() => {
-            if (this.node?.isValid) {
-                this.node.setScale(1, 1, 1);
-            }
-        }, 16);
     }
 
     /** 设置子弹飞行方向（不依赖目标节点，用于玩家武器） */

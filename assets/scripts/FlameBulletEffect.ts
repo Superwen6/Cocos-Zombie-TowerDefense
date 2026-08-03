@@ -2,6 +2,18 @@ import { _decorator, CCFloat, CCInteger, Color, Component, Node, ParticleSystem2
 
 const { ccclass, property } = _decorator;
 
+// 贴图缓存：所有实例共享，避免每颗子弹重复生成 64x64 纹理
+const _spriteFrameCache = new Map<string, SpriteFrame | null>();
+
+function getCachedSpriteFrame(key: string, create: () => SpriteFrame | null): SpriteFrame | null {
+    if (_spriteFrameCache.has(key)) {
+        return _spriteFrameCache.get(key)!;
+    }
+    const sf = create();
+    _spriteFrameCache.set(key, sf);
+    return sf;
+}
+
 /**
  * 生成一张柔和的圆形渐变贴图（白心透明羽化边）。
  * 浏览器/原生平台用 HTMLCanvas 绘制（引擎官方可靠路径），其他平台回退到内存像素数据。
@@ -102,7 +114,7 @@ export class FlameBulletEffect extends Component {
         if (this._initialized) return;
         this._initialized = true;
 
-        const sf = createSoftCircleSpriteFrame(64);
+        const sf = getCachedSpriteFrame('softCircle_64', () => createSoftCircleSpriteFrame(64));
 
         this.buildCore(sf);
         this.buildTrail(sf);
@@ -113,13 +125,14 @@ export class FlameBulletEffect extends Component {
         const coreNode = new Node('core');
         this.node.addChild(coreNode);
         const ui = coreNode.addComponent(UITransform);
-        ui.setContentSize(this.coreSize, this.coreSize);
         const sprite = coreNode.addComponent(Sprite);
         sprite.spriteFrame = sf;
         sprite.sizeMode = Sprite.SizeMode.CUSTOM;
         sprite.color = this.coreColor;
         sprite.srcBlendFactor = 2;
         sprite.dstBlendFactor = 4;
+        // 必须在设置 spriteFrame 之后设置尺寸（见 SciFiBulletEffect.buildCore 注释）
+        ui.setContentSize(this.coreSize, this.coreSize);
     }
 
     private buildTrail(sf: SpriteFrame | null) {
