@@ -27,6 +27,7 @@ export interface ZombieSaveData {
     localY: number;
     hp: number;
     maxHp: number;
+    damage: number;
     isDayWanderer: boolean;
     /** 僵尸类型名称（预制体节点名），用于恢复时精确匹配预制体 */
     zombieType: string;
@@ -80,6 +81,15 @@ export class EnemyManager extends Component {
 
     @property({ type: CCFloat, tooltip: '难度递增曲线指数：1=线性，>1=前期慢后期快，<1=前期快后期慢' })
     spawnCurveExponent = 1.0;
+
+    @property({ type: CCFloat, tooltip: '每日僵尸血量成长比例（0.06=每天+6%，第N天=1+(N-1)*该值）' })
+    dayHpScale = 0.08;
+
+    @property({ type: CCFloat, tooltip: '每日僵尸伤害成长比例（0.06=每天+6%）' })
+    dayDamageScale = 0.06;
+
+    @property({ type: CCFloat, tooltip: '每日僵尸移速成长比例（0.006=每天+0.6%）' })
+    daySpeedScale = 0.006;
 
     @property({ tooltip: '白天游荡僵尸刷新间隔（秒）' })
     dayWanderInterval = 8;
@@ -291,6 +301,22 @@ export class EnemyManager extends Component {
         return this.enemyPrefab || this.nurseZombiePrefab || this.fatZombiePrefab;
     }
 
+    /** 按当前天数缩放僵尸属性（血量/伤害/移速），天数越高越强 */
+    private applyDayScaling(zm: ZombieMove) {
+        const dayNight = DayNightSystem.instance;
+        const day = dayNight?.currentDay ?? 1;
+        if (day <= 1) return;
+
+        const hpMult = 1 + this.dayHpScale * (day - 1);
+        const dmgMult = 1 + this.dayDamageScale * (day - 1);
+        const speedMult = 1 + this.daySpeedScale * (day - 1);
+
+        zm.maxHp = Math.round(zm.maxHp * hpMult);
+        zm.damage = Math.max(1, Math.round(zm.damage * dmgMult));
+        zm.moveSpeed = Math.round(zm.moveSpeed * speedMult);
+        zm.hp = zm.maxHp;
+    }
+
     /** 黑夜：在屏幕边缘生成攻击型僵尸 */
     private spawnZombie() {
         const prefab = this.pickZombiePrefab();
@@ -321,6 +347,7 @@ export class EnemyManager extends Component {
 
         const zombieMove = enemy.getComponent(ZombieMove);
         if (zombieMove) {
+            this.applyDayScaling(zombieMove);
             zombieMove.init(this.baseNode ?? enemy);
         }
     }
@@ -355,6 +382,7 @@ export class EnemyManager extends Component {
 
         const zombieMove = enemy.getComponent(ZombieMove);
         if (zombieMove) {
+            this.applyDayScaling(zombieMove);
             zombieMove.init(this.baseNode ?? enemy, undefined, true);
         }
     }
@@ -375,8 +403,10 @@ export class EnemyManager extends Component {
 
     private countZombiesUnder(root: Node): number {
         let count = 0;
-        this.walkZombies(root, () => {
-            count++;
+        this.walkZombies(root, (zm) => {
+            if (!zm.isDead) {
+                count++;
+            }
         });
         return count;
     }
@@ -406,6 +436,7 @@ export class EnemyManager extends Component {
                 localY: zm.node.position.y,
                 hp: zm.hp,
                 maxHp: zm.maxHp,
+                damage: zm.damage,
                 isDayWanderer: zm.isDayWanderer,
                 zombieType: typeName,
             });
@@ -464,7 +495,9 @@ export class EnemyManager extends Component {
             const zm = enemy.getComponent(ZombieMove);
             if (zm) {
                 zm.init(inst.baseNode ?? enemy, undefined, zd.isDayWanderer);
-                zm.hp = zd.hp;
+                zm.maxHp = zd.maxHp || zm.maxHp;
+                zm.hp = Math.min(zd.hp, zm.maxHp);
+                if (zd.damage > 0) zm.damage = zd.damage;
             }
         }
     }

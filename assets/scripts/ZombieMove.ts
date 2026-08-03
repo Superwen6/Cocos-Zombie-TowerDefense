@@ -1182,7 +1182,11 @@ export class ZombieMove extends Component {
             if (this._animFrameIndex >= this.deathFrames.length) {
                 this._deathAnimFinished = true;
                 this._animFrameIndex = this.deathFrames.length - 1;
-                this.node.active = false;
+                // 死亡动画播完直接销毁，避免节点失活后 scheduleOnce 不再触发导致永久残留
+                if (this.node.isValid) {
+                    this.node.destroy();
+                }
+                return;
             }
             this.bodySprite.spriteFrame = this.deathFrames[this._animFrameIndex];
         }

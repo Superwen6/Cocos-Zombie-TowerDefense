@@ -86592,6 +86592,9 @@
     "spawnStartInterval": 3,
     "spawnEndInterval": 0.01,
     "spawnCurveExponent": 1,
+    "dayHpScale": 0.12,
+    "dayDamageScale": 0.06,
+    "daySpeedScale": 0.006,
     "dayWanderInterval": 1,
     "maxDayWanderers": 60,
     "baseNode": {
