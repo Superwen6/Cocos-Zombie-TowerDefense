@@ -475,6 +475,18 @@ export class ZombieMove extends Component {
             return;
         }
 
+        // 只对"玩家相关目标"开火：玩家主动攻击过（嘲讽）或正在追/打/追踪玩家时。
+        // 否则若炮塔先攻击了 Boss2（玩家未出手），Boss2 会像普通僵尸一样只打炮塔，不把玩家当目标。
+        // 若任何状态下都朝玩家开火，SHOT_ATTACK 期间 getEffectiveTargetPos 默认取玩家位置，
+        // 会造成在炮塔与玩家之间往返移动。
+        const playerEngaged = this._playerTaunted
+            || this._aiState === 'CHASE_PLAYER'
+            || this._aiState === 'ATTACK_PLAYER'
+            || this._aiState === 'MEMORY_TRACK';
+        if (!playerEngaged) {
+            return;
+        }
+
         const dist = Vec3.distance(this.node.worldPosition, playerNode.worldPosition);
         if (dist > this.shotRange && this.shotFrames.length > 0 && this.shotBulletPrefab) {
             this._shotCooldownTimer = this.shotCooldown;
