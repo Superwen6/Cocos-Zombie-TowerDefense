@@ -144,13 +144,10 @@ export class ZombieMove extends Component {
     @property({ type: Prefab, tooltip: 'Boss2 弹幕子弹预制体（360°发射12颗，伤害=近身攻击力）' })
     shotBulletPrefab: Prefab | null = null;
 
-    @property({ type: CCFloat, tooltip: 'Boss2 触发射击的玩家距离阈值（像素），超过此距离且持续一段时间才射击' })
+    @property({ type: CCFloat, tooltip: 'Boss2 触发射击的玩家距离阈值（像素），玩家在此距离之外且冷却结束即发射' })
     shotRange = 200;
 
-    @property({ type: CCFloat, tooltip: 'Boss2 射击触发条件：目标为玩家且距离超过 shotRange 需持续的时间（秒）' })
-    shotTriggerDuration = 5.0;
-
-    @property({ tooltip: 'Boss2 射击冷却时间（秒），一次射击结束后重新累计触发时长' })
+    @property({ tooltip: 'Boss2 射击冷却时间（秒），一次射击结束后开始冷却' })
     shotCooldown = 4.0;
 
     // ========== 私有变量 ==========
@@ -212,8 +209,6 @@ export class ZombieMove extends Component {
     // ===== 最终Boss（BOSS2）状态 =====
     /** Boss2 是否已觉醒（达到 boss2AwakenDay 的夜晚） */
     private _boss2Awakened = false;
-    /** Boss2 射击触发计时器（累计距离超过 shotRange 的时长） */
-    private _shotChargeTimer = 0;
     /** Boss2 射击冷却计时器 */
     private _shotCooldownTimer = 0;
     /** Boss2 是否正在播放射击动画（防止每帧重置） */
@@ -372,18 +367,20 @@ export class ZombieMove extends Component {
                 this.updateBoss2Idle(dt);
                 return;
             }
-            // 射击动画播放中
+            // 射击动画播放中：播放射击帧，同时继续下方移动/AI逻辑（射击期间可移动，不 return）
             if (this._aiState === 'SHOT_ATTACK') {
                 this.updateShotAnimation(dt);
-                return;
+            } else {
+                // 无蓄力：玩家超出射击距离且冷却结束即发射
+                this.updateShotTrigger(dt);
             }
-            // 已觉醒或正在反击：走到夜间僵尸逻辑前先更新射击触发计时
-            this.updateShotCharge(dt);
         }
 
-        // 帧动画更新
-        this.updateWalkAnimation(dt);
-        this.updateAttackAnimation(dt);
+        // 帧动画更新（射击动画播放中跳过行走/攻击动画，避免覆盖射击帧）
+        if (this._aiState !== 'SHOT_ATTACK') {
+            this.updateWalkAnimation(dt);
+            this.updateAttackAnimation(dt);
+        }
 
         if (!this._baseNode) {
             this.resolveBaseNode();
@@ -460,38 +457,31 @@ export class ZombieMove extends Component {
     }
 
     /**
-     * Boss2 射击触发计时：玩家在近战范围外（shotRange）持续累计 shotTriggerDuration 后发射 360° 弹幕。
+     * Boss2 射击触发（无蓄力）：玩家在近战范围外（shotRange）且冷却结束立即发射 360° 弹幕。
      * 不要求必须处于追玩家状态——追击炮塔/基地等任何目标时，只要玩家在远处也会远程射击。
+     * 发射后播放射击动画（期间仍可移动），动画播完一循环才真正射出弹幕并恢复原状态。
      */
-    private updateShotCharge(dt: number) {
+    private updateShotTrigger(dt: number) {
         // 射击冷却递减
         if (this._shotCooldownTimer > 0) {
             this._shotCooldownTimer -= dt;
         }
+        if (this._shotCooldownTimer > 0) {
+            return;
+        }
 
         const playerNode = this.getPlayerNode();
         if (!playerNode || !this.isPlayerAlive() || PlayerState.isPlayerInvisible) {
-            this._shotChargeTimer = 0;
             return;
         }
 
         const dist = Vec3.distance(this.node.worldPosition, playerNode.worldPosition);
-        if (dist > this.shotRange) {
-            this._shotChargeTimer += dt;
-            if (this._shotChargeTimer >= this.shotTriggerDuration
-                && this._shotCooldownTimer <= 0
-                && this._aiState !== 'SHOT_ATTACK'
-                && this.shotFrames.length > 0
-                && this.shotBulletPrefab) {
-                this._shotChargeTimer = 0;
-                this._shotCooldownTimer = this.shotCooldown;
-                // 记录进入射击前的状态，动画播完后恢复
-                this._shotPrevState = this._aiState;
-                this._aiState = 'SHOT_ATTACK';
-                this.startShotAnimation();
-            }
-        } else {
-            this._shotChargeTimer = 0;
+        if (dist > this.shotRange && this.shotFrames.length > 0 && this.shotBulletPrefab) {
+            this._shotCooldownTimer = this.shotCooldown;
+            // 记录进入射击前的状态，动画播完后恢复
+            this._shotPrevState = this._aiState;
+            this._aiState = 'SHOT_ATTACK';
+            this.startShotAnimation();
         }
     }
 
@@ -731,6 +721,13 @@ export class ZombieMove extends Component {
 
     /** 根据当前环境更新 AI 状态 */
     private updateAIState() {
+        // 射击动画播放中：保持射击状态不切换 AI。
+        // 否则会被下方"视觉发现玩家"分支（视线通畅时）每帧重置回 CHASE_PLAYER/ATTACK_PLAYER，
+        // 导致射击动画永远播不完、弹幕射不出（只有玩家躲墙后 lineClear=false 时才能射完）。
+        if (this._aiState === 'SHOT_ATTACK') {
+            return;
+        }
+
         const playerNode = this.getPlayerNode();
         const playerAlive = this.isPlayerAlive();
         const selfPos = this.node.worldPosition;
