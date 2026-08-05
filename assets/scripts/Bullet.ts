@@ -1,6 +1,7 @@
 import { _decorator, Component, director, Node, Vec3 } from 'cc';
 import { ZombieMove } from './ZombieMove';
 import { CollisionWorld, ColliderGroup } from './CollisionWorld';
+import { PlayerState } from './PlayerState';
 
 const { ccclass, property } = _decorator;
 
@@ -13,6 +14,9 @@ export class Bullet extends Component {
 
     @property({ tooltip: '子弹存活时间（秒）' })
     lifetime = 3;
+
+    /** 是否为 Boss2 弹幕（无目标模式下命中玩家并造成伤害） */
+    hitPlayer = false;
 
     private _targetZombie: ZombieMove | null = null;
     private _targetNode: Node | null = null;
@@ -131,6 +135,18 @@ export class Bullet extends Component {
         } else {
             // 无目标模式：沿初始方向飞行，仅靠碰撞检测
             dir = this._initialDir.clone();
+            // Boss2 弹幕：检测命中玩家
+            if (this.hitPlayer) {
+                const player = PlayerState.instance;
+                if (player && player.isAlive && player.node?.isValid) {
+                    const playerPos = player.node.worldPosition;
+                    if (Vec3.distance(bulletWP, playerPos) < HIT_RADIUS) {
+                        player.takeDamage(this._damage);
+                        this.node.destroy();
+                        return;
+                    }
+                }
+            }
         }
 
         const step = this.speed * dt;
@@ -155,6 +171,9 @@ export class Bullet extends Component {
     }
 
     private checkPenetrationHits() {
+        // Boss2 弹幕（hitPlayer 模式）：仅命中玩家，不误伤其他僵尸
+        if (this.hitPlayer) return;
+
         const scene = this.node.scene;
         if (!scene) return;
 

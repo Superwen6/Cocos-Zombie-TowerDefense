@@ -107,6 +107,8 @@ export interface SaveData {
         tipShown: boolean;
     };
     zombies: ZombieSaveData[];
+    /** BOSS2 是否已生成（第5天初始生成1只，死亡后不刷新） */
+    boss2Spawned: boolean;
     /** 建筑（炮塔/发电机/集装箱） */
     buildings: BuildingSaveData[];
     /** 地图资源矿点（木/铁/铜） */
@@ -201,6 +203,7 @@ export class SaveSystem {
                 tipShown: cs ? cs.firstContainerTipShown : false,
             },
             zombies: EnemyManager.getZombieData(),
+            boss2Spawned: EnemyManager.isBoss2Spawned(),
             buildings: SaveSystem.getBuildingData(),
             resources: SaveSystem.getResourceData(),
             upgradeLevels: AttributeUpgradePanel.getUpgradeLevels(),
@@ -270,6 +273,9 @@ export class SaveSystem {
             console.warn('[SaveSystem] 应用存档失败：核心系统未就绪');
             return;
         }
+
+        // 恢复 BOSS2 已生成标志（需在 forcePhase 触发 onPhaseChanged 之前设置，避免第5天误重新生成）
+        EnemyManager.setBoss2SpawnedFlag(!!data.boss2Spawned);
 
         // 恢复 PlayerState
         const s = data.playerState;

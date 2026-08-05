@@ -1,4 +1,4 @@
-import { _decorator, AudioClip, AudioSource, CCFloat, CCInteger, Component, find, Node, randomRange, Sprite, SpriteFrame, Vec3, warn } from 'cc';
+import { _decorator, AudioClip, AudioSource, CCFloat, CCInteger, Component, find, instantiate, Node, Prefab, randomRange, Sprite, SpriteFrame, Vec3, warn } from 'cc';
 import { BaseSystem } from './BaseSystem';
 import { PlayerData } from './PlayerData';
 import { PlayerState } from './PlayerState';
@@ -8,6 +8,7 @@ import { Container } from './Container';
 import { Turret } from './Turret';
 import { DayNightEvents, DayNightPhase, DayNightSystem } from './DayNightSystem';
 import { EnemyManager } from './EnemyManager';
+import { Bullet } from './Bullet';
 
 const { ccclass, property } = _decorator;
 
@@ -34,6 +35,8 @@ const DEATH_FRAME_DURATION = 0.15;
 /** AI 状态枚举 */
 type AIState =
     | 'WANDER'           // 白天游荡巡逻
+    | 'BOSS2_IDLE'       // 最终Boss静止待机（25天夜晚前原地不动，被攻击时反击）
+    | 'SHOT_ATTACK'      // 最终Boss射击攻击（发射360°弹幕打玩家）
     | 'CHASE_BASE'       // 夜间僵尸初始：追击基地
     | 'ATTACK_BASE'      // 攻击基地
     | 'CHASE_PLAYER'     // 追击玩家（死磕模式，LEASH_RADIUS 退出）
@@ -121,6 +124,35 @@ export class ZombieMove extends Component {
     @property({ type: CCFloat, tooltip: '死亡音效最大可听距离（像素），超出此距离不播放' })
     deathSoundMaxDistance = 800;
 
+    // ========== 最终Boss（BOSS2）专属属性 ==========
+
+    @property({ tooltip: '是否为最终Boss（BOSS2）：25天夜晚前原地静止待机+受击反击，之后等同夜间僵尸；攻击玩家时距离超过射击距离并持续一段时间会发射360°弹幕' })
+    isBoss2 = false;
+
+    @property({ type: CCFloat, tooltip: 'Boss2 觉醒夜晚：当前天数达到该值的夜晚时，从静止待机转为夜间僵尸攻击逻辑' })
+    boss2AwakenDay = 25;
+
+    @property({ tooltip: 'Boss2 素材默认朝向：true=默认朝右，false=默认朝左（BOSS1）。用于镜像翻转' })
+    boss2FacingRight = true;
+
+    @property({ type: [SpriteFrame], tooltip: 'Boss2 射击动画帧序列（BOSS2SHOT）' })
+    shotFrames: SpriteFrame[] = [];
+
+    @property({ type: CCFloat, tooltip: 'Boss2 射击动画每帧持续时间（秒）' })
+    shotFrameDuration = 0.1;
+
+    @property({ type: Prefab, tooltip: 'Boss2 弹幕子弹预制体（360°发射12颗，伤害=近身攻击力）' })
+    shotBulletPrefab: Prefab | null = null;
+
+    @property({ type: CCFloat, tooltip: 'Boss2 触发射击的玩家距离阈值（像素），超过此距离且持续一段时间才射击' })
+    shotRange = 200;
+
+    @property({ type: CCFloat, tooltip: 'Boss2 射击触发条件：目标为玩家且距离超过 shotRange 需持续的时间（秒）' })
+    shotTriggerDuration = 5.0;
+
+    @property({ tooltip: 'Boss2 射击冷却时间（秒），一次射击结束后重新累计触发时长' })
+    shotCooldown = 4.0;
+
     // ========== 私有变量 ==========
 
     /** 当前 AI 状态 */
@@ -177,6 +209,18 @@ export class ZombieMove extends Component {
     private _collider: Collider2D | null = null;
     private _audioSource: AudioSource | null = null;
 
+    // ===== 最终Boss（BOSS2）状态 =====
+    /** Boss2 是否已觉醒（达到 boss2AwakenDay 的夜晚） */
+    private _boss2Awakened = false;
+    /** Boss2 射击触发计时器（累计距离超过 shotRange 的时长） */
+    private _shotChargeTimer = 0;
+    /** Boss2 射击冷却计时器 */
+    private _shotCooldownTimer = 0;
+    /** Boss2 是否正在播放射击动画（防止每帧重置） */
+    private _isShotAnimPlaying = false;
+    /** Boss2 出生点世界坐标（25天夜晚前原地静止待机用） */
+    private readonly _boss2SpawnPos = new Vec3();
+
     /** 同类型僵尸死亡音效互斥标志（同一时间每种僵尸最多播放1个死亡音效） */
     private static _deathSoundPlaying: Record<string, boolean> = {};
 
@@ -185,7 +229,13 @@ export class ZombieMove extends Component {
     onLoad() {
         this.resolveBaseNode();
         this.syncHpFromMaxHp();
-        this._aiState = this.isDayWanderer ? 'WANDER' : 'CHASE_BASE';
+        if (this.isBoss2) {
+            // Boss2：25天夜晚前原地静止待机（出生点）
+            this._boss2SpawnPos.set(this.node.worldPosition);
+            this._aiState = 'BOSS2_IDLE';
+        } else {
+            this._aiState = this.isDayWanderer ? 'WANDER' : 'CHASE_BASE';
+        }
         DayNightSystem.eventTarget.on(DayNightEvents.PHASE_CHANGED, this.onPhaseChanged, this);
         this._audioSource = this.node.addComponent(AudioSource);
         this._audioSource.loop = false;
@@ -225,8 +275,25 @@ export class ZombieMove extends Component {
     }
 
     /** 昼夜切换时，游荡僵尸调整行为 */
-    private onPhaseChanged(detail: { phase: DayNightPhase }) {
-        if (this.isDead || !this.isDayWanderer) return;
+    private onPhaseChanged(detail: { phase: DayNightPhase; currentDay?: number }) {
+        if (this.isDead) return;
+
+        // ===== 最终Boss（BOSS2）：达到觉醒夜晚后从静止待机转为夜间僵尸攻击逻辑 =====
+        if (this.isBoss2) {
+            if (!this._boss2Awakened) {
+                const day = detail.currentDay ?? DayNightSystem.instance?.currentDay ?? 1;
+                if (detail.phase === DayNightPhase.NIGHT && day >= this.boss2AwakenDay) {
+                    this._boss2Awakened = true;
+                    this._buildingTarget = null;
+                    this._hatedTurret = null;
+                    this._playerTaunted = false;
+                    this._aiState = 'CHASE_BASE';
+                }
+            }
+            return;
+        }
+
+        if (!this.isDayWanderer) return;
 
         if (detail.phase === DayNightPhase.NIGHT) {
             // 进入夜间：游荡僵尸改为扫描玩家和建筑（发电机/集装箱）
@@ -261,7 +328,22 @@ export class ZombieMove extends Component {
         this._wanderScanTimer = 0;
         this._memoryTimer = 0;
         this._hasWanderTarget = false;
-        this._aiState = asDayWanderer ? 'WANDER' : 'CHASE_BASE';
+        this._boss2SpawnPos.set(this.node.worldPosition);
+        if (this.isBoss2) {
+            const dn = DayNightSystem.instance;
+            const day = dn?.currentDay ?? 1;
+            const isNight = dn?.isNight ?? false;
+            // 读档/晚生成场景：当前已到达觉醒夜晚（或已过）→ 直接觉醒
+            if (day > this.boss2AwakenDay || (day === this.boss2AwakenDay && isNight)) {
+                this._boss2Awakened = true;
+                this._aiState = 'CHASE_BASE';
+            } else {
+                this._boss2Awakened = false;
+                this._aiState = 'BOSS2_IDLE';
+            }
+        } else {
+            this._aiState = asDayWanderer ? 'WANDER' : 'CHASE_BASE';
+        }
         this._wanderLandmarkNode = null;
         this._landmarkScanned = false;
         this._isNight = DayNightSystem.instance?.isNight ?? false;
@@ -279,6 +361,22 @@ export class ZombieMove extends Component {
         if (this.isDead) {
             this.updateDeathAnimation(dt);
             return;
+        }
+
+        // ===== 最终Boss（BOSS2）专属逻辑 =====
+        if (this.isBoss2) {
+            // 未觉醒：原地静止待机，仅受击后触发反击
+            if (this._aiState === 'BOSS2_IDLE') {
+                this.updateBoss2Idle(dt);
+                return;
+            }
+            // 射击动画播放中
+            if (this._aiState === 'SHOT_ATTACK') {
+                this.updateShotAnimation(dt);
+                return;
+            }
+            // 已觉醒或正在反击：走到夜间僵尸逻辑前先更新射击触发计时
+            this.updateShotCharge(dt);
         }
 
         // 帧动画更新
@@ -337,6 +435,129 @@ export class ZombieMove extends Component {
         this.tickMoveByState(dt);
     }
 
+    // ========== 最终Boss（BOSS2）专属逻辑 ==========
+
+    /** Boss2 未觉醒静止待机：原地不动（仅播放待机/行走第1帧），受击后由 takeDamage 触发反击 */
+    private updateBoss2Idle(dt: number) {
+        // 递减攻击冷却
+        if (this._attackCooldown > 0) {
+            this._attackCooldown -= dt;
+        }
+
+        // 播放静止待机动画（walk 第1帧），不移动
+        if (this.bodySprite && this.walkFrames.length > 0) {
+            if (this.bodySprite.spriteFrame !== this.walkFrames[0]) {
+                this.bodySprite.spriteFrame = this.walkFrames[0];
+            }
+        }
+
+        // 若已觉醒（读档等场景下 phase 事件已错过），直接进入夜间僵尸逻辑
+        if (this._boss2Awakened) {
+            this._aiState = 'CHASE_BASE';
+        }
+    }
+
+    /**
+     * Boss2 射击触发计时：仅当 AI 状态为目标为玩家的追击/攻击状态时累计，
+     * 距离超过 shotRange 且持续 shotTriggerDuration 后触发 360° 弹幕射击。
+     */
+    private updateShotCharge(dt: number) {
+        // 射击冷却递减
+        if (this._shotCooldownTimer > 0) {
+            this._shotCooldownTimer -= dt;
+        }
+
+        const isPlayerTarget = this._aiState === 'CHASE_PLAYER' || this._aiState === 'ATTACK_PLAYER'
+            || this._aiState === 'MEMORY_TRACK';
+        if (!isPlayerTarget) {
+            this._shotChargeTimer = 0;
+            return;
+        }
+
+        const playerNode = this.getPlayerNode();
+        if (!playerNode || !this.isPlayerAlive() || PlayerState.isPlayerInvisible) {
+            this._shotChargeTimer = 0;
+            return;
+        }
+
+        const dist = Vec3.distance(this.node.worldPosition, playerNode.worldPosition);
+        if (dist > this.shotRange) {
+            this._shotChargeTimer += dt;
+            if (this._shotChargeTimer >= this.shotTriggerDuration
+                && this._shotCooldownTimer <= 0
+                && this._aiState !== 'SHOT_ATTACK'
+                && this.shotFrames.length > 0
+                && this.shotBulletPrefab) {
+                this._shotChargeTimer = 0;
+                this._shotCooldownTimer = this.shotCooldown;
+                this._aiState = 'SHOT_ATTACK';
+                this.startShotAnimation();
+            }
+        } else {
+            this._shotChargeTimer = 0;
+        }
+    }
+
+    /** 开始射击动画（切换到 SHOT_ATTACK 状态时调用） */
+    private startShotAnimation() {
+        if (this._isShotAnimPlaying) return;
+        this._isShotAnimPlaying = true;
+        this._animFrameIndex = 0;
+        this._animFrameTimer = 0;
+        this._attackAnimFinished = false;
+        if (this.bodySprite && this.shotFrames.length > 0) {
+            this.bodySprite.spriteFrame = this.shotFrames[0];
+        }
+    }
+
+    /** 播放射击动画，动画循环到帧末尾时发射 360° 弹幕 */
+    private updateShotAnimation(dt: number) {
+        if (!this.bodySprite || this.shotFrames.length === 0) {
+            this._isShotAnimPlaying = false;
+            this._aiState = this._boss2Awakened ? 'CHASE_BASE' : 'BOSS2_IDLE';
+            return;
+        }
+
+        this._animFrameTimer += dt;
+        if (this._animFrameTimer >= this.shotFrameDuration) {
+            this._animFrameTimer = 0;
+            this._animFrameIndex++;
+            if (this._animFrameIndex >= this.shotFrames.length) {
+                this._animFrameIndex = 0;
+                // 动画播完一循环：发射弹幕
+                this.spawnShotBurst();
+                this._isShotAnimPlaying = false;
+                this._aiState = 'CHASE_PLAYER';
+                return;
+            }
+            this.bodySprite.spriteFrame = this.shotFrames[this._animFrameIndex];
+        }
+    }
+
+    /** 发射 360° 弹幕：12 颗子弹均匀分布，伤害=近身攻击力，目标为玩家 */
+    private spawnShotBurst() {
+        if (!this.shotBulletPrefab || this.isDead) return;
+
+        const origin = this.getHitWorldPosition(this._tempPos);
+        const bulletCount = 12;
+        const angleStep = Math.PI * 2 / bulletCount;
+        const dir = new Vec3();
+
+        for (let i = 0; i < bulletCount; i++) {
+            const angle = i * angleStep;
+            const bullet = instantiate(this.shotBulletPrefab);
+            Bullet.attachToWorld(bullet, origin);
+            const bulletComp = bullet.getComponent(Bullet);
+            if (bulletComp) {
+                dir.set(Math.cos(angle), Math.sin(angle), 0);
+                // 无目标模式 + 直线方向（非跟踪），并标记可命中玩家
+                bulletComp.init(null, this.damage, this.node, false);
+                bulletComp.setDirection(dir);
+                bulletComp.hitPlayer = true;
+            }
+        }
+    }
+
     // ========== 受击系统 ==========
 
     /** 回到预定目标：游荡僵尸→WANDER（会自动扫建筑/玩家），夜间僵尸→CHASE_BASE */
@@ -348,6 +569,9 @@ export class ZombieMove extends Component {
         if (this.isDayWanderer) {
             this._aiState = 'WANDER';
             this.pickNewWanderTarget();
+        } else if (this.isBoss2 && !this._boss2Awakened) {
+            // Boss2 未觉醒：回到出生点原地静止待机
+            this._aiState = 'BOSS2_IDLE';
         } else {
             this._aiState = 'CHASE_BASE';
         }
@@ -1205,7 +1429,10 @@ export class ZombieMove extends Component {
         if (this._aiState === 'DEAD') return;
         if (!this.bodySprite || this.walkFrames.length === 0) return;
 
-        const newMirror = directionX > 0 ? -1 : 1;
+        // 朝右走时镜像逻辑：BOSS1 素材默认朝左，向右走需翻转；BOSS2 素材默认朝右，向左走需翻转
+        const newMirror = this.boss2FacingRight
+            ? (directionX < 0 ? -1 : 1)
+            : (directionX > 0 ? -1 : 1);
 
         if (this._aiState !== 'WANDER' && this._aiState !== 'CHASE_BASE' && this._aiState !== 'CHASE_PLAYER'
             && this._aiState !== 'MEMORY_TRACK' && this._aiState !== 'CHASE_TURRET'
@@ -1237,7 +1464,9 @@ export class ZombieMove extends Component {
         this._attackAnimFinished = false;
 
         const targetIsRight = target.worldPosition.x > this.node.worldPosition.x;
-        const scaleX = targetIsRight ? -1 : 1;
+        const scaleX = this.boss2FacingRight
+            ? (targetIsRight ? 1 : -1)
+            : (targetIsRight ? -1 : 1);
         this._walkMirror = scaleX;
         this.applyMirror(scaleX);
 

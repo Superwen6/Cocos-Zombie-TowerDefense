@@ -17,6 +17,7 @@ import {
 } from './DayNightSystem';
 import { ZombieMove } from './ZombieMove';
 import { YSortManager } from './YSortManager';
+import { GameManager } from './GameManager';
 
 const { ccclass, property } = _decorator;
 
@@ -69,6 +70,12 @@ export class EnemyManager extends Component {
 
     @property({ type: Prefab, tooltip: 'BOSS1 僵尸预制体（第5/10/15/20/25-30夜晚攻打基地）' })
     boss1Prefab: Prefab | null = null;
+
+    @property({ type: Prefab, tooltip: 'BOSS2 最终Boss预制体（第5天初始生成1只，死亡不刷新）' })
+    boss2Prefab: Prefab | null = null;
+
+    @property({ type: [SpawnZone], tooltip: 'BOSS2 生成矩形区域数组（相对于 GameWorld），为空则回退到夜间 spawnZones' })
+    boss2SpawnZones: SpawnZone[] = [];
 
     @property({ tooltip: '护士僵尸刷出概率（0~1）' })
     nurseZombieChance = 0.25;
@@ -138,6 +145,20 @@ export class EnemyManager extends Component {
     private _nightSpawning = false;
     private _dayWanderSpawning = false;
     private _gameWorldRef: Node | null = null;
+    /** BOSS2 是否已生成（第5天初始生成1只，死亡后不刷新） */
+    private _boss2Spawned = false;
+
+    /** BOSS2 是否已生成（供存档持久化） */
+    static isBoss2Spawned(): boolean {
+        return EnemyManager._instance ? EnemyManager._instance._boss2Spawned : false;
+    }
+
+    /** 设置 BOSS2 已生成标志（读档恢复时调用） */
+    static setBoss2SpawnedFlag(spawned: boolean): void {
+        if (EnemyManager._instance) {
+            EnemyManager._instance._boss2Spawned = spawned;
+        }
+    }
 
     onLoad() {
         EnemyManager._instance = this;
@@ -165,6 +186,12 @@ export class EnemyManager extends Component {
             this.startNightSpawning();
         } else if (dayNight?.isDay) {
             this.startDayWanderSpawning();
+        }
+
+        // BOSS2：第5天初始生成1只（死亡后不刷新）。读档恢复到第5天及之后时若尚未生成则补生成
+        // （读档恢复由 SaveSystem.apply 统一处理 _boss2Spawned 标志与僵尸重建，此处跳过避免竞态）
+        if (!GameManager.isRestoringSave && dayNight && dayNight.currentDay >= 5 && !this._boss2Spawned) {
+            this.spawnBossTwo();
         }
 
         // 立即构建一次缓存
@@ -249,6 +276,11 @@ export class EnemyManager extends Component {
     }
 
     private onPhaseChanged(detail: DayNightPhaseChangedDetail) {
+        // BOSS2：第5天初始（进入 DAY 阶段时）生成1只，死亡后不刷新
+        if (detail.currentDay === 5 && detail.phase === DayNightPhase.DAY && !this._boss2Spawned) {
+            this.spawnBossTwo();
+        }
+
         if (detail.phase === DayNightPhase.NIGHT) {
             this.stopDayWanderSpawning();
             this.startNightSpawning();
@@ -299,6 +331,41 @@ export class EnemyManager extends Component {
         const zombieMove = enemy.getComponent(ZombieMove);
         if (zombieMove) {
             this.applyDayScaling(zombieMove);
+            zombieMove.init(this.baseNode ?? enemy);
+        }
+    }
+
+    /** 生成一只 BOSS2（最终Boss，第5天初始生成1只，死亡不刷新） */
+    private spawnBossTwo() {
+        if (!this.boss2Prefab || this._boss2Spawned) return;
+        this._boss2Spawned = true;
+
+        const enemy = instantiate(this.boss2Prefab);
+        const finalParent = this.resolveEnemyRoot();
+        enemy.setParent(finalParent);
+
+        // BOSS2 专用生成区域，为空则回退到夜间刷怪区域
+        const zones = this.boss2SpawnZones.length > 0 ? this.boss2SpawnZones : this.spawnZones;
+        if (zones.length > 0) {
+            const zone = zones[Math.floor(Math.random() * zones.length)];
+            const gwPos = this._gameWorldRef?.worldPosition ?? Vec3.ZERO;
+            const x = gwPos.x + zone.minX + Math.random() * (zone.maxX - zone.minX);
+            const y = gwPos.y + zone.minY + Math.random() * (zone.maxY - zone.minY);
+            enemy.setWorldPosition(new Vec3(x, y, 0));
+        } else {
+            const origin = this.spawnOrigin?.worldPosition ?? Vec3.ZERO;
+            const angle = Math.random() * Math.PI * 2;
+            const radius = 900;
+            enemy.setWorldPosition(new Vec3(
+                origin.x + Math.cos(angle) * radius,
+                origin.y + Math.sin(angle) * radius,
+                0
+            ));
+        }
+
+        const zombieMove = enemy.getComponent(ZombieMove);
+        if (zombieMove) {
+            // BOSS2 属性固定超高，不参与每日缩放
             zombieMove.init(this.baseNode ?? enemy);
         }
     }
@@ -535,8 +602,12 @@ export class EnemyManager extends Component {
             const instNurseName = inst.nurseZombiePrefab?.data?.name ?? inst.nurseZombiePrefab?.name ?? '';
             const instNormalName = inst.enemyPrefab?.data?.name ?? inst.enemyPrefab?.name ?? '';
             const instBoss1Name = inst.boss1Prefab?.data?.name ?? inst.boss1Prefab?.name ?? '';
+            const instBoss2Name = inst.boss2Prefab?.data?.name ?? inst.boss2Prefab?.name ?? '';
 
-            if (zd.zombieType && inst.boss1Prefab && zd.zombieType === instBoss1Name) {
+            if (zd.zombieType && inst.boss2Prefab && zd.zombieType === instBoss2Name) {
+                prefab = inst.boss2Prefab;
+                inst._boss2Spawned = true;
+            } else if (zd.zombieType && inst.boss1Prefab && zd.zombieType === instBoss1Name) {
                 prefab = inst.boss1Prefab;
             } else if (zd.zombieType && inst.fatZombiePrefab && zd.zombieType === instFatName) {
                 prefab = inst.fatZombiePrefab;
@@ -546,7 +617,10 @@ export class EnemyManager extends Component {
                 prefab = inst.enemyPrefab;
             } else {
                 // 回退：根据 maxHp 猜测类型
-                if (inst.boss1Prefab && zd.maxHp >= 900) {
+                if (inst.boss2Prefab && zd.maxHp >= 3000) {
+                    prefab = inst.boss2Prefab;
+                    inst._boss2Spawned = true;
+                } else if (inst.boss1Prefab && zd.maxHp >= 900) {
                     prefab = inst.boss1Prefab;
                 } else if (inst.fatZombiePrefab && zd.maxHp >= 150) {
                     prefab = inst.fatZombiePrefab;

@@ -1,0 +1,134 @@
+{
+  "ver": "1.0.27",
+  "importer": "image",
+  "imported": true,
+  "uuid": "2e85aef9-5b75-4ce3-8918-238fca85c569",
+  "files": [
+    ".json",
+    ".png"
+  ],
+  "subMetas": {
+    "6c48a": {
+      "importer": "texture",
+      "uuid": "2e85aef9-5b75-4ce3-8918-238fca85c569@6c48a",
+      "displayName": "BOSS2walk (15)",
+      "id": "6c48a",
+      "name": "texture",
+      "userData": {
+        "wrapModeS": "clamp-to-edge",
+        "wrapModeT": "clamp-to-edge",
+        "imageUuidOrDatabaseUri": "2e85aef9-5b75-4ce3-8918-238fca85c569",
+        "isUuid": true,
+        "visible": false,
+        "minfilter": "linear",
+        "magfilter": "linear",
+        "mipfilter": "none",
+        "anisotropy": 0
+      },
+      "ver": "1.0.22",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "f9941": {
+      "importer": "sprite-frame",
+      "uuid": "2e85aef9-5b75-4ce3-8918-238fca85c569@f9941",
+      "displayName": "BOSS2walk (15)",
+      "id": "f9941",
+      "name": "spriteFrame",
+      "userData": {
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": 16,
+        "offsetY": -5.5,
+        "trimX": 207,
+        "trimY": 152,
+        "width": 338,
+        "height": 427,
+        "rawWidth": 720,
+        "rawHeight": 720,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [
+            -169,
+            -213.5,
+            0,
+            169,
+            -213.5,
+            0,
+            -169,
+            213.5,
+            0,
+            169,
+            213.5,
+            0
+          ],
+          "indexes": [
+            0,
+            1,
+            2,
+            2,
+            1,
+            3
+          ],
+          "uv": [
+            207,
+            568,
+            545,
+            568,
+            207,
+            141,
+            545,
+            141
+          ],
+          "nuv": [
+            0.2875,
+            0.19583333333333333,
+            0.7569444444444444,
+            0.19583333333333333,
+            0.2875,
+            0.7888888888888889,
+            0.7569444444444444,
+            0.7888888888888889
+          ],
+          "minPos": [
+            -169,
+            -213.5,
+            0
+          ],
+          "maxPos": [
+            169,
+            213.5,
+            0
+          ]
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "2e85aef9-5b75-4ce3-8918-238fca85c569@6c48a",
+        "atlasUuid": "",
+        "trimType": "auto"
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "type": "sprite-frame",
+    "fixAlphaTransparencyArtifacts": false,
+    "hasAlpha": true,
+    "redirect": "2e85aef9-5b75-4ce3-8918-238fca85c569@6c48a"
+  }
+}

@@ -86587,6 +86587,19 @@
       "__uuid__": "b4947c58-5efc-4ca7-9d0b-cd88ffdeace7",
       "__expectedType__": "cc.Prefab"
     },
+    "boss1Prefab": {
+      "__uuid__": "88027678-5fd0-4f98-a4bd-973dd28397e1",
+      "__expectedType__": "cc.Prefab"
+    },
+    "boss2Prefab": {
+      "__uuid__": "b2b2b2b2-2b2b-4b2b-8b2b-2b2b2b2b2b2b",
+      "__expectedType__": "cc.Prefab"
+    },
+    "boss2SpawnZones": [
+      {
+        "__id__": 2982
+      }
+    ],
     "nurseZombieChance": 0.3,
     "fatZombieChance": 0.3,
     "spawnStartInterval": 3,
