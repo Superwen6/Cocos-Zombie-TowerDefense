@@ -408,8 +408,8 @@ export class Turret extends Component {
             return;
         }
 
-        // 普通子弹：初始缩放为 0，避免显示预制体默认角度
-        bulletNode.setScale(0, 0, 1);
+        // 普通子弹：保持预制体原始缩放（曾用 setScale(0,0,1) 隐藏首帧默认角度，
+        // 但依赖 Bullet.init 的 setTimeout 恢复缩放；该恢复已移除，置 0 会导致贴图子弹永久不可见）
         const pos = new Vec3(x, y, 0);
         Bullet.attachToWorld(bulletNode, pos);
 

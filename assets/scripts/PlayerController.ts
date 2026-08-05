@@ -678,7 +678,6 @@ export class PlayerController extends Component {
         dir.normalize();
 
         const bulletNode = instantiate(this.weaponBulletPrefab);
-        bulletNode.setScale(0, 0, 1);
         Bullet.attachToWorld(bulletNode, playerPos.clone());
 
         const bullet = bulletNode.getComponent(Bullet);
