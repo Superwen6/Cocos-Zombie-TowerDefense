@@ -13,6 +13,8 @@ export interface Collider2D {
     halfW: number;
     halfH: number;
     group: ColliderGroup;
+    /** 碰撞中心相对节点位置的 Y 偏移（贴图锚点在脚部时上移到贴图中心） */
+    offsetY: number;
 }
 
 export enum ColliderGroup {
@@ -116,7 +118,7 @@ export class CollisionWorld extends Component {
 
             const wp = c.node.worldPosition;
             const cx = Math.floor(wp.x / GRID_CELL_SIZE);
-            const cy = Math.floor(wp.y / GRID_CELL_SIZE);
+            const cy = Math.floor((wp.y + c.offsetY) / GRID_CELL_SIZE);
             const key = CollisionWorld.cellKey(cx, cy);
             let cell = this._grid.get(key);
             if (!cell) {
@@ -240,7 +242,7 @@ export class CollisionWorld extends Component {
             if (!willBlock(self.group, other.group)) continue;
 
             const ox = other.node.worldPosition.x;
-            const oy = other.node.worldPosition.y;
+            const oy = other.node.worldPosition.y + other.offsetY;
 
             if (rectsOverlap(resultX, resultY, self.halfW, self.halfH, ox, oy, other.halfW, other.halfH)) {
                 // 用起始位置判断推开方向，防止穿模
@@ -322,7 +324,7 @@ export class CollisionWorld extends Component {
             if (!targetGroups.includes(other.group)) continue;
 
             const ox = other.node.worldPosition.x;
-            const oy = other.node.worldPosition.y;
+            const oy = other.node.worldPosition.y + other.offsetY;
             if (rectsOverlap(x, y, halfW, halfH, ox, oy, other.halfW, other.halfH)) {
                 return other;
             }
@@ -420,7 +422,7 @@ export class CollisionWorld extends Component {
             if (!c.node || !c.node.isValid) continue;
             if (!groups.includes(c.group)) continue;
             const ox = c.node.worldPosition.x;
-            const oy = c.node.worldPosition.y;
+            const oy = c.node.worldPosition.y + c.offsetY;
             if (rectsOverlap(x, y, halfW, halfH, ox, oy, c.halfW, c.halfH)) {
                 return c.node.name;
             }
@@ -437,7 +439,7 @@ export class CollisionWorld extends Component {
             if (!willBlock(group, other.group)) continue;
 
             const ox = other.node.worldPosition.x;
-            const oy = other.node.worldPosition.y;
+            const oy = other.node.worldPosition.y + other.offsetY;
             if (rectsOverlap(x, y, halfW, halfH, ox, oy, other.halfW, other.halfH)) {
                 return true;
             }

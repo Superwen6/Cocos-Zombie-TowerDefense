@@ -88,7 +88,11 @@ export class Bullet extends Component {
 
         if (this._homing && this._targetNode?.isValid) {
             // 跟踪模式：每帧重新计算指向目标的方向
-            this._targetNode.getWorldPosition(this._tempVec);
+            if (this._targetZombie) {
+                this._targetZombie.getHitWorldPosition(this._tempVec);
+            } else {
+                this._targetNode.getWorldPosition(this._tempVec);
+            }
             dir = this._tempVec.clone().subtract(bulletWP);
             const dist = dir.length();
             dir.normalize();
@@ -107,7 +111,11 @@ export class Bullet extends Component {
         } else if (this._targetNode?.isValid) {
             // 非跟踪模式 + 有目标：沿初始方向直线飞行，检测与目标距离
             dir = this._initialDir.clone();
-            this._targetNode.getWorldPosition(this._tempVec);
+            if (this._targetZombie) {
+                this._targetZombie.getHitWorldPosition(this._tempVec);
+            } else {
+                this._targetNode.getWorldPosition(this._tempVec);
+            }
             const dist = Vec3.distance(bulletWP, this._tempVec);
             if (dist < HIT_RADIUS) {
                 this.dealDamageToTarget();
@@ -158,7 +166,7 @@ export class Bullet extends Component {
             if (this._hitZombies.has(zombie)) continue;
             if (!zombie.node.isValid || zombie.isDead || zombie.hp <= 0) continue;
 
-            zombie.node.getWorldPosition(this._zombiePos);
+            zombie.getHitWorldPosition(this._zombiePos);
             const d = Vec3.distance(this.node.worldPosition, this._zombiePos);
             if (d < HIT_RADIUS) {
                 this._hitZombies.add(zombie);

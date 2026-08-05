@@ -55,8 +55,8 @@
     },
     "_lscale": {
       "__type__": "cc.Vec3",
-      "x": 0.8,
-      "y": 1.2,
+      "x": 1,
+      "y": 1,
       "z": 1
     },
     "_mobility": 0,
@@ -133,13 +133,13 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 1320,
-      "height": 750
+      "width": 821,
+      "height": 601
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
       "x": 0.5,
-      "y": 0.5
+      "y": 0
     },
     "_id": ""
   },
@@ -175,7 +175,7 @@
     },
     "_type": 0,
     "_fillType": 0,
-    "_sizeMode": 0,
+    "_sizeMode": 1,
     "_fillCenter": {
       "__type__": "cc.Vec2",
       "x": 0,
@@ -228,7 +228,7 @@
     "_anchorPoint": {
       "__type__": "cc.Vec2",
       "x": 0.5,
-      "y": 0.5
+      "y": 0
     },
     "_id": ""
   },
@@ -292,7 +292,7 @@
     },
     "maxHp": 1000,
     "damage": 5,
-    "moveSpeed": 240,
+    "moveSpeed": 120,
     "attackRange": 60,
     "alertRadius": 300,
     "buildingScanRadius": 250,
@@ -300,6 +300,7 @@
     "wanderPatrolRadius": 800,
     "colliderHalfW": 20,
     "colliderHalfH": 20,
+    "colliderOffsetY": 60,
     "baseNode": null,
     "baseNodeName": "Base",
     "wanderOrigin": null,

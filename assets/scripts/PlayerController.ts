@@ -233,6 +233,7 @@ export class PlayerController extends Component {
             halfW: this.colliderHalfW,
             halfH: this.colliderHalfH,
             group: ColliderGroup.Player,
+            offsetY: 0,
         };
         CollisionWorld.instance?.register(this._collider);
     }
@@ -900,7 +901,7 @@ export class PlayerController extends Component {
             if (!zombie.node.isValid || zombie.isDead || zombie.hp <= 0) {
                 continue;
             }
-            const dist = Vec3.distance(playerPos, zombie.node.worldPosition);
+            const dist = Vec3.distance(playerPos, zombie.getHitWorldPosition());
             if (dist <= this.hitRange && dist < minDist) {
                 minDist = dist;
                 closest = zombie;

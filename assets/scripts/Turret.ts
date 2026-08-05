@@ -163,6 +163,7 @@ export class Turret extends Component {
             halfW: this.colliderHalfW,
             halfH: this.colliderHalfH,
             group: ColliderGroup.Turret,
+            offsetY: 0,
         };
         CollisionWorld.instance?.register(this._collider);
     }
@@ -203,7 +204,7 @@ export class Turret extends Component {
         if (this.muzzleNode) {
             if (this.lockedTarget) {
                 const turretPos = this.muzzleNode.worldPosition;
-                const targetPos = this.lockedTarget.node.worldPosition;
+                const targetPos = this.lockedTarget.getHitWorldPosition();
                 const dirX = targetPos.x - turretPos.x;
                 const dirY = targetPos.y - turretPos.y;
                 // 炮管视觉方向 = muzzleNode.angle + barrelDefaultAngle
@@ -317,7 +318,7 @@ export class Turret extends Component {
             if (!zombie.node.isValid || zombie.isDead || zombie.hp <= 0) {
                 continue;
             }
-            const zombiePos = zombie.node.worldPosition;
+            const zombiePos = zombie.getHitWorldPosition();
             const dist = Vec3.distance(this._turretPos, zombiePos);
             if (dist > this.attackRange || dist >= minDist) {
                 continue;

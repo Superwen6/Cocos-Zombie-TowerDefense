@@ -84,6 +84,9 @@ export class ZombieMove extends Component {
     @property({ tooltip: '碰撞框半高（碰撞体总高度 = 此值 × 2）' })
     colliderHalfH = 15;
 
+    @property({ tooltip: '碰撞体/命中点中心相对节点位置的 Y 偏移。贴图锚点设在脚部(anchorY=0)时需上移此值到贴图中心，避免炮塔/子弹/近战都打在脚底' })
+    colliderOffsetY = 0;
+
     hp = 100;
     isDead = false;
 
@@ -195,10 +198,11 @@ export class ZombieMove extends Component {
         this._collider = {
             node: this.node,
             x: wp.x,
-            y: wp.y,
+            y: wp.y + this.colliderOffsetY,
             halfW: this.colliderHalfW,
             halfH: this.colliderHalfH,
             group: ColliderGroup.Zombie,
+            offsetY: this.colliderOffsetY,
         };
         CollisionWorld.instance?.register(this._collider);
 
@@ -702,6 +706,7 @@ export class ZombieMove extends Component {
 
         // 追击状态：计算目标位置 + 侧向寻路移动
         const selfPos = this.node.worldPosition;
+        const hitY = this.colliderOffsetY;
         const targetPos = this.getEffectiveTargetPos(this._tempPos);
         const dist = Vec3.distance(selfPos, targetPos);
 
@@ -748,17 +753,19 @@ export class ZombieMove extends Component {
             const hh = this.colliderHalfH;
             const blockGroups = [ColliderGroup.Zombie, ColliderGroup.Wall, ColliderGroup.Turret, ColliderGroup.Resource];
             const cw = CollisionWorld.instance;
+            const hitX = toX;
+            const hitY = toY + this.colliderOffsetY;
 
             let needSideCheck = false;
-            if (cw && cw.checkHit(toX, toY, hw, hh, blockGroups, this._collider)) {
+            if (cw && cw.checkHit(hitX, hitY, hw, hh, blockGroups, this._collider)) {
                 needSideCheck = true;
             }
 
             if (needSideCheck) {
-                const sideResult = this.trySideDirection(this._tempDir.x, this._tempDir.y, step, selfPos, hw, hh, blockGroups, cw!);
+                const sideResult = this.trySideDirection(this._tempDir.x, this._tempDir.y, step, hitX, hitY, hw, hh, blockGroups, cw!);
                 if (sideResult) {
                     toX = sideResult.x;
-                    toY = sideResult.y;
+                    toY = sideResult.y - this.colliderOffsetY;
                 } else {
                     toX = selfPos.x;
                     toY = selfPos.y;
@@ -767,16 +774,16 @@ export class ZombieMove extends Component {
 
             const resolved = CollisionWorld.instance?.resolveMove(
                 this._collider,
-                selfPos.x, selfPos.y,
-                toX, toY,
+                selfPos.x, selfPos.y + this.colliderOffsetY,
+                hitX, hitY,
             );
             if (resolved) {
                 toX = resolved.x;
-                toY = resolved.y;
+                toY = resolved.y - this.colliderOffsetY;
             }
 
             this._collider.x = toX;
-            this._collider.y = toY;
+            this._collider.y = toY + this.colliderOffsetY;
         }
 
         this._tempPos.set(toX, toY, selfPos.z);
@@ -786,23 +793,23 @@ export class ZombieMove extends Component {
     // ========== 侧向寻路 ==========
 
     private trySideDirection(
-        dirX: number, dirY: number, step: number, selfPos: Vec3,
+        dirX: number, dirY: number, step: number, baseX: number, baseY: number,
         hw: number, hh: number, blockGroups: ColliderGroup[], cw: CollisionWorld,
     ): { x: number; y: number } | null {
         const cos45 = Math.cos(Math.PI / 4);
         const sin45 = Math.sin(Math.PI / 4);
         const rx1 = dirX * cos45 - dirY * sin45;
         const ry1 = dirX * sin45 + dirY * cos45;
-        const nx1 = selfPos.x + rx1 * step;
-        const ny1 = selfPos.y + ry1 * step;
+        const nx1 = baseX + rx1 * step;
+        const ny1 = baseY + ry1 * step;
         if (!cw.checkHit(nx1, ny1, hw, hh, blockGroups, this._collider)) {
             return { x: nx1, y: ny1 };
         }
 
         const rx2 = dirX * cos45 + dirY * sin45;
         const ry2 = -dirX * sin45 + dirY * cos45;
-        const nx2 = selfPos.x + rx2 * step;
-        const ny2 = selfPos.y + ry2 * step;
+        const nx2 = baseX + rx2 * step;
+        const ny2 = baseY + ry2 * step;
         if (!cw.checkHit(nx2, ny2, hw, hh, blockGroups, this._collider)) {
             return { x: nx2, y: ny2 };
         }
@@ -811,16 +818,16 @@ export class ZombieMove extends Component {
         const sin60 = Math.sqrt(3) / 2;
         const rx3 = dirX * cos60 - dirY * sin60;
         const ry3 = dirX * sin60 + dirY * cos60;
-        const nx3 = selfPos.x + rx3 * step;
-        const ny3 = selfPos.y + ry3 * step;
+        const nx3 = baseX + rx3 * step;
+        const ny3 = baseY + ry3 * step;
         if (!cw.checkHit(nx3, ny3, hw, hh, blockGroups, this._collider)) {
             return { x: nx3, y: ny3 };
         }
 
         const rx4 = dirX * cos60 + dirY * sin60;
         const ry4 = -dirX * sin60 + dirY * cos60;
-        const nx4 = selfPos.x + rx4 * step;
-        const ny4 = selfPos.y + ry4 * step;
+        const nx4 = baseX + rx4 * step;
+        const ny4 = baseY + ry4 * step;
         if (!cw.checkHit(nx4, ny4, hw, hh, blockGroups, this._collider)) {
             return { x: nx4, y: ny4 };
         }
@@ -866,12 +873,12 @@ export class ZombieMove extends Component {
             const hh = this.colliderHalfH;
             const blockGroups = [ColliderGroup.Zombie, ColliderGroup.Wall, ColliderGroup.Turret, ColliderGroup.Resource];
             const cw = CollisionWorld.instance;
-            if (cw && !cw.checkHit(newX, newY, hw, hh, blockGroups, this._collider)) {
+            if (cw && !cw.checkHit(newX, newY + this.colliderOffsetY, hw, hh, blockGroups, this._collider)) {
                 this._tempPos.set(newX, newY, wp.z);
                 this.node.setWorldPosition(this._tempPos);
                 if (this._collider) {
                     this._collider.x = newX;
-                    this._collider.y = newY;
+                    this._collider.y = newY + this.colliderOffsetY;
                 }
                 this._lastX = newX;
                 this._lastY = newY;
@@ -1066,17 +1073,19 @@ export class ZombieMove extends Component {
             const hh = this.colliderHalfH;
             const blockGroups = [ColliderGroup.Zombie, ColliderGroup.Wall, ColliderGroup.Turret, ColliderGroup.Resource];
             const cw = CollisionWorld.instance;
+            const hitX = toX;
+            const hitY = toY + this.colliderOffsetY;
 
             let needSideCheck = false;
-            if (cw && cw.checkHit(toX, toY, hw, hh, blockGroups, this._collider)) {
+            if (cw && cw.checkHit(hitX, hitY, hw, hh, blockGroups, this._collider)) {
                 needSideCheck = true;
             }
 
             if (needSideCheck) {
-                const sideResult = this.trySideDirection(this._tempDir.x, this._tempDir.y, step, selfPos, hw, hh, blockGroups, cw!);
+                const sideResult = this.trySideDirection(this._tempDir.x, this._tempDir.y, step, hitX, hitY, hw, hh, blockGroups, cw!);
                 if (sideResult) {
                     toX = sideResult.x;
-                    toY = sideResult.y;
+                    toY = sideResult.y - this.colliderOffsetY;
                 } else {
                     toX = selfPos.x;
                     toY = selfPos.y;
@@ -1085,15 +1094,15 @@ export class ZombieMove extends Component {
 
             const resolved = CollisionWorld.instance?.resolveMove(
                 this._collider,
-                selfPos.x, selfPos.y,
-                toX, toY,
+                selfPos.x, selfPos.y + this.colliderOffsetY,
+                hitX, hitY,
             );
             if (resolved) {
                 toX = resolved.x;
-                toY = resolved.y;
+                toY = resolved.y - this.colliderOffsetY;
             }
             this._collider.x = toX;
-            this._collider.y = toY;
+            this._collider.y = toY + this.colliderOffsetY;
         }
 
         this._tempPos.set(toX, toY, selfPos.z);
@@ -1322,5 +1331,12 @@ export class ZombieMove extends Component {
             }
         }
         return null;
+    }
+
+    /** 命中中心世界坐标：根节点位置 + 碰撞体 Y 偏移（贴图锚点在脚部时上移到贴图中心） */
+    getHitWorldPosition(out: Vec3 = new Vec3()): Vec3 {
+        out.set(this.node.worldPosition);
+        out.y += this.colliderOffsetY;
+        return out;
     }
 }
