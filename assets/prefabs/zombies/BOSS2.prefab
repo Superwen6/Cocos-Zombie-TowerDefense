@@ -517,13 +517,12 @@
         "__expectedType__": "cc.SpriteFrame"
       }
     ],
-    "shotFrameDuration": 0.05,
+    "shotFrameDuration": 0.2,
     "shotBulletPrefab": {
-      "__uuid__": "2a77803a-b026-4ae7-ab57-b44b0294c764",
+      "__uuid__": "390db02f-ec4e-439d-ba98-fc576c4ce0fd",
       "__expectedType__": "cc.Prefab"
     },
     "shotRange": 50,
-    "shotTriggerDuration": 0.5,
     "shotCooldown": 3,
     "_id": ""
   },

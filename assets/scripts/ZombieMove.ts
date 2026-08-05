@@ -684,6 +684,9 @@ export class ZombieMove extends Component {
         const selfPos = this.node.worldPosition;
         const distToPlayer = Vec3.distance(selfPos, playerNode.worldPosition);
         if (distToPlayer > this.alertRadius * PlayerState.zombieAlertRadiusMultiplier) return;
+        // 超出拉扯范围（LEASH_RADIUS）不锁定：否则与 updateAIState 的 returnToDefaultTarget 冲突，
+        // 会在 WANDER 与 CHASE_PLAYER 之间来回切换
+        if (distToPlayer > LEASH_RADIUS) return;
 
         // 检查视线是否被墙阻挡
         const lineClear = CollisionWorld.instance?.isLineOfSightClear(
@@ -883,7 +886,11 @@ export class ZombieMove extends Component {
         }
 
         // ===== 夜间僵尸：看到玩家就追击（视觉发现，非玩家攻击，优先级低于炮塔） =====
-        if (playerExists && lineClear && distToPlayer <= this.alertRadius * PlayerState.zombieAlertRadiusMultiplier) {
+        // 必须同时 <= LEASH_RADIUS：否则玩家在 (LEASH_RADIUS, alertRadius] 区间时，
+        // 刚因超出拉扯范围 returnToDefaultTarget() 回 CHASE_BASE，下一帧这里又抢回 CHASE_PLAYER，
+        // 会在"去基地"与"追玩家"两个相反方向间每帧来回切换（鬼畜动画）。
+        if (playerExists && lineClear && distToPlayer <= LEASH_RADIUS
+            && distToPlayer <= this.alertRadius * PlayerState.zombieAlertRadiusMultiplier) {
             this._lastKnownPlayerPos.set(playerNode!.worldPosition);
             this._memoryTimer = MEMORY_DURATION;
             this._buildingTarget = null;
