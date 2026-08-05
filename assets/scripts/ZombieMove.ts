@@ -218,6 +218,8 @@ export class ZombieMove extends Component {
     private _shotCooldownTimer = 0;
     /** Boss2 是否正在播放射击动画（防止每帧重置） */
     private _isShotAnimPlaying = false;
+    /** Boss2 进入射击前的 AI 状态（射击动画播完后恢复，避免打断对炮塔/基地的追击） */
+    private _shotPrevState: AIState | '' = '';
     /** Boss2 出生点世界坐标（25天夜晚前原地静止待机用） */
     private readonly _boss2SpawnPos = new Vec3();
 
@@ -458,20 +460,13 @@ export class ZombieMove extends Component {
     }
 
     /**
-     * Boss2 射击触发计时：仅当 AI 状态为目标为玩家的追击/攻击状态时累计，
-     * 距离超过 shotRange 且持续 shotTriggerDuration 后触发 360° 弹幕射击。
+     * Boss2 射击触发计时：玩家在近战范围外（shotRange）持续累计 shotTriggerDuration 后发射 360° 弹幕。
+     * 不要求必须处于追玩家状态——追击炮塔/基地等任何目标时，只要玩家在远处也会远程射击。
      */
     private updateShotCharge(dt: number) {
         // 射击冷却递减
         if (this._shotCooldownTimer > 0) {
             this._shotCooldownTimer -= dt;
-        }
-
-        const isPlayerTarget = this._aiState === 'CHASE_PLAYER' || this._aiState === 'ATTACK_PLAYER'
-            || this._aiState === 'MEMORY_TRACK';
-        if (!isPlayerTarget) {
-            this._shotChargeTimer = 0;
-            return;
         }
 
         const playerNode = this.getPlayerNode();
@@ -490,6 +485,8 @@ export class ZombieMove extends Component {
                 && this.shotBulletPrefab) {
                 this._shotChargeTimer = 0;
                 this._shotCooldownTimer = this.shotCooldown;
+                // 记录进入射击前的状态，动画播完后恢复
+                this._shotPrevState = this._aiState;
                 this._aiState = 'SHOT_ATTACK';
                 this.startShotAnimation();
             }
@@ -514,7 +511,7 @@ export class ZombieMove extends Component {
     private updateShotAnimation(dt: number) {
         if (!this.bodySprite || this.shotFrames.length === 0) {
             this._isShotAnimPlaying = false;
-            this._aiState = this._boss2Awakened ? 'CHASE_BASE' : 'BOSS2_IDLE';
+            this._aiState = this._shotPrevState || (this._boss2Awakened ? 'CHASE_BASE' : 'BOSS2_IDLE');
             return;
         }
 
@@ -527,7 +524,8 @@ export class ZombieMove extends Component {
                 // 动画播完一循环：发射弹幕
                 this.spawnShotBurst();
                 this._isShotAnimPlaying = false;
-                this._aiState = 'CHASE_PLAYER';
+                // 恢复射击前的 AI 状态（原为强制 CHASE_PLAYER，会导致打炮塔/基地时被打断改追玩家）
+                this._aiState = this._shotPrevState || 'CHASE_PLAYER';
                 return;
             }
             this.bodySprite.spriteFrame = this.shotFrames[this._animFrameIndex];

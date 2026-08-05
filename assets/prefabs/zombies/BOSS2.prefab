@@ -420,7 +420,7 @@
         "__expectedType__": "cc.SpriteFrame"
       }
     ],
-    "attackFrameDuration": 0.1,
+    "attackFrameDuration": 0.05,
     "deathFrames": [
       {
         "__uuid__": "29243da0-9982-440b-ab08-3a39d57eeccf@f9941",
@@ -517,14 +517,14 @@
         "__expectedType__": "cc.SpriteFrame"
       }
     ],
-    "shotFrameDuration": 0.1,
+    "shotFrameDuration": 0.05,
     "shotBulletPrefab": {
       "__uuid__": "2a77803a-b026-4ae7-ab57-b44b0294c764",
       "__expectedType__": "cc.Prefab"
     },
-    "shotRange": 200,
-    "shotTriggerDuration": 5,
-    "shotCooldown": 4,
+    "shotRange": 50,
+    "shotTriggerDuration": 0.5,
+    "shotCooldown": 3,
     "_id": ""
   },
   {

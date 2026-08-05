@@ -88,6 +88,12 @@ export class LaserBeam extends Component {
     }
 
     update(dt: number) {
+        // 攻击者（炮塔）已销毁 → 光束失去能量源，销毁（否则会以冻结的枪口坐标继续追踪目标）
+        if (this._attackerNode && !this._attackerNode.isValid) {
+            this.node.destroy();
+            return;
+        }
+
         // 目标失效则销毁
         if (!this._targetNode?.isValid || !this._target || this._target.isDead) {
             this.node.destroy();
