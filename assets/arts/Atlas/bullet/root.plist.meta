@@ -250,7 +250,7 @@
         "offsetY": -54,
         "trimX": 1821,
         "trimY": 1,
-        "width": 1381,
+        "width": 750,
         "height": 1788,
         "rawWidth": 2048,
         "rawHeight": 2048,
@@ -274,7 +274,7 @@
         "isUuid": true,
         "imageUuidOrDatabaseUri": "b7b97407-c3a5-477b-837e-e4a9432646a6@6c48a",
         "atlasUuid": "da7297e7-cf26-4912-8810-18a92dbe2ae8",
-        "trimType": "auto"
+        "trimType": "custom"
       },
       "ver": "1.0.12",
       "imported": true,

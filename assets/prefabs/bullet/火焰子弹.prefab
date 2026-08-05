@@ -91,7 +91,7 @@
     "__prefab": {
       "__id__": 5
     },
-    "coreSize": 22,
+    "coreSize": 40,
     "coreColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -101,7 +101,7 @@
     },
     "emissionRate": 40,
     "particleLife": 0.45,
-    "startSize": 16,
+    "startSize": 40,
     "endSize": 3,
     "trailSpeed": 40,
     "startColor": {

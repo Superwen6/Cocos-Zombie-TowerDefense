@@ -55,8 +55,8 @@
     },
     "_lscale": {
       "__type__": "cc.Vec3",
-      "x": 0.9,
-      "y": 0.9,
+      "x": 1.2,
+      "y": 1.2,
       "z": 1
     },
     "_mobility": 0,
@@ -133,13 +133,13 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 720,
-      "height": 720
+      "width": 359,
+      "height": 426
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
       "x": 0.5,
-      "y": 0
+      "y": 0.5
     },
     "_id": ""
   },
@@ -225,7 +225,7 @@
     "_anchorPoint": {
       "__type__": "cc.Vec2",
       "x": 0.5,
-      "y": 0
+      "y": 0.5
     },
     "_id": ""
   },
@@ -289,15 +289,15 @@
     },
     "maxHp": 5000,
     "damage": 60,
-    "moveSpeed": 40,
+    "moveSpeed": 100,
     "attackRange": 60,
-    "alertRadius": 800,
+    "alertRadius": 500,
     "buildingScanRadius": 400,
     "wanderLandmarkScanRadius": 500,
     "wanderPatrolRadius": 800,
     "colliderHalfW": 26,
     "colliderHalfH": 26,
-    "colliderOffsetY": 100,
+    "colliderOffsetY": 0,
     "baseNode": null,
     "baseNodeName": "Base",
     "wanderOrigin": null,
@@ -523,8 +523,8 @@
       "__expectedType__": "cc.Prefab"
     },
     "shotRange": 200,
-    "shotTriggerDuration": 5.0,
-    "shotCooldown": 4.0,
+    "shotTriggerDuration": 5,
+    "shotCooldown": 4,
     "_id": ""
   },
   {
@@ -547,7 +547,7 @@
     "copperDropChance": 1,
     "ironDropChance": 1,
     "moneyDropChance": 1,
-    "moneyAmount": 200,
+    "moneyAmount": 3000,
     "_id": ""
   },
   {

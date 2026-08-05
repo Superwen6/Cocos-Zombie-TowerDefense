@@ -276,8 +276,8 @@ export class EnemyManager extends Component {
     }
 
     private onPhaseChanged(detail: DayNightPhaseChangedDetail) {
-        // BOSS2：第5天初始（进入 DAY 阶段时）生成1只，死亡后不刷新
-        if (detail.currentDay === 5 && detail.phase === DayNightPhase.DAY && !this._boss2Spawned) {
+        // BOSS2：第5天初始生成1只，死亡后不刷新（>=5 兜底，覆盖读档在夜间等非 DAY 阶段进入第5天的情况）
+        if (detail.currentDay >= 5 && !this._boss2Spawned) {
             this.spawnBossTwo();
         }
 

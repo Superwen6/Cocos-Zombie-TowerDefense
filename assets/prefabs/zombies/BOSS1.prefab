@@ -507,6 +507,15 @@
       "__expectedType__": "cc.AudioClip"
     },
     "deathSoundMaxDistance": 800,
+    "isBoss2": false,
+    "boss2AwakenDay": 25,
+    "boss2FacingRight": false,
+    "shotFrames": [],
+    "shotFrameDuration": 0.1,
+    "shotBulletPrefab": null,
+    "shotRange": 200,
+    "shotTriggerDuration": 5,
+    "shotCooldown": 4,
     "_id": ""
   },
   {
