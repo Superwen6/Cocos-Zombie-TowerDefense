@@ -35,6 +35,8 @@ const IDLE_WALK_DURATION = 3.5;
 /** Boss2 待机游走：两次走动之间的静止间隔范围（秒） */
 const IDLE_WALK_PAUSE_MIN = 2.0;
 const IDLE_WALK_PAUSE_MAX = 4.0;
+/** Boss2 待机游走：完全卡死多少秒后强制随机脱困 */
+const IDLE_WALK_STUCK_ESCAPE = 0.8;
 /** Boss2 待机游走：移动速度倍率（相对 moveSpeed，慢速踱步） */
 const IDLE_WALK_SPEED_FACTOR = 0.55;
 
@@ -269,6 +271,8 @@ export class ZombieMove extends Component {
     private _idleWalkTimer = 0;
     /** 待机游走：当前踱步目标点（出生点 + 随机偏移） */
     private readonly _idleWalkTarget = new Vec3();
+    /** 待机游走：完全卡死累计时间（超阈值触发随机脱困） */
+    private _idleWalkStuckTime = 0;
     /** 待机游走：踱步目标（本地坐标，相对父节点，不受 GameWorld 移动影响） */
     private readonly _idleWalkTargetLocal = new Vec3();
     /** 待机游走：出生点（本地坐标，相对父节点） */
@@ -618,11 +622,20 @@ export class ZombieMove extends Component {
                 if (sideResult) {
                     toX = sideResult.x;
                     toY = sideResult.y - this.colliderOffsetY;
+                    this._idleWalkStuckTime = 0;
                 } else {
-                    // 四个侧向都不通：本轮原地不动，等下次重新选目标
+                    // 轴向/垂直/对角都不通：累计卡死时间，超阈值强制随机脱困，避免长时间卡在建筑里
                     toX = selfPos.x;
                     toY = selfPos.y;
+                    this._idleWalkStuckTime += dt;
+                    if (this._idleWalkStuckTime >= IDLE_WALK_STUCK_ESCAPE) {
+                        this._idleWalkStuckTime = 0;
+                        this.forceEscapeStuck();
+                        return; // 已瞬移脱困，跳过本帧后续移动/碰撞体更新，避免把位置拉回卡点
+                    }
                 }
+            } else {
+                this._idleWalkStuckTime = 0;
             }
 
             const resolved = CollisionWorld.instance?.resolveMove(
@@ -1351,24 +1364,49 @@ export class ZombieMove extends Component {
 
     // ========== 侧向寻路 ==========
 
+    /** 前方不通时依次尝试：轴向滑动(沿墙) → 90°垂直 → 45°/60°对角，返回新位置或 null（完全卡死） */
     private trySideDirection(
         dirX: number, dirY: number, step: number, baseX: number, baseY: number,
         hw: number, hh: number, blockGroups: ColliderGroup[], cw: CollisionWorld,
     ): { x: number; y: number } | null {
+        const startX = baseX - dirX * step;
+        const startY = baseY - dirY * step;
+
+        // 1) 轴向滑动：只动 X 或只动 Y，等效于贴着墙/障碍物边缘滑行，脱困最快最自然。
+        //    优先沿移动的主导轴滑动（位移分量更大的方向），保证持续向目标推进。
+        const horizontal = { x: baseX, y: startY };
+        const vertical = { x: startX, y: baseY };
+        if (Math.abs(dirX) >= Math.abs(dirY)) {
+            if (!cw.checkHit(horizontal.x, horizontal.y, hw, hh, blockGroups, this._collider)) return horizontal;
+            if (!cw.checkHit(vertical.x, vertical.y, hw, hh, blockGroups, this._collider)) return vertical;
+        } else {
+            if (!cw.checkHit(vertical.x, vertical.y, hw, hh, blockGroups, this._collider)) return vertical;
+            if (!cw.checkHit(horizontal.x, horizontal.y, hw, hh, blockGroups, this._collider)) return horizontal;
+        }
+
+        // 2) 90° 垂直方向：移动方向左右各旋转90°（垂直于当前朝向的脱困路径）
+        const px = -dirY;
+        const py = dirX;
+        const perp1 = { x: startX + px * step, y: startY + py * step };
+        const perp2 = { x: startX - px * step, y: startY - py * step };
+        if (!cw.checkHit(perp1.x, perp1.y, hw, hh, blockGroups, this._collider)) return perp1;
+        if (!cw.checkHit(perp2.x, perp2.y, hw, hh, blockGroups, this._collider)) return perp2;
+
+        // 3) 45°/60° 对角兜底（可穿过斜向缝隙）
         const cos45 = Math.cos(Math.PI / 4);
         const sin45 = Math.sin(Math.PI / 4);
         const rx1 = dirX * cos45 - dirY * sin45;
         const ry1 = dirX * sin45 + dirY * cos45;
-        const nx1 = baseX + rx1 * step;
-        const ny1 = baseY + ry1 * step;
+        const nx1 = startX + rx1 * step;
+        const ny1 = startY + ry1 * step;
         if (!cw.checkHit(nx1, ny1, hw, hh, blockGroups, this._collider)) {
             return { x: nx1, y: ny1 };
         }
 
         const rx2 = dirX * cos45 + dirY * sin45;
         const ry2 = -dirX * sin45 + dirY * cos45;
-        const nx2 = baseX + rx2 * step;
-        const ny2 = baseY + ry2 * step;
+        const nx2 = startX + rx2 * step;
+        const ny2 = startY + ry2 * step;
         if (!cw.checkHit(nx2, ny2, hw, hh, blockGroups, this._collider)) {
             return { x: nx2, y: ny2 };
         }
@@ -1377,16 +1415,16 @@ export class ZombieMove extends Component {
         const sin60 = Math.sqrt(3) / 2;
         const rx3 = dirX * cos60 - dirY * sin60;
         const ry3 = dirX * sin60 + dirY * cos60;
-        const nx3 = baseX + rx3 * step;
-        const ny3 = baseY + ry3 * step;
+        const nx3 = startX + rx3 * step;
+        const ny3 = startY + ry3 * step;
         if (!cw.checkHit(nx3, ny3, hw, hh, blockGroups, this._collider)) {
             return { x: nx3, y: ny3 };
         }
 
         const rx4 = dirX * cos60 + dirY * sin60;
         const ry4 = -dirX * sin60 + dirY * cos60;
-        const nx4 = baseX + rx4 * step;
-        const ny4 = baseY + ry4 * step;
+        const nx4 = startX + rx4 * step;
+        const ny4 = startY + ry4 * step;
         if (!cw.checkHit(nx4, ny4, hw, hh, blockGroups, this._collider)) {
             return { x: nx4, y: ny4 };
         }
@@ -1419,28 +1457,27 @@ export class ZombieMove extends Component {
         this._lastY = wp.y;
     }
 
+    /** 完全卡死时强制脱困：随机尝试最多 8 个方向，找到第一个空位就瞬移出去 */
     private forceEscapeStuck() {
         const wp = this.node.worldPosition;
-        const angle = Math.random() * Math.PI * 2;
-        const dx = Math.cos(angle) * STUCK_ESCAPE_DIST;
-        const dy = Math.sin(angle) * STUCK_ESCAPE_DIST;
-        const newX = wp.x + dx;
-        const newY = wp.y + dy;
-
-        if (this._collider) {
-            const hw = this.colliderHalfW;
-            const hh = this.colliderHalfH;
-            const blockGroups = [ColliderGroup.Zombie, ColliderGroup.Wall, ColliderGroup.Turret, ColliderGroup.Resource];
-            const cw = CollisionWorld.instance;
+        const hw = this.colliderHalfW;
+        const hh = this.colliderHalfH;
+        const blockGroups = [ColliderGroup.Zombie, ColliderGroup.Wall, ColliderGroup.Turret, ColliderGroup.Resource];
+        const cw = CollisionWorld.instance;
+        for (let i = 0; i < 8; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dx = Math.cos(angle) * STUCK_ESCAPE_DIST;
+            const dy = Math.sin(angle) * STUCK_ESCAPE_DIST;
+            const newX = wp.x + dx;
+            const newY = wp.y + dy;
             if (cw && !cw.checkHit(newX, newY + this.colliderOffsetY, hw, hh, blockGroups, this._collider)) {
                 this._tempPos.set(newX, newY, wp.z);
                 this.node.setWorldPosition(this._tempPos);
-                if (this._collider) {
-                    this._collider.x = newX;
-                    this._collider.y = newY + this.colliderOffsetY;
-                }
+                this._collider.x = newX;
+                this._collider.y = newY + this.colliderOffsetY;
                 this._lastX = newX;
                 this._lastY = newY;
+                return;
             }
         }
     }
