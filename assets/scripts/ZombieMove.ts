@@ -202,6 +202,8 @@ export class ZombieMove extends Component {
     private _stuckTimer = 0;
     private _lastX = 0;
     private _lastY = 0;
+    /** 壁面循迹：沿墙滑动的持久方向（0 表示未在滑动），保证持续往同一方向滑到绕过障碍 */
+    private readonly _wallSlideDir = new Vec3();
 
     // 攻击冷却
     private _attackCooldown = 0;
@@ -636,6 +638,7 @@ export class ZombieMove extends Component {
                 }
             } else {
                 this._idleWalkStuckTime = 0;
+                this._wallSlideDir.set(0, 0, 0);
             }
 
             const resolved = CollisionWorld.instance?.resolveMove(
@@ -1342,6 +1345,8 @@ export class ZombieMove extends Component {
                     toX = selfPos.x;
                     toY = selfPos.y;
                 }
+            } else {
+                this._wallSlideDir.set(0, 0, 0);
             }
 
             const resolved = CollisionWorld.instance?.resolveMove(
@@ -1364,7 +1369,11 @@ export class ZombieMove extends Component {
 
     // ========== 侧向寻路 ==========
 
-    /** 前方不通时依次尝试：轴向滑动(沿墙) → 90°垂直 → 45°/60°对角，返回新位置或 null（完全卡死） */
+    /**
+     * 壁面循迹式滑动：正前方不通时，在四个轴向方向中选可通行者滑动。
+     * 关键改进：滑动距离使用完整的 step（而非 dirX*step），垂直撞向长墙时不会退化为 0 位移；
+     * 且一旦开始沿墙滑动，会用持久方向 _wallSlideDir 持续同向滑行直到绕过障碍，而不是每帧随机摇摆。
+     */
     private trySideDirection(
         dirX: number, dirY: number, step: number, baseX: number, baseY: number,
         hw: number, hh: number, blockGroups: ColliderGroup[], cw: CollisionWorld,
@@ -1372,64 +1381,53 @@ export class ZombieMove extends Component {
         const startX = baseX - dirX * step;
         const startY = baseY - dirY * step;
 
-        // 1) 轴向滑动：只动 X 或只动 Y，等效于贴着墙/障碍物边缘滑行，脱困最快最自然。
-        //    优先沿移动的主导轴滑动（位移分量更大的方向），保证持续向目标推进。
-        const horizontal = { x: baseX, y: startY };
-        const vertical = { x: startX, y: baseY };
-        if (Math.abs(dirX) >= Math.abs(dirY)) {
-            if (!cw.checkHit(horizontal.x, horizontal.y, hw, hh, blockGroups, this._collider)) return horizontal;
-            if (!cw.checkHit(vertical.x, vertical.y, hw, hh, blockGroups, this._collider)) return vertical;
-        } else {
-            if (!cw.checkHit(vertical.x, vertical.y, hw, hh, blockGroups, this._collider)) return vertical;
-            if (!cw.checkHit(horizontal.x, horizontal.y, hw, hh, blockGroups, this._collider)) return horizontal;
+        // 四个轴向候选：每次移动完整的 step
+        const cands = [
+            { x: startX + step, y: startY },
+            { x: startX - step, y: startY },
+            { x: startX, y: startY + step },
+            { x: startX, y: startY - step },
+        ];
+
+        const free: { x: number; y: number }[] = [];
+        for (const c of cands) {
+            if (!cw.checkHit(c.x, c.y, hw, hh, blockGroups, this._collider)) {
+                free.push(c);
+            }
+        }
+        if (free.length === 0) {
+            this._wallSlideDir.set(0, 0, 0);
+            return null;
         }
 
-        // 2) 90° 垂直方向：移动方向左右各旋转90°（垂直于当前朝向的脱困路径）
-        const px = -dirY;
-        const py = dirX;
-        const perp1 = { x: startX + px * step, y: startY + py * step };
-        const perp2 = { x: startX - px * step, y: startY - py * step };
-        if (!cw.checkHit(perp1.x, perp1.y, hw, hh, blockGroups, this._collider)) return perp1;
-        if (!cw.checkHit(perp2.x, perp2.y, hw, hh, blockGroups, this._collider)) return perp2;
-
-        // 3) 45°/60° 对角兜底（可穿过斜向缝隙）
-        const cos45 = Math.cos(Math.PI / 4);
-        const sin45 = Math.sin(Math.PI / 4);
-        const rx1 = dirX * cos45 - dirY * sin45;
-        const ry1 = dirX * sin45 + dirY * cos45;
-        const nx1 = startX + rx1 * step;
-        const ny1 = startY + ry1 * step;
-        if (!cw.checkHit(nx1, ny1, hw, hh, blockGroups, this._collider)) {
-            return { x: nx1, y: ny1 };
+        // 1) 持久方向优先：上次沿墙滑动方向仍可通行则继续同向，保证壁面循迹不回头
+        //    （_wallSlideDir 存归一化方向 ±1/0，避免因 step 每帧抖动导致相等判断失败）
+        if (this._wallSlideDir.x !== 0 || this._wallSlideDir.y !== 0) {
+            for (const c of free) {
+                if ((c.x - startX) / step === this._wallSlideDir.x && (c.y - startY) / step === this._wallSlideDir.y) {
+                    return c;
+                }
+            }
         }
 
-        const rx2 = dirX * cos45 + dirY * sin45;
-        const ry2 = -dirX * sin45 + dirY * cos45;
-        const nx2 = startX + rx2 * step;
-        const ny2 = startY + ry2 * step;
-        if (!cw.checkHit(nx2, ny2, hw, hh, blockGroups, this._collider)) {
-            return { x: nx2, y: ny2 };
+        // 2) 偏好：朝移动方向推进（点积最大）为主，顺时针（移动方向右侧）作为平局打破规则
+        const rotCWx = dirY;
+        const rotCWy = -dirX;
+        let best = free[0];
+        let bestScore = -Infinity;
+        for (const c of free) {
+            const cx = c.x - startX;
+            const cy = c.y - startY;
+            const score = (cx * dirX + cy * dirY) * 1.0 + (cx * rotCWx + cy * rotCWy) * 0.2;
+            if (score > bestScore) {
+                bestScore = score;
+                best = c;
+            }
         }
 
-        const cos60 = 0.5;
-        const sin60 = Math.sqrt(3) / 2;
-        const rx3 = dirX * cos60 - dirY * sin60;
-        const ry3 = dirX * sin60 + dirY * cos60;
-        const nx3 = startX + rx3 * step;
-        const ny3 = startY + ry3 * step;
-        if (!cw.checkHit(nx3, ny3, hw, hh, blockGroups, this._collider)) {
-            return { x: nx3, y: ny3 };
-        }
-
-        const rx4 = dirX * cos60 + dirY * sin60;
-        const ry4 = -dirX * sin60 + dirY * cos60;
-        const nx4 = startX + rx4 * step;
-        const ny4 = startY + ry4 * step;
-        if (!cw.checkHit(nx4, ny4, hw, hh, blockGroups, this._collider)) {
-            return { x: nx4, y: ny4 };
-        }
-
-        return null;
+        // 记录持久滑动方向（归一化为 ±1/0）
+        this._wallSlideDir.set((best.x - startX) / step, (best.y - startY) / step, 0);
+        return best;
     }
 
     private updateStuckDetection(dt: number) {
@@ -1689,6 +1687,8 @@ export class ZombieMove extends Component {
                     toX = selfPos.x;
                     toY = selfPos.y;
                 }
+            } else {
+                this._wallSlideDir.set(0, 0, 0);
             }
 
             const resolved = CollisionWorld.instance?.resolveMove(
