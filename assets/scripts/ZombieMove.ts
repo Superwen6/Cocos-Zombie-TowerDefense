@@ -28,6 +28,15 @@ const SHOT_ANGLE_STEP = (Math.PI * 2) / SHOT_BULLET_COUNT;
 const BREATH_FREQ = 0.5;
 /** Boss2 呼吸效果：Y 缩放振幅（相对基础 Y 缩放的倍率，轻微起伏） */
 const BREATH_AMPLITUDE = 0.02;
+/** Boss2 待机游走：相对出生点的游走半径（像素） */
+const IDLE_WALK_RADIUS = 90;
+/** Boss2 待机游走：每次走动时长（秒） */
+const IDLE_WALK_DURATION = 1.6;
+/** Boss2 待机游走：两次走动之间的静止间隔范围（秒） */
+const IDLE_WALK_PAUSE_MIN = 2.5;
+const IDLE_WALK_PAUSE_MAX = 5.0;
+/** Boss2 待机游走：移动速度倍率（相对 moveSpeed，慢速踱步） */
+const IDLE_WALK_SPEED_FACTOR = 0.3;
 
 /** 白天游荡：巡逻点刷新间隔（秒） */
 const WANDER_REPICK_INTERVAL = 4;
@@ -129,6 +138,18 @@ export class ZombieMove extends Component {
 
     @property({ type: CCFloat, tooltip: '死亡音效最大可听距离（像素），超出此距离不播放' })
     deathSoundMaxDistance = 800;
+
+    @property({ type: AudioClip, tooltip: '普通攻击音效（近战命中时播放，BOSS2 使用）' })
+    attackSound: AudioClip | null = null;
+
+    @property({ type: CCFloat, tooltip: '普通攻击音效最大可听距离（像素），超出此距离不播放' })
+    attackSoundMaxDistance = 500;
+
+    @property({ type: AudioClip, tooltip: '射击音效（弹幕开始发射时播放，BOSS2 使用）' })
+    shotSound: AudioClip | null = null;
+
+    @property({ type: CCFloat, tooltip: '射击音效最大可听距离（像素），超出此距离不播放' })
+    shotSoundMaxDistance = 900;
 
     // ========== 最终Boss（BOSS2）专属属性 ==========
 
@@ -244,6 +265,12 @@ export class ZombieMove extends Component {
     private _breathBaseScaleY = 0;
     /** 呼吸效果：当前是否已应用呼吸缩放 */
     private _breathActive = false;
+    /** 待机游走：是否正在踱步 */
+    private _idleWalkActive = false;
+    /** 待机游走：当前阶段剩余时间（走动时长 / 静止间隔） */
+    private _idleWalkTimer = 0;
+    /** 待机游走：当前踱步目标点（出生点 + 随机偏移） */
+    private readonly _idleWalkTarget = new Vec3();
 
     /** 同类型僵尸死亡音效互斥标志（同一时间每种僵尸最多播放1个死亡音效） */
     private static _deathSoundPlaying: Record<string, boolean> = {};
@@ -257,6 +284,8 @@ export class ZombieMove extends Component {
             // Boss2：25天夜晚前原地静止待机（出生点）
             this._boss2SpawnPos.set(this.node.worldPosition);
             this._aiState = 'BOSS2_IDLE';
+            // 待机踱步：初始先静止一段时间再开始缓慢游走
+            this._idleWalkTimer = randomRange(IDLE_WALK_PAUSE_MIN, IDLE_WALK_PAUSE_MAX);
         } else {
             this._aiState = this.isDayWanderer ? 'WANDER' : 'CHASE_BASE';
         }
@@ -495,10 +524,82 @@ export class ZombieMove extends Component {
             this._breathActive = true;
         }
 
+        // 待机踱步：偶尔在出生点周围小范围慢速走动，其余时间原地静止（呼吸）
+        this._idleWalkTimer -= dt;
+        if (this._idleWalkActive) {
+            if (this._idleWalkTimer <= 0) {
+                // 走够时长或到达目标：停下休息
+                this._idleWalkActive = false;
+                this._idleWalkTimer = randomRange(IDLE_WALK_PAUSE_MIN, IDLE_WALK_PAUSE_MAX);
+            } else {
+                this.stepIdleWalk(dt);
+            }
+        } else if (this._idleWalkTimer <= 0) {
+            // 静止结束：选新目标开始踱步
+            this.pickIdleWalkTarget();
+            this._idleWalkActive = true;
+            this._idleWalkTimer = IDLE_WALK_DURATION;
+        }
+
         // 若已觉醒（读档等场景下 phase 事件已错过），直接进入夜间僵尸逻辑
         if (this._boss2Awakened) {
             this._aiState = 'CHASE_BASE';
         }
+    }
+
+    /** 选择待机踱步目标：出生点 + 随机偏移（半径 IDLE_WALK_RADIUS 内） */
+    private pickIdleWalkTarget() {
+        const angle = randomRange(0, Math.PI * 2);
+        const dist = randomRange(0, IDLE_WALK_RADIUS);
+        this._idleWalkTarget.set(
+            this._boss2SpawnPos.x + Math.cos(angle) * dist,
+            this._boss2SpawnPos.y + Math.sin(angle) * dist,
+            0,
+        );
+    }
+
+    /** 朝待机踱步目标慢速移动一步；到达或被挡住则立即停下 */
+    private stepIdleWalk(dt: number) {
+        const selfPos = this.node.worldPosition;
+        Vec3.subtract(this._tempDir, this._idleWalkTarget, selfPos);
+        this._tempDir.z = 0;
+        const len = this._tempDir.length();
+        if (len < 1e-4) {
+            this._idleWalkTimer = 0;
+            return;
+        }
+        this._tempDir.normalize();
+        this.playWalkAnimation(this._tempDir.x);
+
+        const step = this.moveSpeed * IDLE_WALK_SPEED_FACTOR * dt;
+        let toX = selfPos.x + this._tempDir.x * step;
+        let toY = selfPos.y + this._tempDir.y * step;
+        if (step >= len) {
+            toX = this._idleWalkTarget.x;
+            toY = this._idleWalkTarget.y;
+        }
+
+        // 目标点被占（墙体/炮塔/其他僵尸/资源）则停下，避免踱步卡进建筑
+        if (this._collider) {
+            const cw = CollisionWorld.instance;
+            if (cw && cw.checkHit(
+                toX, toY + this.colliderOffsetY,
+                this.colliderHalfW, this.colliderHalfH,
+                [ColliderGroup.Zombie, ColliderGroup.Wall, ColliderGroup.Turret, ColliderGroup.Resource],
+                this._collider,
+            )) {
+                this._idleWalkTimer = 0;
+                return;
+            }
+        }
+
+        this.node.setWorldPosition(toX, toY, this.node.worldPosition.z);
+        if (this._collider) {
+            this._collider.x = toX;
+            this._collider.y = toY + this.colliderOffsetY;
+        }
+        // 推进行走动画帧（idle 分支在 update() 里提前 return，需在此手动推进）
+        this.updateWalkAnimation(dt);
     }
 
     /** 离开待机后恢复 Sprite 节点 Y 缩放，避免呼吸缩放残留 */
@@ -564,6 +665,8 @@ export class ZombieMove extends Component {
         if (this.bodySprite && this.shotFrames.length > 0) {
             this.bodySprite.spriteFrame = this.shotFrames[0];
         }
+        // 射击音效（每轮弹幕开始发射时播放一次）
+        this.playShotSound();
         // 初始化本轮流射：第一颗对准玩家，后续按 SHOT_ANGLE_STEP 顺时针依次发射
         this._shotBulletsToFire = SHOT_BULLET_COUNT;
         this._shotFireTimer = 0;
@@ -1382,6 +1485,9 @@ export class ZombieMove extends Component {
     private performAttack(target: Node) {
         if (this.isDead) return;
 
+        // 普通攻击音效（命中时播放）
+        this.playAttackSound();
+
         if (this.isPlayerNode(target)) {
             PlayerState.instance?.takeDamage(this.damage);
             return;
@@ -1625,7 +1731,7 @@ export class ZombieMove extends Component {
 
         if (this._aiState !== 'WANDER' && this._aiState !== 'CHASE_BASE' && this._aiState !== 'CHASE_PLAYER'
             && this._aiState !== 'MEMORY_TRACK' && this._aiState !== 'CHASE_TURRET'
-            && this._aiState !== 'CHASE_BUILDING') {
+            && this._aiState !== 'CHASE_BUILDING' && this._aiState !== 'BOSS2_IDLE') {
             return;
         }
 
@@ -1693,6 +1799,34 @@ export class ZombieMove extends Component {
         this.scheduleOnce(() => {
             ZombieMove._deathSoundPlaying[typeKey] = false;
         }, 0.5);
+    }
+
+    /** 播放普通攻击音效（距离衰减） */
+    private playAttackSound() {
+        if (!this._audioSource || !this.attackSound) return;
+        const playerNode = find('GameWorld/YSortLayer/Player');
+        if (playerNode) {
+            const dist = Vec3.distance(this.node.worldPosition, playerNode.worldPosition);
+            if (dist >= this.attackSoundMaxDistance) return;
+            const volume = 1 - dist / this.attackSoundMaxDistance;
+            this._audioSource.playOneShot(this.attackSound, Math.max(0, volume));
+        } else {
+            this._audioSource.playOneShot(this.attackSound, 1);
+        }
+    }
+
+    /** 播放射击音效（距离衰减，每轮弹幕开始发射时播放一次） */
+    private playShotSound() {
+        if (!this._audioSource || !this.shotSound) return;
+        const playerNode = find('GameWorld/YSortLayer/Player');
+        if (playerNode) {
+            const dist = Vec3.distance(this.node.worldPosition, playerNode.worldPosition);
+            if (dist >= this.shotSoundMaxDistance) return;
+            const volume = 1 - dist / this.shotSoundMaxDistance;
+            this._audioSource.playOneShot(this.shotSound, Math.max(0, volume));
+        } else {
+            this._audioSource.playOneShot(this.shotSound, 1);
+        }
     }
 
     private applyMirror(scaleX: number) {

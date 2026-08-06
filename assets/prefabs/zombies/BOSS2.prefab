@@ -139,7 +139,7 @@
     "_anchorPoint": {
       "__type__": "cc.Vec2",
       "x": 0.5,
-      "y": 0.5
+      "y": 0
     },
     "_id": ""
   },
@@ -291,13 +291,13 @@
     "damage": 60,
     "moveSpeed": 100,
     "attackRange": 60,
-    "alertRadius": 500,
+    "alertRadius": 400,
     "buildingScanRadius": 400,
     "wanderLandmarkScanRadius": 500,
     "wanderPatrolRadius": 800,
     "colliderHalfW": 26,
     "colliderHalfH": 26,
-    "colliderOffsetY": 0,
+    "colliderOffsetY": 60,
     "baseNode": null,
     "baseNodeName": "Base",
     "wanderOrigin": null,
@@ -476,6 +476,16 @@
       "__expectedType__": "cc.AudioClip"
     },
     "deathSoundMaxDistance": 800,
+    "attackSound": {
+      "__uuid__": "147cf14c-830f-458d-a9df-9aa8e1bf0fa9",
+      "__expectedType__": "cc.AudioClip"
+    },
+    "attackSoundMaxDistance": 900,
+    "shotSound": {
+      "__uuid__": "06352892-2afc-4cc5-9535-83422794d400",
+      "__expectedType__": "cc.AudioClip"
+    },
+    "shotSoundMaxDistance": 900,
     "isBoss2": true,
     "boss2AwakenDay": 25,
     "boss2FacingRight": true,
@@ -524,6 +534,7 @@
     },
     "shotRange": 50,
     "shotCooldown": 3,
+    "shotStaggerInterval": 0.1,
     "_id": ""
   },
   {

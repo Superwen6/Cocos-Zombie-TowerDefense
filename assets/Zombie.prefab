@@ -388,8 +388,8 @@
     "shotFrameDuration": 0.1,
     "shotBulletPrefab": null,
     "shotRange": 200,
-    "shotTriggerDuration": 5,
     "shotCooldown": 4,
+    "shotStaggerInterval": 0.06,
     "_id": ""
   },
   {

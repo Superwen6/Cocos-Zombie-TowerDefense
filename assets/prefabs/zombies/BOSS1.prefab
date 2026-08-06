@@ -514,7 +514,6 @@
     "shotFrameDuration": 0.1,
     "shotBulletPrefab": null,
     "shotRange": 200,
-    "shotTriggerDuration": 5,
     "shotCooldown": 4,
     "_id": ""
   },
