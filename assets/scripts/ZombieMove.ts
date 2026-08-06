@@ -1,4 +1,4 @@
-import { _decorator, AudioClip, AudioSource, CCFloat, CCInteger, Component, find, instantiate, Node, Prefab, randomRange, Sprite, SpriteFrame, Vec3, warn } from 'cc';
+import { _decorator, AudioClip, AudioSource, CCFloat, CCInteger, Component, director, find, instantiate, Node, Prefab, randomRange, Sprite, SpriteFrame, Vec3, warn } from 'cc';
 import { BaseSystem } from './BaseSystem';
 import { PlayerData } from './PlayerData';
 import { PlayerState } from './PlayerState';
@@ -20,6 +20,10 @@ const MEMORY_SPEED_FACTOR = 0.8;
 const STUCK_TIMEOUT = 1.5;
 /** 脱困随机移动距离 */
 const STUCK_ESCAPE_DIST = 30;
+/** Boss2 弹幕发射数量（顺序发射一圈） */
+const SHOT_BULLET_COUNT = 12;
+/** Boss2 弹幕角度步进（360° / 12，顺时针） */
+const SHOT_ANGLE_STEP = (Math.PI * 2) / SHOT_BULLET_COUNT;
 
 /** 白天游荡：巡逻点刷新间隔（秒） */
 const WANDER_REPICK_INTERVAL = 4;
@@ -139,7 +143,7 @@ export class ZombieMove extends Component {
     @property({ type: CCFloat, tooltip: 'Boss2 射击动画每帧持续时间（秒）' })
     shotFrameDuration = 0.1;
 
-    @property({ type: Prefab, tooltip: 'Boss2 弹幕子弹预制体（360°发射12颗，伤害=近身攻击力）' })
+    @property({ type: Prefab, tooltip: 'Boss2 弹幕子弹预制体（顺序发射12颗，伤害=近身攻击力）' })
     shotBulletPrefab: Prefab | null = null;
 
     @property({ type: CCFloat, tooltip: 'Boss2 触发射击的玩家距离阈值（像素），玩家在此距离之外且冷却结束即发射' })
@@ -147,6 +151,9 @@ export class ZombieMove extends Component {
 
     @property({ tooltip: 'Boss2 射击冷却时间（秒），一次射击结束后开始冷却' })
     shotCooldown = 4.0;
+
+    @property({ type: CCFloat, tooltip: 'Boss2 弹幕顺序发射间隔（秒）：一次只发一颗，第一颗对准玩家后顺时针扫过一圈' })
+    shotStaggerInterval = 0.06;
 
     // ========== 私有变量 ==========
 
@@ -215,6 +222,18 @@ export class ZombieMove extends Component {
     private _shotPrevState: AIState | '' = '';
     /** Boss2 出生点世界坐标（25天夜晚前原地静止待机用） */
     private readonly _boss2SpawnPos = new Vec3();
+    /** Boss2 弹幕缓存：觉醒后预生成子弹，发射时复用，避免每轮新建 12 个粒子发射器导致卡顿 */
+    private readonly _boss2BulletPool: Bullet[] = [];
+    /** Boss2 弹幕缓存根节点（隐藏容器） */
+    private _boss2BulletPoolRoot: Node | null = null;
+    /** 弹幕预热剩余数量（觉醒后每帧预热 4 颗，分散创建开销） */
+    private _boss2WarmupRemaining = 0;
+    /** 本轮射击剩余待发射弹幕数（顺序发射） */
+    private _shotBulletsToFire = 0;
+    /** 弹幕顺序发射计时器 */
+    private _shotFireTimer = 0;
+    /** 本轮射击基准角度（第一颗对准玩家） */
+    private _shotBaseAngle = 0;
 
     /** 同类型僵尸死亡音效互斥标志（同一时间每种僵尸最多播放1个死亡音效） */
     private static _deathSoundPlaying: Record<string, boolean> = {};
@@ -279,6 +298,7 @@ export class ZombieMove extends Component {
                 const day = detail.currentDay ?? DayNightSystem.instance?.currentDay ?? 1;
                 if (detail.phase === DayNightPhase.NIGHT && day >= this.boss2AwakenDay) {
                     this._boss2Awakened = true;
+                    this._boss2WarmupRemaining = 12;
                     this._buildingTarget = null;
                     this._hatedTurret = null;
                     this._playerTaunted = false;
@@ -331,6 +351,7 @@ export class ZombieMove extends Component {
             // 读档/晚生成场景：当前已到达觉醒夜晚（或已过）→ 直接觉醒
             if (day > this.boss2AwakenDay || (day === this.boss2AwakenDay && isNight)) {
                 this._boss2Awakened = true;
+                this._boss2WarmupRemaining = 12;
                 this._aiState = 'CHASE_BASE';
             } else {
                 this._boss2Awakened = false;
@@ -360,6 +381,8 @@ export class ZombieMove extends Component {
 
         // ===== 最终Boss（BOSS2）专属逻辑 =====
         if (this.isBoss2) {
+            // 弹幕预热：每帧预生成 4 颗，分散粒子发射器创建开销
+            this.updateBoss2BulletWarmup();
             // 未觉醒：原地静止待机，仅受击后触发反击
             if (this._aiState === 'BOSS2_IDLE') {
                 this.updateBoss2Idle(dt);
@@ -455,9 +478,9 @@ export class ZombieMove extends Component {
     }
 
     /**
-     * Boss2 射击触发（无蓄力）：玩家在近战范围外（shotRange）且冷却结束立即发射 360° 弹幕。
+     * Boss2 射击触发（无蓄力）：玩家在近战范围外（shotRange）且冷却结束立即发射弹幕。
      * 不要求必须处于追玩家状态——追击炮塔/基地等任何目标时，只要玩家在远处也会远程射击。
-     * 发射后播放射击动画（期间仍可移动），动画播完一循环才真正射出弹幕并恢复原状态。
+     * 发射后播放射击动画（期间仍可移动），期间按 shotStaggerInterval 逐颗顺序发射弹幕。
      */
     private updateShotTrigger(dt: number) {
         // 射击冷却递减
@@ -505,9 +528,13 @@ export class ZombieMove extends Component {
         if (this.bodySprite && this.shotFrames.length > 0) {
             this.bodySprite.spriteFrame = this.shotFrames[0];
         }
+        // 初始化本轮流射：第一颗对准玩家，后续按 SHOT_ANGLE_STEP 顺时针依次发射
+        this._shotBulletsToFire = SHOT_BULLET_COUNT;
+        this._shotFireTimer = 0;
+        this._shotBaseAngle = this.getShotBaseAngle();
     }
 
-    /** 播放射击动画，动画循环到帧末尾时发射 360° 弹幕 */
+    /** 播放射击动画；期间按 shotStaggerInterval 间隔逐颗发射弹幕（第一颗对准玩家，后续顺时针） */
     private updateShotAnimation(dt: number) {
         if (!this.bodySprite || this.shotFrames.length === 0) {
             this._isShotAnimPlaying = false;
@@ -521,38 +548,152 @@ export class ZombieMove extends Component {
             this._animFrameIndex++;
             if (this._animFrameIndex >= this.shotFrames.length) {
                 this._animFrameIndex = 0;
-                // 动画播完一循环：发射弹幕
-                this.spawnShotBurst();
-                this._isShotAnimPlaying = false;
-                // 恢复射击前的 AI 状态（原为强制 CHASE_PLAYER，会导致打炮塔/基地时被打断改追玩家）
-                this._aiState = this._shotPrevState || 'CHASE_PLAYER';
-                return;
             }
             this.bodySprite.spriteFrame = this.shotFrames[this._animFrameIndex];
         }
+
+        // 顺序发射弹幕：每次到点只发一颗（第一颗对准玩家，后续顺时针旋转）
+        this._shotFireTimer += dt;
+        while (this._shotFireTimer >= this.shotStaggerInterval && this._shotBulletsToFire > 0) {
+            this._shotFireTimer -= this.shotStaggerInterval;
+            this.fireOneShotBullet();
+        }
+
+        // 全部发射完成：退出射击状态（无需等动画循环到帧尾）
+        if (this._shotBulletsToFire <= 0) {
+            this._isShotAnimPlaying = false;
+            // 恢复射击前的 AI 状态（原为强制 CHASE_PLAYER，会导致打炮塔/基地时被打断改追玩家）
+            this._aiState = this._shotPrevState || 'CHASE_PLAYER';
+        }
     }
 
-    /** 发射 360° 弹幕：12 颗子弹均匀分布，伤害=近身攻击力，目标为玩家 */
-    private spawnShotBurst() {
+    /** 本轮射击基准角度：Boss2 → 玩家的方向（第一颗弹幕对准玩家） */
+    private getShotBaseAngle(): number {
+        const playerNode = this.getPlayerNode();
+        if (playerNode?.isValid) {
+            const origin = this.getHitWorldPosition(this._tempPos);
+            const p = playerNode.worldPosition;
+            return Math.atan2(p.y - origin.y, p.x - origin.x);
+        }
+        return 0;
+    }
+
+    /** 顺序发射单颗弹幕（从缓存取），当前角度 = 基准角 + 已发射数 × 步进 */
+    private fireOneShotBullet() {
         if (!this.shotBulletPrefab || this.isDead) return;
-
+        const shotIndex = SHOT_BULLET_COUNT - this._shotBulletsToFire;
         const origin = this.getHitWorldPosition(this._tempPos);
-        const bulletCount = 12;
-        const angleStep = Math.PI * 2 / bulletCount;
-        const dir = new Vec3();
+        const angle = this._shotBaseAngle + shotIndex * SHOT_ANGLE_STEP;
+        const dir = new Vec3(Math.cos(angle), Math.sin(angle), 0);
+        // 复用预生成弹幕缓存，避免每颗新建粒子发射器导致卡顿
+        const bulletComp = this.acquireBoss2Bullet(origin);
+        if (!bulletComp) return;
+        bulletComp.init(null, this.damage, this.node, false);
+        bulletComp.setDirection(dir);
+        bulletComp.hitPlayer = true;
+        this._shotBulletsToFire--;
+    }
 
-        for (let i = 0; i < bulletCount; i++) {
-            const angle = i * angleStep;
-            const bullet = instantiate(this.shotBulletPrefab);
-            Bullet.attachToWorld(bullet, origin);
-            const bulletComp = bullet.getComponent(Bullet);
-            if (bulletComp) {
-                dir.set(Math.cos(angle), Math.sin(angle), 0);
-                // 无目标模式 + 直线方向（非跟踪），并标记可命中玩家
-                bulletComp.init(null, this.damage, this.node, false);
-                bulletComp.setDirection(dir);
-                bulletComp.hitPlayer = true;
+    /** 获取弹幕缓存根节点（隐藏容器） */
+    private ensureBoss2BulletPoolRoot(): Node {
+        if (this._boss2BulletPoolRoot?.isValid) return this._boss2BulletPoolRoot;
+        const scene = this.node.scene ?? director.getScene();
+        const gameWorld = scene ? (scene.getChildByName('GameWorld') ?? scene) : null;
+        const root = new Node('Boss2BulletPool');
+        root.active = false;
+        if (gameWorld) {
+            root.setParent(gameWorld);
+            root.setSiblingIndex(0);
+        } else if (scene) {
+            root.setParent(scene);
+        }
+        this._boss2BulletPoolRoot = root;
+        return root;
+    }
+
+    /** 预生成一颗弹幕并构建粒子特效（激活一次触发 onLoad/onEnable 后立即收回缓存） */
+    private createBoss2BulletNode(): Bullet | null {
+        if (!this.shotBulletPrefab) return null;
+        const node = instantiate(this.shotBulletPrefab);
+        const bulletComp = node.getComponent(Bullet);
+        if (!bulletComp) {
+            node.destroy();
+            return null;
+        }
+        const scene = this.node.scene ?? director.getScene();
+        const gameWorld = scene ? (scene.getChildByName('GameWorld') ?? scene) : null;
+        if (gameWorld) {
+            node.setParent(gameWorld);
+            node.setWorldPosition(0, 0, 0);
+            node.active = true; // 触发粒子特效一次性构建（ParticleSystem2D 创建）
+            node.active = false; // 构建完成后立即失活，本帧内不会渲染
+            node.removeFromParent();
+        }
+        const root = this.ensureBoss2BulletPoolRoot();
+        node.setParent(root);
+        node.setPosition(0, 0, 0);
+        node.eulerAngles = Vec3.ZERO;
+        return bulletComp;
+    }
+
+    /** 觉醒后每帧预热一批弹幕，分散创建粒子发射器的开销 */
+    private updateBoss2BulletWarmup() {
+        if (this._boss2WarmupRemaining <= 0) return;
+        const perFrame = 4;
+        for (let i = 0; i < perFrame && this._boss2WarmupRemaining > 0; i++) {
+            const bulletComp = this.createBoss2BulletNode();
+            if (!bulletComp) {
+                this._boss2WarmupRemaining = 0;
+                break;
             }
+            this._boss2BulletPool.push(bulletComp);
+            this._boss2WarmupRemaining--;
+        }
+    }
+
+    /** 从缓存取一颗弹幕发射（缓存不足时临时实例化兜底） */
+    private acquireBoss2Bullet(origin: Vec3): Bullet | null {
+        if (!this.shotBulletPrefab) return null;
+        const scene = this.node.scene ?? director.getScene();
+        const gameWorld = scene ? (scene.getChildByName('GameWorld') ?? scene) : null;
+        if (this._boss2BulletPool.length > 0) {
+            const bulletComp = this._boss2BulletPool.pop()!;
+            const node = bulletComp.node;
+            if (gameWorld) {
+                node.setParent(gameWorld);
+                node.setSiblingIndex(gameWorld.children.length - 1);
+            } else if (node.scene) {
+                node.setParent(node.scene);
+            }
+            node.setWorldPosition(origin);
+            node.active = true;
+            return bulletComp;
+        }
+        // 缓存未就绪（预热完成前开火）：临时实例化兜底
+        const node = instantiate(this.shotBulletPrefab);
+        const bulletComp = node.getComponent(Bullet);
+        if (!bulletComp) {
+            node.destroy();
+            return null;
+        }
+        Bullet.attachToWorld(node, origin);
+        return bulletComp;
+    }
+
+    /** 回收弹幕：失活并归还缓存（Bullet.despawn 调用） */
+    recycleBoss2Bullet(bulletComp: Bullet) {
+        if (!bulletComp?.node?.isValid) return;
+        const node = bulletComp.node;
+        node.active = false;
+        node.removeFromParent();
+        const root = this.ensureBoss2BulletPoolRoot();
+        node.setParent(root);
+        node.setPosition(0, 0, 0);
+        node.eulerAngles = Vec3.ZERO;
+        if (this._boss2BulletPool.length < 32) {
+            this._boss2BulletPool.push(bulletComp);
+        } else {
+            node.destroy();
         }
     }
 

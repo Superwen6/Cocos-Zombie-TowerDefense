@@ -1,7 +1,12 @@
-import { _decorator, Component, director, Node, Vec3 } from 'cc';
+import { _decorator, Component, director, Node, UITransform, Vec3 } from 'cc';
 import { ZombieMove } from './ZombieMove';
 import { CollisionWorld, ColliderGroup } from './CollisionWorld';
 import { PlayerState } from './PlayerState';
+import { EnemyManager } from './EnemyManager';
+import { BaseSystem } from './BaseSystem';
+import { Container } from './Container';
+import { PlantGenerator } from './PlantGenerator';
+import { Turret } from './Turret';
 
 const { ccclass, property } = _decorator;
 
@@ -25,6 +30,8 @@ export class Bullet extends Component {
     private _lifetime = 0;
     private _homing = true;
     private _piercing = false;
+    /** 缓存池归属（Boss2 弹幕复用，其余为 null 直接销毁） */
+    private _poolOwner: ZombieMove | null = null;
     private readonly _hitZombies = new Set<ZombieMove>();
     private readonly _tempVec = new Vec3();
     private readonly _zombiePos = new Vec3();
@@ -53,6 +60,7 @@ export class Bullet extends Component {
         this._targetNode = targetNode;
         this._targetZombie = targetNode?.getComponent(ZombieMove) ?? null;
         this._attackerNode = attackerNode ?? null;
+        this._poolOwner = attackerNode?.getComponent(ZombieMove) ?? null;
         this._damage = damage;
         this._lifetime = 0;
         this._homing = homing;
@@ -78,10 +86,21 @@ export class Bullet extends Component {
         this._initialDir.normalize();
     }
 
+    /** 销毁或回收子弹（Boss2 弹幕走缓存池，其余直接销毁） */
+    despawn() {
+        if (!this.node?.isValid) return;
+        const poolOwner = this._poolOwner && this._poolOwner.node?.isValid ? this._poolOwner : null;
+        if (poolOwner) {
+            poolOwner.recycleBoss2Bullet(this);
+        } else {
+            this.node.destroy();
+        }
+    }
+
     update(dt: number) {
         this._lifetime += dt;
         if (this._lifetime >= this.lifetime) {
-            this.node.destroy();
+            this.despawn();
             return;
         }
 
@@ -108,7 +127,7 @@ export class Bullet extends Component {
                     this._targetZombie = null;
                     this._initialDir.set(dir);
                 } else {
-                    this.node.destroy();
+                    this.despawn();
                     return;
                 }
             }
@@ -128,7 +147,7 @@ export class Bullet extends Component {
                     this._targetNode = null;
                     this._targetZombie = null;
                 } else {
-                    this.node.destroy();
+                    this.despawn();
                     return;
                 }
             }
@@ -142,7 +161,7 @@ export class Bullet extends Component {
                     const playerPos = player.node.worldPosition;
                     if (Vec3.distance(bulletWP, playerPos) < HIT_RADIUS) {
                         player.takeDamage(this._damage);
-                        this.node.destroy();
+                        this.despawn();
                         return;
                     }
                 }
@@ -157,17 +176,70 @@ export class Bullet extends Component {
         const hit = CollisionWorld.instance?.checkHit(nextX, nextY, 3, 3, [ColliderGroup.Wall]);
         if (hit) {
             // 撞到墙体，销毁子弹
-            this.node.destroy();
+            this.despawn();
             return;
         }
 
         this.node.setWorldPosition(nextX, nextY, 0);
+
+        // Boss2 弹幕：检测命中炮塔/建筑/基地（命中即消耗子弹）
+        if (this.hitPlayer && this.checkStructureHits()) {
+            return;
+        }
 
         // 弹头始终指向飞行方向：精灵贴图默认朝上，需要旋转 -90° 对齐 x 轴正方向
         const angle = Math.atan2(dir.y, dir.x) * 180 / Math.PI - 90;
         this.node.eulerAngles = new Vec3(0, 0, angle);
 
         this.checkPenetrationHits();
+    }
+
+    /** Boss2 弹幕命中玩家建筑/基地检测（命中即消耗子弹） */
+    private checkStructureHits(): boolean {
+        const pos = this.node.worldPosition;
+        const x = pos.x;
+        const y = pos.y;
+
+        for (const turretNode of EnemyManager.getCachedTurrets()) {
+            if (!turretNode?.isValid) continue;
+            if (this.distToRect(x, y, turretNode) < HIT_RADIUS) {
+                turretNode.getComponent(Turret)?.takeDamage(this._damage);
+                this.despawn();
+                return true;
+            }
+        }
+
+        for (const buildingNode of EnemyManager.getCachedBuildings()) {
+            if (!buildingNode?.isValid) continue;
+            if (this.distToRect(x, y, buildingNode) < HIT_RADIUS) {
+                const comp = buildingNode.getComponent(Container) ?? buildingNode.getComponent(PlantGenerator);
+                comp?.takeDamage(this._damage);
+                this.despawn();
+                return true;
+            }
+        }
+
+        const base = BaseSystem.instance;
+        if (base?.node?.isValid) {
+            const basePos = base.node.worldPosition;
+            if (Math.abs(x - basePos.x) <= base.baseHalfW && Math.abs(y - basePos.y) <= base.baseHalfH) {
+                base.damageBase(this._damage);
+                this.despawn();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 计算点与节点矩形包围盒的最近距离 */
+    private distToRect(x: number, y: number, node: Node): number {
+        const ui = node.getComponent(UITransform);
+        const halfW = ui ? ui.width * 0.5 : 30;
+        const halfH = ui ? ui.height * 0.5 : 30;
+        const pos = node.worldPosition;
+        const cx = Math.max(pos.x - halfW, Math.min(x, pos.x + halfW));
+        const cy = Math.max(pos.y - halfH, Math.min(y, pos.y + halfH));
+        return Math.hypot(x - cx, y - cy);
     }
 
     private checkPenetrationHits() {
