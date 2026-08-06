@@ -12,9 +12,7 @@ import { Bullet } from './Bullet';
 
 const { ccclass, property } = _decorator;
 
-/** 拉扯距离：玩家超出此范围会放弃追击 */
-const LEASH_RADIUS = 350;
-/** 玩家记忆：失去视线后继续追击的时长（秒） */
+/** 玩家记忆：失去视线/超出视野范围后继续追击的时长（秒） */
 const MEMORY_DURATION = 3.0;
 /** 记忆期内移动速度倍率 */
 const MEMORY_SPEED_FACTOR = 0.8;
@@ -39,7 +37,7 @@ type AIState =
     | 'SHOT_ATTACK'      // 最终Boss射击攻击（发射360°弹幕打玩家）
     | 'CHASE_BASE'       // 夜间僵尸初始：追击基地
     | 'ATTACK_BASE'      // 攻击基地
-    | 'CHASE_PLAYER'     // 追击玩家（死磕模式，LEASH_RADIUS 退出）
+    | 'CHASE_PLAYER'     // 追击玩家（死磕模式，脱离视野/距离且记忆耗尽退出）
     | 'ATTACK_PLAYER'    // 攻击玩家
     | 'CHASE_BUILDING'   // 白天游荡索敌：追击建筑
     | 'ATTACK_BUILDING'  // 攻击建筑
@@ -696,9 +694,6 @@ export class ZombieMove extends Component {
         const selfPos = this.node.worldPosition;
         const distToPlayer = Vec3.distance(selfPos, playerNode.worldPosition);
         if (distToPlayer > this.alertRadius * PlayerState.zombieAlertRadiusMultiplier) return;
-        // 超出拉扯范围（LEASH_RADIUS）不锁定：否则与 updateAIState 的 returnToDefaultTarget 冲突，
-        // 会在 WANDER 与 CHASE_PLAYER 之间来回切换
-        if (distToPlayer > LEASH_RADIUS) return;
 
         // 检查视线是否被墙阻挡
         const lineClear = CollisionWorld.instance?.isLineOfSightClear(
@@ -762,18 +757,17 @@ export class ZombieMove extends Component {
             selfPos, playerNode!.worldPosition, [ColliderGroup.Wall],
         ) ?? false) : false;
 
-        // ===== 死磕玩家状态：LEASH_RADIUS 退出 / 玩家隐身退出 =====
+        // ===== 死磕玩家状态：玩家隐身 / 超出视野范围且记忆耗尽 → 放弃追击 =====
         if (playerExists && (this._aiState === 'CHASE_PLAYER' || this._aiState === 'ATTACK_PLAYER')) {
             // 玩家隐身 → 丢失目标
             if (PlayerState.isPlayerInvisible) {
                 this.returnToDefaultTarget();
                 return;
             }
-            // 玩家超出拉扯范围 → 放弃追击，回到预定目标
-            if (distToPlayer > LEASH_RADIUS) {
-                this.returnToDefaultTarget();
-                return;
-            }
+
+            // 统一脱战规则：视野范围 = alertRadius。玩家在视野内且可见 → 刷新记忆；
+            // 超出视野（距离过远或墙体遮挡）→ 记忆自然衰减，记忆耗尽则放弃追击。
+            const withinSight = distToPlayer <= this.alertRadius * PlayerState.zombieAlertRadiusMultiplier;
 
             if (this._aiState === 'ATTACK_PLAYER') {
                 if (!lineClear || distToPlayer > this.attackRange + 5) {
@@ -785,18 +779,24 @@ export class ZombieMove extends Component {
             }
 
             // CHASE_PLAYER：进入攻击范围
-            if (lineClear && distToPlayer <= this.attackRange + 5 && this._attackCooldown <= 0) {
+            if (lineClear && withinSight && distToPlayer <= this.attackRange + 5 && this._attackCooldown <= 0) {
                 this._aiState = 'ATTACK_PLAYER';
                 this._attackCooldown = 0.3;
                 return;
             }
 
-            // 玩家可见时持续刷新记忆计时器，防止计时器归零后隔墙追击
-            if (lineClear) {
+            // 视野内且可见：持续刷新记忆计时器
+            if (lineClear && withinSight) {
                 this._memoryTimer = MEMORY_DURATION;
             }
 
-            // 失去视线 → 记忆追踪
+            // 超出视野范围且记忆耗尽 → 放弃追击
+            if (!withinSight && this._memoryTimer <= 0) {
+                this.returnToDefaultTarget();
+                return;
+            }
+
+            // 失去视线（墙挡）→ 记忆追踪
             if (!lineClear && this._memoryTimer > 0) {
                 this._aiState = 'MEMORY_TRACK';
                 return;
@@ -806,7 +806,8 @@ export class ZombieMove extends Component {
 
         // ===== MEMORY_TRACK =====
         if (playerExists && this._aiState === 'MEMORY_TRACK') {
-            if (PlayerState.isPlayerInvisible || distToPlayer > LEASH_RADIUS || this._memoryTimer <= 0) {
+            // 隐身 / 记忆耗尽（墙体遮挡或超出视野范围均按记忆衰减）→ 放弃追踪
+            if (PlayerState.isPlayerInvisible || this._memoryTimer <= 0) {
                 this.returnToDefaultTarget();
                 return;
             }
@@ -898,11 +899,8 @@ export class ZombieMove extends Component {
         }
 
         // ===== 夜间僵尸：看到玩家就追击（视觉发现，非玩家攻击，优先级低于炮塔） =====
-        // 必须同时 <= LEASH_RADIUS：否则玩家在 (LEASH_RADIUS, alertRadius] 区间时，
-        // 刚因超出拉扯范围 returnToDefaultTarget() 回 CHASE_BASE，下一帧这里又抢回 CHASE_PLAYER，
-        // 会在"去基地"与"追玩家"两个相反方向间每帧来回切换（鬼畜动画）。
-        if (playerExists && lineClear && distToPlayer <= LEASH_RADIUS
-            && distToPlayer <= this.alertRadius * PlayerState.zombieAlertRadiusMultiplier) {
+        // 索敌与脱战统一使用 alertRadius：超出视野范围由记忆计时器兜底，无双半径冲突
+        if (playerExists && lineClear && distToPlayer <= this.alertRadius * PlayerState.zombieAlertRadiusMultiplier) {
             this._lastKnownPlayerPos.set(playerNode!.worldPosition);
             this._memoryTimer = MEMORY_DURATION;
             this._buildingTarget = null;
