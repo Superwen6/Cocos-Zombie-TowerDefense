@@ -24,6 +24,10 @@ const STUCK_ESCAPE_DIST = 30;
 const SHOT_BULLET_COUNT = 12;
 /** Boss2 弹幕角度步进（360° / 12，顺时针） */
 const SHOT_ANGLE_STEP = (Math.PI * 2) / SHOT_BULLET_COUNT;
+/** Boss2 呼吸效果：Y 缩放振荡频率（Hz，0.5 = 2 秒一呼一吸） */
+const BREATH_FREQ = 0.5;
+/** Boss2 呼吸效果：Y 缩放振幅（相对基础 Y 缩放的倍率，轻微起伏） */
+const BREATH_AMPLITUDE = 0.02;
 
 /** 白天游荡：巡逻点刷新间隔（秒） */
 const WANDER_REPICK_INTERVAL = 4;
@@ -234,6 +238,12 @@ export class ZombieMove extends Component {
     private _shotFireTimer = 0;
     /** 本轮射击基准角度（第一颗对准玩家） */
     private _shotBaseAngle = 0;
+    /** 呼吸效果：相位计时器 */
+    private _breathTime = 0;
+    /** 呼吸效果：Sprite 节点基础 Y 缩放（进入待机时缓存） */
+    private _breathBaseScaleY = 0;
+    /** 呼吸效果：当前是否已应用呼吸缩放 */
+    private _breathActive = false;
 
     /** 同类型僵尸死亡音效互斥标志（同一时间每种僵尸最多播放1个死亡音效） */
     private static _deathSoundPlaying: Record<string, boolean> = {};
@@ -388,6 +398,8 @@ export class ZombieMove extends Component {
                 this.updateBoss2Idle(dt);
                 return;
             }
+            // 非待机状态：确保呼吸缩放在离开待机后被还原
+            this.resetBoss2Breath();
             // 射击动画播放中：播放射击帧，同时继续下方移动/AI逻辑（射击期间可移动，不 return）
             if (this._aiState === 'SHOT_ATTACK') {
                 this.updateShotAnimation(dt);
@@ -471,10 +483,34 @@ export class ZombieMove extends Component {
             }
         }
 
+        // 呼吸效果：Y 轴轻微缩放振荡，模拟呼吸起伏（避免静止时看起来像贴图）
+        const spriteNode = this.bodySprite?.node;
+        if (spriteNode) {
+            if (this._breathBaseScaleY === 0) {
+                this._breathBaseScaleY = spriteNode.scale.y;
+            }
+            this._breathTime += dt;
+            const breathe = 1 + Math.sin(this._breathTime * BREATH_FREQ * Math.PI * 2) * BREATH_AMPLITUDE;
+            spriteNode.setScale(spriteNode.scale.x, this._breathBaseScaleY * breathe, spriteNode.scale.z);
+            this._breathActive = true;
+        }
+
         // 若已觉醒（读档等场景下 phase 事件已错过），直接进入夜间僵尸逻辑
         if (this._boss2Awakened) {
             this._aiState = 'CHASE_BASE';
         }
+    }
+
+    /** 离开待机后恢复 Sprite 节点 Y 缩放，避免呼吸缩放残留 */
+    private resetBoss2Breath() {
+        const spriteNode = this.bodySprite?.node;
+        if (!spriteNode) return;
+        if (this._breathActive) {
+            const base = this._breathBaseScaleY !== 0 ? this._breathBaseScaleY : 1;
+            spriteNode.setScale(spriteNode.scale.x, base, spriteNode.scale.z);
+            this._breathActive = false;
+        }
+        this._breathTime = 0;
     }
 
     /**

@@ -67,9 +67,14 @@ export class Bullet extends Component {
         this._piercing = piercing;
         this._hitZombies.clear();
 
-        // 非跟踪模式且有目标：记录初始发射方向
+        // 非跟踪模式且有目标：记录初始发射方向（指向目标命中中心而非节点脚部，
+        // 否则带 colliderOffsetY 的僵尸（贴图锚点在脚部）直线子弹永远从脚下穿过打不中）
         if (!this._homing && targetNode) {
-            targetNode.getWorldPosition(this._tempVec);
+            if (this._targetZombie) {
+                this._targetZombie.getHitWorldPosition(this._tempVec);
+            } else {
+                targetNode.getWorldPosition(this._tempVec);
+            }
             const bulletWP = this.node.worldPosition;
             this._initialDir.set(
                 this._tempVec.x - bulletWP.x,

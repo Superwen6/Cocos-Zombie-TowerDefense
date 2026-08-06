@@ -159,7 +159,12 @@ export class YSortManager extends Component {
             if (this.onlyActive && !child.active) {
                 continue;
             }
-            sortList.push({ node: child, y: child.worldPosition.y });
+            // 僵尸贴图锚点在脚部(anchorY=0)，碰撞体/命中点上移到贴图中心(colliderOffsetY)。
+            // 若排序只用节点 Y(脚部)，带偏移的实体视觉排序点会停留在脚部——比其贴图中心低，
+            // 相对炮塔/建筑等中心锚点实体时永远被排在更前层（遮挡错误）。
+            // 用「节点 Y + colliderOffsetY(=贴图中心)」作为排序键，与碰撞/命中位置保持一致。
+            const zombie = child.getComponent(ZombieMove);
+            sortList.push({ node: child, y: child.worldPosition.y + (zombie ? zombie.colliderOffsetY : 0) });
         }
 
         if (sortList.length > 1) {
