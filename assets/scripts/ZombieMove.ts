@@ -1,4 +1,4 @@
-import { _decorator, AudioClip, AudioSource, CCFloat, CCInteger, Component, director, find, instantiate, Node, Prefab, randomRange, Sprite, SpriteFrame, Vec3, warn } from 'cc';
+import { _decorator, AudioClip, AudioSource, CCFloat, CCInteger, Component, director, find, instantiate, Mat4, Node, Prefab, randomRange, Sprite, SpriteFrame, Vec3, warn } from 'cc';
 import { BaseSystem } from './BaseSystem';
 import { PlayerData } from './PlayerData';
 import { PlayerState } from './PlayerState';
@@ -29,14 +29,14 @@ const BREATH_FREQ = 0.5;
 /** Boss2 呼吸效果：Y 缩放振幅（相对基础 Y 缩放的倍率，轻微起伏） */
 const BREATH_AMPLITUDE = 0.02;
 /** Boss2 待机游走：相对出生点的游走半径（像素） */
-const IDLE_WALK_RADIUS = 90;
+const IDLE_WALK_RADIUS = 180;
 /** Boss2 待机游走：每次走动时长（秒） */
-const IDLE_WALK_DURATION = 1.6;
+const IDLE_WALK_DURATION = 3.5;
 /** Boss2 待机游走：两次走动之间的静止间隔范围（秒） */
-const IDLE_WALK_PAUSE_MIN = 2.5;
-const IDLE_WALK_PAUSE_MAX = 5.0;
+const IDLE_WALK_PAUSE_MIN = 2.0;
+const IDLE_WALK_PAUSE_MAX = 4.0;
 /** Boss2 待机游走：移动速度倍率（相对 moveSpeed，慢速踱步） */
-const IDLE_WALK_SPEED_FACTOR = 0.3;
+const IDLE_WALK_SPEED_FACTOR = 0.55;
 
 /** 白天游荡：巡逻点刷新间隔（秒） */
 const WANDER_REPICK_INTERVAL = 4;
@@ -245,8 +245,6 @@ export class ZombieMove extends Component {
     private _isShotAnimPlaying = false;
     /** Boss2 进入射击前的 AI 状态（射击动画播完后恢复，避免打断对炮塔/基地的追击） */
     private _shotPrevState: AIState | '' = '';
-    /** Boss2 出生点世界坐标（25天夜晚前原地静止待机用） */
-    private readonly _boss2SpawnPos = new Vec3();
     /** Boss2 弹幕缓存：觉醒后预生成子弹，发射时复用，避免每轮新建 12 个粒子发射器导致卡顿 */
     private readonly _boss2BulletPool: Bullet[] = [];
     /** Boss2 弹幕缓存根节点（隐藏容器） */
@@ -271,6 +269,12 @@ export class ZombieMove extends Component {
     private _idleWalkTimer = 0;
     /** 待机游走：当前踱步目标点（出生点 + 随机偏移） */
     private readonly _idleWalkTarget = new Vec3();
+    /** 待机游走：踱步目标（本地坐标，相对父节点，不受 GameWorld 移动影响） */
+    private readonly _idleWalkTargetLocal = new Vec3();
+    /** 待机游走：出生点（本地坐标，相对父节点） */
+    private readonly _boss2SpawnLocal = new Vec3();
+    /** 临时矩阵：本地坐标转世界坐标用 */
+    private readonly _tempMat = new Mat4();
 
     /** 同类型僵尸死亡音效互斥标志（同一时间每种僵尸最多播放1个死亡音效） */
     private static _deathSoundPlaying: Record<string, boolean> = {};
@@ -282,7 +286,6 @@ export class ZombieMove extends Component {
         this.syncHpFromMaxHp();
         if (this.isBoss2) {
             // Boss2：25天夜晚前原地静止待机（出生点）
-            this._boss2SpawnPos.set(this.node.worldPosition);
             this._aiState = 'BOSS2_IDLE';
             // 待机踱步：初始先静止一段时间再开始缓慢游走
             this._idleWalkTimer = randomRange(IDLE_WALK_PAUSE_MIN, IDLE_WALK_PAUSE_MAX);
@@ -382,7 +385,7 @@ export class ZombieMove extends Component {
         this._wanderScanTimer = 0;
         this._memoryTimer = 0;
         this._hasWanderTarget = false;
-        this._boss2SpawnPos.set(this.node.worldPosition);
+        this._boss2SpawnLocal.set(this.node.position);
         if (this.isBoss2) {
             const dn = DayNightSystem.instance;
             const day = dn?.currentDay ?? 1;
@@ -505,9 +508,10 @@ export class ZombieMove extends Component {
             this._attackCooldown -= dt;
         }
 
-        // 播放静止待机动画（walk 第1帧），不移动
+        // 静止待机动画（walk 第1帧）：仅在未踱步时强制显示待机帧，
+        // 否则每帧覆盖行走动画帧，行走动画被"掐头"只闪 1 帧就弹回待机帧，造成鬼畜闪烁
         if (this.bodySprite && this.walkFrames.length > 0) {
-            if (this.bodySprite.spriteFrame !== this.walkFrames[0]) {
+            if (!this._idleWalkActive && this.bodySprite.spriteFrame !== this.walkFrames[0]) {
                 this.bodySprite.spriteFrame = this.walkFrames[0];
             }
         }
@@ -547,19 +551,34 @@ export class ZombieMove extends Component {
         }
     }
 
-    /** 选择待机踱步目标：出生点 + 随机偏移（半径 IDLE_WALK_RADIUS 内） */
+    /** 选择待机踱步目标：出生点 + 随机偏移（半径 IDLE_WALK_RADIUS 内），最小距离避免原地微挪。
+     *  使用本地坐标（相对父节点），父节点随 GameWorld 移动时目标也随其移动，避免踱步漂移。 */
     private pickIdleWalkTarget() {
         const angle = randomRange(0, Math.PI * 2);
-        const dist = randomRange(0, IDLE_WALK_RADIUS);
-        this._idleWalkTarget.set(
-            this._boss2SpawnPos.x + Math.cos(angle) * dist,
-            this._boss2SpawnPos.y + Math.sin(angle) * dist,
+        const dist = randomRange(20, IDLE_WALK_RADIUS);
+        this._idleWalkTargetLocal.set(
+            this._boss2SpawnLocal.x + Math.cos(angle) * dist,
+            this._boss2SpawnLocal.y + Math.sin(angle) * dist,
             0,
         );
+        this.updateIdleWalkTargetWorld();
     }
 
-    /** 朝待机踱步目标慢速移动一步；到达或被挡住则立即停下 */
+    /** 将本地踱步目标转为世界坐标（随父节点/GameWorld 实时移动而重算，抵消世界漂移） */
+    private updateIdleWalkTargetWorld() {
+        const parent = this.node.parent;
+        if (parent) {
+            parent.getWorldMatrix(this._tempMat);
+            Vec3.transformMat4(this._idleWalkTarget, this._idleWalkTargetLocal, this._tempMat);
+        } else {
+            this._idleWalkTarget.set(this._idleWalkTargetLocal);
+        }
+    }
+
+    /** 朝待机踱步目标慢速移动一步；遇墙体/炮塔/资源时侧向绕行滑动，避免卡住 */
     private stepIdleWalk(dt: number) {
+        // 每帧从本地目标重算世界目标，抵消 GameWorld/父节点移动
+        this.updateIdleWalkTargetWorld();
         const selfPos = this.node.worldPosition;
         Vec3.subtract(this._tempDir, this._idleWalkTarget, selfPos);
         this._tempDir.z = 0;
@@ -579,25 +598,49 @@ export class ZombieMove extends Component {
             toY = this._idleWalkTarget.y;
         }
 
-        // 目标点被占（墙体/炮塔/其他僵尸/资源）则停下，避免踱步卡进建筑
+        // 目标点被占（墙体/炮塔/资源）则尝试左右前方绕行滑动，避免踱步卡进建筑；
+        // 其他僵尸不阻挡踱步（blockGroups 不含 Zombie）
         if (this._collider) {
             const cw = CollisionWorld.instance;
-            if (cw && cw.checkHit(
-                toX, toY + this.colliderOffsetY,
-                this.colliderHalfW, this.colliderHalfH,
-                [ColliderGroup.Zombie, ColliderGroup.Wall, ColliderGroup.Turret, ColliderGroup.Resource],
-                this._collider,
-            )) {
-                this._idleWalkTimer = 0;
-                return;
-            }
-        }
+            const hw = this.colliderHalfW;
+            const hh = this.colliderHalfH;
+            const blockGroups = [ColliderGroup.Wall, ColliderGroup.Turret, ColliderGroup.Resource];
+            const hitX = toX;
+            const hitY = toY + this.colliderOffsetY;
 
-        this.node.setWorldPosition(toX, toY, this.node.worldPosition.z);
-        if (this._collider) {
+            let needSideCheck = false;
+            if (cw && cw.checkHit(hitX, hitY, hw, hh, blockGroups, this._collider)) {
+                needSideCheck = true;
+            }
+
+            if (needSideCheck) {
+                const sideResult = this.trySideDirection(this._tempDir.x, this._tempDir.y, step, hitX, hitY, hw, hh, blockGroups, cw!);
+                if (sideResult) {
+                    toX = sideResult.x;
+                    toY = sideResult.y - this.colliderOffsetY;
+                } else {
+                    // 四个侧向都不通：本轮原地不动，等下次重新选目标
+                    toX = selfPos.x;
+                    toY = selfPos.y;
+                }
+            }
+
+            const resolved = CollisionWorld.instance?.resolveMove(
+                this._collider,
+                selfPos.x, selfPos.y + this.colliderOffsetY,
+                hitX, hitY,
+            );
+            if (resolved) {
+                toX = resolved.x;
+                toY = resolved.y - this.colliderOffsetY;
+            }
+
             this._collider.x = toX;
             this._collider.y = toY + this.colliderOffsetY;
         }
+
+        this._tempPos.set(toX, toY, selfPos.z);
+        this.node.setWorldPosition(this._tempPos);
         // 推进行走动画帧（idle 分支在 update() 里提前 return，需在此手动推进）
         this.updateWalkAnimation(dt);
     }
