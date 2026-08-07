@@ -87,7 +87,7 @@ export class PlayerData extends Component {
         const effMaxIron = ps?.getEffectiveBackpackMax('iron', this.maxIron) ?? this.maxIron;
 
         // 木材：优先仓库
-        if (remote && storage) {
+        if (remoteMaterial && storage) {
             const wWoodIntoWarehouse = Math.min(wood, Math.max(0, storage.maxWood - storage.storedWood));
             storage.storedWood += wWoodIntoWarehouse;
             this.woodCount = Math.min(effMaxWood, this.woodCount + (wood - wWoodIntoWarehouse));
