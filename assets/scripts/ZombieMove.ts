@@ -193,6 +193,7 @@ export class ZombieMove extends Component {
     private _hasWanderTarget = false;
     private readonly _tempDir = new Vec3();
     private readonly _tempPos = new Vec3();
+    private readonly _hitPos = new Vec3();
 
     // 玩家记忆系统
     private readonly _lastKnownPlayerPos = new Vec3();
@@ -1092,6 +1093,7 @@ export class ZombieMove extends Component {
 
         const playerExists = playerNode != null && playerAlive;
         const distToPlayer = playerExists ? Vec3.distance(selfPos, playerNode!.worldPosition) : Infinity;
+        const distToPlayerHit = playerExists ? Vec3.distance(this.getHitWorldPosition(this._hitPos), playerNode!.worldPosition) : Infinity;
         const lineClear = playerExists ? (CollisionWorld.instance?.isLineOfSightClear(
             selfPos, playerNode!.worldPosition, [ColliderGroup.Wall],
         ) ?? false) : false;
@@ -1109,7 +1111,7 @@ export class ZombieMove extends Component {
             const withinSight = distToPlayer <= this.alertRadius * PlayerState.zombieAlertRadiusMultiplier;
 
             if (this._aiState === 'ATTACK_PLAYER') {
-                if (!lineClear || distToPlayer > this.attackRange + 5) {
+                if (!lineClear || distToPlayerHit > this.attackRange + 5) {
                     this._aiState = this._memoryTimer > 0 ? 'MEMORY_TRACK' : 'CHASE_PLAYER';
                     return;
                 }
@@ -1118,7 +1120,7 @@ export class ZombieMove extends Component {
             }
 
             // CHASE_PLAYER：进入攻击范围
-            if (lineClear && withinSight && distToPlayer <= this.attackRange + 5 && this._attackCooldown <= 0) {
+            if (lineClear && withinSight && distToPlayerHit <= this.attackRange + 5 && this._attackCooldown <= 0) {
                 this._aiState = 'ATTACK_PLAYER';
                 this._attackCooldown = 0.3;
                 return;
@@ -1164,7 +1166,7 @@ export class ZombieMove extends Component {
                 this.returnToDefaultTarget();
                 return;
             }
-            const turretDist = Vec3.distance(selfPos, this.getEffectiveTargetPos(this._tempPos));
+            const turretDist = Vec3.distance(this.getHitWorldPosition(this._hitPos), this.getEffectiveTargetPos(this._tempPos));
             if (turretDist > this.attackRange + 5) {
                 this._aiState = 'CHASE_TURRET';
                 return;
@@ -1177,7 +1179,7 @@ export class ZombieMove extends Component {
                 this.returnToDefaultTarget();
                 return;
             }
-            const turretDist = Vec3.distance(selfPos, this.getEffectiveTargetPos(this._tempPos));
+            const turretDist = Vec3.distance(this.getHitWorldPosition(this._hitPos), this.getEffectiveTargetPos(this._tempPos));
             if (turretDist <= this.attackRange + 5 && this._attackCooldown <= 0) {
                 this._aiState = 'ATTACK_TURRET';
                 this._attackCooldown = 0.3;
@@ -1192,7 +1194,7 @@ export class ZombieMove extends Component {
                 this.returnToDefaultTarget();
                 return;
             }
-            const bDist = Vec3.distance(selfPos, this.getEffectiveTargetPos(this._tempPos));
+            const bDist = Vec3.distance(this.getHitWorldPosition(this._hitPos), this.getEffectiveTargetPos(this._tempPos));
             if (bDist > this.attackRange + 5) {
                 this._aiState = 'CHASE_BUILDING';
                 return;
@@ -1205,7 +1207,7 @@ export class ZombieMove extends Component {
                 this.returnToDefaultTarget();
                 return;
             }
-            const bDist = Vec3.distance(selfPos, this.getEffectiveTargetPos(this._tempPos));
+            const bDist = Vec3.distance(this.getHitWorldPosition(this._hitPos), this.getEffectiveTargetPos(this._tempPos));
             if (bDist <= this.attackRange + 5 && this._attackCooldown <= 0) {
                 this._aiState = 'ATTACK_BUILDING';
                 this._attackCooldown = 0.3;
@@ -1217,7 +1219,7 @@ export class ZombieMove extends Component {
         // ===== ATTACK_BASE =====
         if (this._aiState === 'ATTACK_BASE') {
             const bp = this.getEffectiveTargetPos(this._tempPos);
-            if (Vec3.distance(selfPos, bp) > this.attackRange + 5) {
+            if (Vec3.distance(this.getHitWorldPosition(this._hitPos), bp) > this.attackRange + 5) {
                 this._aiState = 'CHASE_BASE';
                 return;
             }
@@ -1246,7 +1248,7 @@ export class ZombieMove extends Component {
             this._hatedTurret = null;
             this._playerTaunted = false;  // 视觉发现 ≠ 玩家攻击嘲讽
 
-            if (distToPlayer <= this.attackRange + 5 && this._attackCooldown <= 0) {
+            if (distToPlayerHit <= this.attackRange + 5 && this._attackCooldown <= 0) {
                 this._aiState = 'ATTACK_PLAYER';
                 this._attackCooldown = 0.3;
             } else {
@@ -1258,7 +1260,7 @@ export class ZombieMove extends Component {
         // ===== CHASE_BASE → 进入攻击范围 =====
         if (this._aiState === 'CHASE_BASE') {
             const targetPos = this.getEffectiveTargetPos(this._tempPos);
-            if (Vec3.distance(selfPos, targetPos) <= this.attackRange + 5 && this._attackCooldown <= 0) {
+            if (Vec3.distance(this.getHitWorldPosition(this._hitPos), targetPos) <= this.attackRange + 5 && this._attackCooldown <= 0) {
                 this._aiState = 'ATTACK_BASE';
                 this._attackCooldown = 0.3;
             }
@@ -1281,9 +1283,9 @@ export class ZombieMove extends Component {
 
         // 追击状态：计算目标位置 + 侧向寻路移动
         const selfPos = this.node.worldPosition;
-        const hitY = this.colliderOffsetY;
+        const center = this.getHitWorldPosition(this._hitPos);
         const targetPos = this.getEffectiveTargetPos(this._tempPos);
-        const dist = Vec3.distance(selfPos, targetPos);
+        const dist = Vec3.distance(center, targetPos);
 
         // 接近目标进入攻击
         if (dist <= this.attackRange && this._attackCooldown <= 0) {
@@ -1306,7 +1308,7 @@ export class ZombieMove extends Component {
         const speedMult = this._aiState === 'MEMORY_TRACK' ? MEMORY_SPEED_FACTOR : 1.0;
         const step = this.moveSpeed * speedMult * dt;
 
-        Vec3.subtract(this._tempDir, targetPos, selfPos);
+        Vec3.subtract(this._tempDir, targetPos, center);
         this._tempDir.z = 0;
         const len = this._tempDir.length();
         if (len < 1e-4) return;
@@ -1319,7 +1321,7 @@ export class ZombieMove extends Component {
 
         if (step >= len) {
             toX = targetPos.x;
-            toY = targetPos.y;
+            toY = targetPos.y - this.colliderOffsetY;
         }
 
         // 侧向寻路：正前方不通尝试左右前方绕行

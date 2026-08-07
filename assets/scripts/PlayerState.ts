@@ -367,6 +367,23 @@ export class PlayerState extends Component {
         return this.hp > 0;
     }
 
+    get isDead(): boolean { return this._isDead; }
+    get respawnTimer(): number { return this._respawnTimer; }
+    get deathCount(): number { return this._deathCount; }
+
+    /** 读档恢复死亡状态：继续复活倒计时并显示尸体帧（不重播音效/相机初始化） */
+    applyDeathOnLoad(isDead: boolean, respawnTimer: number, deathCount: number) {
+        console.log('[PlayerState] applyDeathOnLoad', { isDead, respawnTimer, deathCount, hp: this.hp });
+        this._isDead = isDead;
+        this._respawnTimer = isDead ? Math.max(0, respawnTimer) : 0;
+        this._respawnLabelTimer = 0;
+        this._deathCount = deathCount;
+        this._deathLogged = isDead;
+        if (isDead) {
+            this.playerController?.showDeadBody();
+        }
+    }
+
     get isExhausted(): boolean {
         return this.fatigue >= FATIGUE_MAX;
     }

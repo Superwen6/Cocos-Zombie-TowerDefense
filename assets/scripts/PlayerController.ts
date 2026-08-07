@@ -152,6 +152,7 @@ export class PlayerController extends Component {
     private _isDying = false;
     private _deathFrameIndex = 0;
     private _deathFrameTimer = 0;
+    private _deadBodyShown = false;
 
     // CameraFollow 组件引用，用于死亡时禁用/复活时启用
     private _cameraFollow: CameraFollow | null = null;
@@ -273,6 +274,10 @@ export class PlayerController extends Component {
         }
 
         if (!this.playerState?.isAlive) {
+            if (!this._deadBodyShown) {
+                this._deadBodyShown = true;
+                this.showDeadBody();
+            }
             this.updateCameraFreeMove(dt);
             return;
         }
@@ -827,11 +832,32 @@ export class PlayerController extends Component {
         // 保持最后一帧显示，不隐藏
     }
 
+    /** 读档/死亡旁观时显示尸体最后一帧（不重播音效与相机初始化） */
+    showDeadBody() {
+        this._isDying = false;
+        // 恢复旁观自由视角缩放目标，避免读档后相机缩到 orthoHeight=0
+        if (this.worldCamera && this._freeCamTargetOrthoHeight === 0) {
+            this._freeCamTargetOrthoHeight = this.worldCamera.orthoHeight;
+        }
+        // 读档恢复死亡时未走 playDeathAnimation，需禁用 CameraFollow 才能自由移动视角
+        if (this._cameraFollow) {
+            this._cameraFollow.enabled = false;
+        }
+        if (!this.bodySprite) return;
+        if (this.deathFrames.length > 0) {
+            this._deathFrameIndex = this.deathFrames.length - 1;
+            this.bodySprite.spriteFrame = this.deathFrames[this._deathFrameIndex];
+        } else {
+            this.bodySprite.node.active = false;
+        }
+    }
+
     /** 复活时恢复玩家显示 */
     respawn() {
         this._isDying = false;
         this._deathFrameIndex = 0;
         this._deathFrameTimer = 0;
+        this._deadBodyShown = false;
         this._freeCamOrthoInitialized = false;
         this.showIdleFrame();
 
