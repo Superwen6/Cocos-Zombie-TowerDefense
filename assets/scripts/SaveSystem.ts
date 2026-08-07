@@ -86,7 +86,9 @@ export interface SaveData {
         weaponMode: boolean;
         /** 死亡状态（死亡倒计时期间存档） */
         isDead: boolean;
-        /** 死亡时刻（墙钟 ms），用于读档恢复剩余复活倒计时 */
+        /** 存档时刻剩余复活秒数（避免墙钟把主菜单/加载耗时误算入） */
+        respawnRemaining: number;
+        /** 死亡时刻（墙钟 ms），仅作旧存档兜底 */
         deathWallTime: number;
         deathCount: number;
     };
@@ -186,6 +188,7 @@ export class SaveSystem {
                 attackDamageMultiplier: ps.attackDamageMultiplier,
                 weaponMode: ps.weaponMode,
                 isDead: ps.isDead,
+                respawnRemaining: ps.respawnTimer,
                 deathWallTime: ps.deathWallTime,
                 deathCount: ps.deathCount,
             },
@@ -320,7 +323,7 @@ export class SaveSystem {
         ps.weaponMode = s.weaponMode;
         // 死亡状态：旧存档缺失标志时只要 hp<=0 即为死亡；用死亡时刻墙钟精确恢复剩余倒计时
         const isDead = !!s.isDead || s.hp <= 0;
-        ps.applyDeathOnLoad(isDead, s.deathCount ?? 0, s.deathWallTime ?? 0);
+        ps.applyDeathOnLoad(isDead, s.deathCount ?? 0, s.respawnRemaining ?? 0, s.deathWallTime ?? 0);
 
         // 恢复 PlayerData
         const d = data.playerData;

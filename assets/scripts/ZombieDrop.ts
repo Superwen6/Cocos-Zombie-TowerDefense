@@ -35,13 +35,19 @@ export class ZombieDrop extends Component {
 
         // 资源掉落概率倍率（武器面板 greedy2 升级：所有僵尸资源掉落概率*2）
         const resourceMult = PlayerState.instance?.resourceDropMultiplier ?? 1.0;
+        // 资源掉落数量倍率（greedy2 LV2：随机*3~5，0=未激活）
+        const psRes = PlayerState.instance;
+        const resAmountMult = psRes && psRes.greedy2ResourceMultMax > 0
+            ? psRes.greedy2ResourceMultMin + Math.random() * (psRes.greedy2ResourceMultMax - psRes.greedy2ResourceMultMin)
+            : 1;
+        const resAmount = (n: number) => Math.max(1, Math.round(n * resAmountMult));
 
         // 木材 → 优先存入仓库，仓库不可用时存入背包
         if (Math.random() < this.woodDropChance * resourceMult) {
             if (hasStorage) {
-                storage.storedWood = Math.min(storage.maxWood, storage.storedWood + 1);
+                storage.storedWood = Math.min(storage.maxWood, storage.storedWood + resAmount(1));
             } else if (data) {
-                data.addWood(1);
+                data.addWood(resAmount(1));
             }
             GameHUDUI.flashResourceGreen('wood');
         }
@@ -49,9 +55,9 @@ export class ZombieDrop extends Component {
         // 铜矿 → 优先存入仓库，仓库不可用时存入背包
         if (Math.random() < this.copperDropChance * resourceMult) {
             if (hasStorage) {
-                storage.storedCopper = Math.min(storage.maxCopper, storage.storedCopper + 1);
+                storage.storedCopper = Math.min(storage.maxCopper, storage.storedCopper + resAmount(1));
             } else if (data) {
-                data.addCopper(1);
+                data.addCopper(resAmount(1));
             }
             GameHUDUI.flashResourceGreen('copper');
         }
@@ -59,9 +65,9 @@ export class ZombieDrop extends Component {
         // 铁矿 → 优先存入仓库，仓库不可用时存入背包
         if (Math.random() < this.ironDropChance * resourceMult) {
             if (hasStorage) {
-                storage.storedIron = Math.min(storage.maxIron, storage.storedIron + 1);
+                storage.storedIron = Math.min(storage.maxIron, storage.storedIron + resAmount(1));
             } else if (data) {
-                data.addIron(1);
+                data.addIron(resAmount(1));
             }
             GameHUDUI.flashResourceGreen('iron');
         }

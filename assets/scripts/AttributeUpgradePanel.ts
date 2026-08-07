@@ -366,6 +366,9 @@ export class AttributeUpgradePanel extends Component {
         this.setHostPanelVisible(true);
         this.refreshPointDisplay();
         this.refreshAllButtons();
+        // 面板节点首次 active 时 onLoad 会被延迟执行并隐藏 Canvas 操作按钮，
+        // 这里按技能等级重新点亮，确保读档/首次打开后按钮不丢失
+        this.restoreCanvasActionButtons();
     }
 
     hidePanel() {
@@ -793,8 +796,8 @@ export class AttributeUpgradePanel extends Component {
                 break;
             case 'greedy2':
                 ps.resourceDropMultiplier = 2.0;
-                ps.greedy2MoneyMultMin = level >= 2 ? 3 : 0;
-                ps.greedy2MoneyMultMax = level >= 2 ? 5 : 0;
+                ps.greedy2ResourceMultMin = level >= 2 ? 3 : 0;
+                ps.greedy2ResourceMultMax = level >= 2 ? 5 : 0;
                 break;
         }
     }
@@ -897,7 +900,20 @@ export class AttributeUpgradePanel extends Component {
         }
     }
 
-    /** 点亮 Canvas 操作按钮（永久显示），仅在对应升级已完成时生效 */
+    /** 按技能等级恢复 Canvas 操作按钮显示（在 showPanel 时调用，防止 onLoad 延迟隐藏） */
+    private restoreCanvasActionButtons() {
+        if ((this._upgradeStates.get('TurretReinforcement')?.level ?? 0) >= 1) {
+            this.showCanvasActionBtn(this.reinforceActionBtn, 'TurretReinforcement');
+        }
+        if ((this._upgradeStates.get('Blast')?.level ?? 0) >= 1) {
+            this.showCanvasActionBtn(this.blastActionBtn, 'Blast');
+        }
+        if ((this._upgradeStates.get('Pistol')?.level ?? 0) >= 1) {
+            this.showCanvasActionBtn(this.weaponActionBtn, 'Pistol');
+        }
+    }
+
+    /** 点亮 Canvas 操作按钮（永久显示），仅在对应等级增益生效 */
     private showCanvasActionBtn(btnNode: Node | null, upgradeName: string) {
         if (!btnNode) return;
         if (this.getLevel(upgradeName) < 1) return;
@@ -1506,6 +1522,8 @@ export class AttributeUpgradePanel extends Component {
         ps.greedyMoneyMultMax = 0;
         ps.greedy2MoneyMultMin = 0;
         ps.greedy2MoneyMultMax = 0;
+        ps.greedy2ResourceMultMin = 0;
+        ps.greedy2ResourceMultMax = 0;
 
         // 隐藏 Canvas 操作按钮
         if (this.reinforceActionBtn) this.reinforceActionBtn.active = false;

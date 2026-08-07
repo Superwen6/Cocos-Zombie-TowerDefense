@@ -194,6 +194,12 @@ export class PlayerState extends Component {
     @property({ tooltip: 'greedy2 LV2 金钱数量随机倍率上限（0=未激活）' })
     greedy2MoneyMultMax = 0;
 
+    @property({ tooltip: 'greedy2 LV2 资源数量随机倍率下限（0=未激活）' })
+    greedy2ResourceMultMin = 0;
+
+    @property({ tooltip: 'greedy2 LV2 资源数量随机倍率上限（0=未激活）' })
+    greedy2ResourceMultMax = 0;
+
     @property({ tooltip: '基地节点名（用于自动查找）' })
     baseNodeName = 'Base';
 
@@ -379,8 +385,8 @@ export class PlayerState extends Component {
         return Math.min(15 * Math.pow(2, Math.max(1, count) - 1), 90);
     }
 
-    /** 读档恢复死亡状态：按死亡时刻的墙钟剩余时间继续倒计时，并恢复累计死亡次数 */
-    applyDeathOnLoad(isDead: boolean, deathCount: number, deathWallTime: number) {
+    /** 读档恢复死亡状态：优先用存档时的剩余秒数，其次墙钟，保证不因主菜单/加载时间误扣 */
+    applyDeathOnLoad(isDead: boolean, deathCount: number, respawnRemaining: number, deathWallTime: number) {
         this._isDead = isDead;
         this._deathCount = deathCount;
         this._respawnTimer = 0;
@@ -388,12 +394,15 @@ export class PlayerState extends Component {
         this._deathLogged = isDead;
         if (isDead) {
             const duration = PlayerState.getRespawnDuration(deathCount);
-            const now = Date.now();
-            this._respawnTimer = deathWallTime > 0
-                ? Math.max(0, duration - (now - deathWallTime) / 1000)
-                : duration;
-            // 按剩余时间重建死亡时刻，保证读档后再次存档仍能记录剩余倒计时
-            this._deathWallTime = now - this._respawnTimer * 1000;
+            if (respawnRemaining > 0) {
+                this._respawnTimer = Math.max(0, respawnRemaining);
+            } else if (deathWallTime > 0) {
+                this._respawnTimer = Math.max(0, duration - (Date.now() - deathWallTime) / 1000);
+            } else {
+                this._respawnTimer = duration;
+            }
+            // 反向重建成墙钟时刻，保证读档后再次存档仍能写入剩余时间
+            this._deathWallTime = Date.now() - this._respawnTimer * 1000;
             this.playerController?.showDeadBody();
         } else {
             this._deathWallTime = 0;
