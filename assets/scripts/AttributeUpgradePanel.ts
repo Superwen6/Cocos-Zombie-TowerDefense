@@ -498,6 +498,13 @@ export class AttributeUpgradePanel extends Component {
         panel.applyPermanentColorToTurretChildren(turretNode);
     }
 
+    /** 注册强化炮塔的节点 uuid（读档重新实例化后节点 uuid 会变化，需重新登记） */
+    public static registerReinforcedTurretId(nodeId: string) {
+        const panel = AttributeUpgradePanel.findPanelInstance();
+        if (!panel) return;
+        panel._reinforcedTurretIds.add(nodeId);
+    }
+
     private bindCloseButton() {
         if (!this.closeButton) {
             warn('[AttributeUpgradePanel] closeButton 未绑定');
@@ -1665,8 +1672,11 @@ export class AttributeUpgradePanel extends Component {
         // 恢复已爆破 MapObstacle 标识
         this._blastedObstacleIds = new Set(AttributeUpgradePanel._pendingBlastedIds);
 
-        // 恢复已强化炮塔 ID
-        this._reinforcedTurretIds = new Set(AttributeUpgradePanel._pendingReinforcedIds);
+        // 恢复已强化炮塔 ID：合并存档旧 id 与已登记的（读档重新实例化后）新 id，
+        // 避免用旧 id 整体覆盖导致强化状态丢失
+        for (const id of AttributeUpgradePanel._pendingReinforcedIds) {
+            this._reinforcedTurretIds.add(id);
+        }
 
         // 恢复 Canvas 操作按钮显示
         if ((this._upgradeStates.get('TurretReinforcement')?.level ?? 0) >= 1) {

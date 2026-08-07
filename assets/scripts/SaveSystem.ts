@@ -530,8 +530,9 @@ export class SaveSystem {
                                 t.damage = (t.damage ?? 10) * 1.5;
                             }, 0);
                         }
-                        // 恢复强化外观
+                        // 恢复强化外观 + 登记新节点 uuid（重新实例化后 uuid 会变，否则下次存档判定不到强化状态）
                         AttributeUpgradePanel.applyReinforceVisual(node);
+                        AttributeUpgradePanel.registerReinforcedTurretId(node.uuid);
                     }
                     break;
                 }
