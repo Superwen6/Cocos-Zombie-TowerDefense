@@ -388,10 +388,15 @@ export class PlayerState extends Component {
         this._deathLogged = isDead;
         if (isDead) {
             const duration = PlayerState.getRespawnDuration(deathCount);
+            const now = Date.now();
             this._respawnTimer = deathWallTime > 0
-                ? Math.max(0, duration - (Date.now() - deathWallTime) / 1000)
+                ? Math.max(0, duration - (now - deathWallTime) / 1000)
                 : duration;
+            // 按剩余时间重建死亡时刻，保证读档后再次存档仍能记录剩余倒计时
+            this._deathWallTime = now - this._respawnTimer * 1000;
             this.playerController?.showDeadBody();
+        } else {
+            this._deathWallTime = 0;
         }
     }
 
