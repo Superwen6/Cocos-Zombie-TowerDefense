@@ -700,20 +700,14 @@ export class AttributeUpgradePanel extends Component {
         this.refreshAffectedButtons(name);
     }
 
-    /** 消耗炮塔强化材料（6木3铜1铁） */
+    /** 消耗炮塔强化材料（6木3铜1铁，RemoteMaterial 激活时优先从仓库调取，不足部分由背包补充） */
     private consumeReinforceMaterials(): boolean {
-        const data = PlayerData.instance;
-        if (!data) return false;
-        if (data.woodCount < REINFORCE_COST.wood
-            || data.copperCount < REINFORCE_COST.copper
-            || data.ironCount < REINFORCE_COST.iron) {
+        if (!PlayerData.instance) return false;
+        if (!PlayerData.canAffordWithWarehouse(REINFORCE_COST.wood, REINFORCE_COST.copper, REINFORCE_COST.iron, 0)) {
             ReinforcementNotice.show(`材料不足！需要 ${REINFORCE_COST.wood}木 ${REINFORCE_COST.copper}铜 ${REINFORCE_COST.iron}铁`);
             return false;
         }
-        data.addResource('wood', -REINFORCE_COST.wood);
-        data.addResource('copper', -REINFORCE_COST.copper);
-        data.addResource('iron', -REINFORCE_COST.iron);
-        return true;
+        return PlayerData.spendWithWarehouse(REINFORCE_COST.wood, REINFORCE_COST.copper, REINFORCE_COST.iron, 0);
     }
 
     /** 应用升级效果 */
