@@ -231,6 +231,8 @@ export class PlayerState extends Component {
     private _respawnTimer = 0;
     private _respawnLabelTimer = 0;
     private _isDead = false;
+    /** 最近一次死亡时刻（墙钟 ms），用于读档精确恢复剩余复活倒计时 */
+    private _deathWallTime = 0;
 
     /** 玩家本地坐标（每帧更新，供存档系统使用，相对于 GameWorld） */
     private _localX = 0;
@@ -370,16 +372,25 @@ export class PlayerState extends Component {
     get isDead(): boolean { return this._isDead; }
     get respawnTimer(): number { return this._respawnTimer; }
     get deathCount(): number { return this._deathCount; }
+    get deathWallTime(): number { return this._deathWallTime; }
 
-    /** 读档恢复死亡状态：继续复活倒计时并显示尸体帧（不重播音效/相机初始化） */
-    applyDeathOnLoad(isDead: boolean, respawnTimer: number, deathCount: number) {
-        console.log('[PlayerState] applyDeathOnLoad', { isDead, respawnTimer, deathCount, hp: this.hp });
+    /** 根据累计死亡次数计算单次复活所需时长（15→30→60→90 上限） */
+    static getRespawnDuration(count: number): number {
+        return Math.min(15 * Math.pow(2, Math.max(1, count) - 1), 90);
+    }
+
+    /** 读档恢复死亡状态：按死亡时刻的墙钟剩余时间继续倒计时，并恢复累计死亡次数 */
+    applyDeathOnLoad(isDead: boolean, deathCount: number, deathWallTime: number) {
         this._isDead = isDead;
-        this._respawnTimer = isDead ? Math.max(0, respawnTimer) : 0;
-        this._respawnLabelTimer = 0;
         this._deathCount = deathCount;
+        this._respawnTimer = 0;
+        this._respawnLabelTimer = 0;
         this._deathLogged = isDead;
         if (isDead) {
+            const duration = PlayerState.getRespawnDuration(deathCount);
+            this._respawnTimer = deathWallTime > 0
+                ? Math.max(0, duration - (Date.now() - deathWallTime) / 1000)
+                : duration;
             this.playerController?.showDeadBody();
         }
     }
@@ -616,7 +627,9 @@ export class PlayerState extends Component {
         }
 
         // 计算复活时间（15s → 30s → 60s → 90s 上限）
-        this._respawnTimer = Math.min(15 * Math.pow(2, this._deathCount - 1), 90);
+        this._respawnTimer = PlayerState.getRespawnDuration(this._deathCount);
+        this._deathWallTime = Date.now();
+        this._respawnLabelTimer = 0;
         ReinforcementNotice.show(`你已死亡，${this._respawnTimer}秒后在基地复活，背包资源已清零`);
     }
 

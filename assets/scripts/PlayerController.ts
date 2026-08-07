@@ -277,6 +277,7 @@ export class PlayerController extends Component {
             if (!this._deadBodyShown) {
                 this._deadBodyShown = true;
                 this.showDeadBody();
+                this._snapFreeCamToPlayer();
             }
             this.updateCameraFreeMove(dt);
             return;
@@ -850,6 +851,15 @@ export class PlayerController extends Component {
         } else {
             this.bodySprite.node.active = false;
         }
+    }
+
+    /** 死亡旁观首次显示时，把自由视角相机对准尸体（读档进入时默认镜头在别处） */
+    private _snapFreeCamToPlayer() {
+        if (!this.worldCamera) return;
+        const cam = this.worldCamera.node;
+        const p = this.node.worldPosition;
+        cam.setWorldPosition(p.x, p.y, cam.worldPosition.z);
+        this._freeCamTargetOrthoHeight = this.worldCamera.orthoHeight;
     }
 
     /** 复活时恢复玩家显示 */

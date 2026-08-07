@@ -86,7 +86,8 @@ export interface SaveData {
         weaponMode: boolean;
         /** 死亡状态（死亡倒计时期间存档） */
         isDead: boolean;
-        respawnTimer: number;
+        /** 死亡时刻（墙钟 ms），用于读档恢复剩余复活倒计时 */
+        deathWallTime: number;
         deathCount: number;
     };
     playerData: {
@@ -185,7 +186,7 @@ export class SaveSystem {
                 attackDamageMultiplier: ps.attackDamageMultiplier,
                 weaponMode: ps.weaponMode,
                 isDead: ps.isDead,
-                respawnTimer: ps.respawnTimer,
+                deathWallTime: ps.deathWallTime,
                 deathCount: ps.deathCount,
             },
             playerData: {
@@ -222,7 +223,7 @@ export class SaveSystem {
 
         try {
             localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-            console.log('[SaveSystem] 游戏已保存', { isDead: ps.isDead, respawnTimer: ps.respawnTimer, deathCount: ps.deathCount, hp: ps.hp });
+            console.log('[SaveSystem] 游戏已保存');
             return true;
         } catch (e) {
             console.error('[SaveSystem] 保存失败:', e);
@@ -317,13 +318,9 @@ export class SaveSystem {
         ps.powerSaveRate = s.powerSaveRate;
         ps.attackDamageMultiplier = s.attackDamageMultiplier;
         ps.weaponMode = s.weaponMode;
-        // 死亡状态：优先用显式标志；旧存档缺失时只要 hp<=0 即为死亡，保证读档后能继续复活倒计时
+        // 死亡状态：旧存档缺失标志时只要 hp<=0 即为死亡；用死亡时刻墙钟精确恢复剩余倒计时
         const isDead = !!s.isDead || s.hp <= 0;
-        let deadTimer = isDead ? (s.respawnTimer ?? 0) : 0;
-        if (isDead && deadTimer <= 0) {
-            deadTimer = Math.min(15 * Math.pow(2, Math.max(1, s.deathCount ?? 1) - 1), 90);
-        }
-        ps.applyDeathOnLoad(isDead, deadTimer, s.deathCount ?? 0);
+        ps.applyDeathOnLoad(isDead, s.deathCount ?? 0, s.deathWallTime ?? 0);
 
         // 恢复 PlayerData
         const d = data.playerData;
