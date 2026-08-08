@@ -190,7 +190,6 @@ export class MainMenuUI extends Component {
 
     /** 退出游戏 */
     onExitGame() {
-        console.log('[MainMenuUI] 退出游戏');
         if (typeof window !== 'undefined') {
             window.close();
         }

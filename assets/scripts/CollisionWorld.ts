@@ -384,52 +384,6 @@ export class CollisionWorld extends Component {
         return true; // 视线通畅
     }
 
-    /** 调试用：检测视线是否通畅，被阻挡时返回阻挡碰撞体的节点名称 */
-    debugLineOfSight(
-        from: Vec3, to: Vec3,
-        groups: ColliderGroup[],
-        stepSize = 8, shrink = 5,
-    ): string | null {
-        const dx = to.x - from.x;
-        const dy = to.y - from.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 1) return null;
-
-        const nx = dx / dist;
-        const ny = dy / dist;
-        const startX = from.x + nx * shrink;
-        const startY = from.y + ny * shrink;
-        const endX = to.x - nx * shrink;
-        const endY = to.y - ny * shrink;
-        const segDx = endX - startX;
-        const segDy = endY - startY;
-        const segDist = Math.sqrt(segDx * segDx + segDy * segDy);
-        if (segDist < 1) return null;
-
-        const steps = Math.ceil(segDist / stepSize);
-        for (let i = 0; i <= steps; i++) {
-            const t = i / steps;
-            const px = startX + segDx * t;
-            const py = startY + segDy * t;
-            const blocker = this.debugCheckHit(px, py, 3, 3, groups);
-            if (blocker) return blocker;
-        }
-        return null;
-    }
-
-    private debugCheckHit(x: number, y: number, halfW: number, halfH: number, groups: ColliderGroup[]): string | null {
-        for (const c of this._colliders) {
-            if (!c.node || !c.node.isValid) continue;
-            if (!groups.includes(c.group)) continue;
-            const ox = c.node.worldPosition.x;
-            const oy = c.node.worldPosition.y + c.offsetY;
-            if (rectsOverlap(x, y, halfW, halfH, ox, oy, c.halfW, c.halfH)) {
-                return c.node.name;
-            }
-        }
-        return null;
-    }
-
     private checkOverlapAt(halfW: number, halfH: number, group: ColliderGroup, x: number, y: number): boolean {
         const searchRange = Math.max(halfW, halfH) + GRID_CELL_SIZE;
         const nearby = this.getNearby(x, y, searchRange);

@@ -257,7 +257,6 @@ export class SaveSystem {
 
         try {
             localStorage.setItem(slotKey(slot), JSON.stringify(data));
-            console.log(`[SaveSystem] 游戏已保存到槽位 ${slot}`);
             return true;
         } catch (e) {
             console.error('[SaveSystem] 保存失败:', e);
@@ -404,8 +403,6 @@ export class SaveSystem {
         // 恢复僵尸
         if (data.zombies && data.zombies.length > 0) {
             EnemyManager.restoreZombies(data.zombies);
-        } else {
-            console.log('[SaveSystem] apply 存档中无僵尸数据');
         }
 
         // 恢复建筑（炮塔/发电机/集装箱）

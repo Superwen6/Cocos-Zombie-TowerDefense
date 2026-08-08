@@ -1,4 +1,4 @@
-import { _decorator, Button, Color, Component, instantiate, Label, log, Node, warn } from 'cc';
+import { _decorator, Button, Color, Component, instantiate, Label, Node, warn } from 'cc';
 import { PlayerData } from './PlayerData';
 import { PlayerState } from './PlayerState';
 import { TurretPlacementManager } from './TurretPlacementManager';
@@ -283,7 +283,6 @@ export class TurretBuildPanelUI extends Component {
             return;
         }
 
-        log('[TurretBuildPanelUI] 资源校验通过，进入放置模式');
         manager.startPlacement(cost, this);
         this.hidePanel();
     }

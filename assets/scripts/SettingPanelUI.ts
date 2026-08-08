@@ -121,9 +121,7 @@ export class SettingPanelUI extends Component {
     /** 存储游戏进度：打开多槽位存档面板 */
     private onSaveGame() {
         const inst = SaveSlotPanelUI.openSavePanel();
-        if (inst) {
-            console.log('[SettingPanelUI] 已打开存档面板');
-        } else {
+        if (!inst) {
             console.warn('[SettingPanelUI] 未找到存档面板实例');
         }
     }

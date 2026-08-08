@@ -9,7 +9,6 @@ import {
     Label,
     Sprite,
     UIOpacity,
-    log,
     warn,
 } from 'cc';
 import { GameManager } from './GameManager';
@@ -321,7 +320,6 @@ export class DayNightSystem extends Component {
 
     /** 进入新的一天 */
     private onEnterNewDay() {
-        log(`[DayNightSystem] onEnterNewDay 触发，当前天数=${this.currentDay}，最大天数=${this.maxDays}`);
         if (this.currentDay >= this.maxDays) {
             if (GameManager.instance) {
                 GameManager.instance.triggerVictory();
@@ -330,7 +328,6 @@ export class DayNightSystem extends Component {
         }
 
         this.currentDay += 1;
-        log(`[DayNightSystem] 进入第 ${this.currentDay} 天`);
         this.showDayNotice(`Day ${this.currentDay}`);
         this.spawnDayResources();
 
@@ -346,7 +343,6 @@ export class DayNightSystem extends Component {
             || this.getComponent(ResourceSpawner)
             || ResourceSpawner.instance;
         if (spawner) {
-            log(`[DayNightSystem] 调用资源刷新，当前第 ${this.currentDay} 天`);
             spawner.spawnDayResources();
         } else {
             warn('[DayNightSystem] 未找到 ResourceSpawner，资源刷新跳过');

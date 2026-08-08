@@ -19,5 +19,8 @@ Thumbs.db
 # Node
 node_modules/
 
+# 扩展编译产物
+extensions/localization-editor/webpack-dist/
+
 # Logs
 *.log
