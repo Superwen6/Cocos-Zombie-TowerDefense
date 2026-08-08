@@ -360,10 +360,13 @@ export class TurretPlacementManager extends Component {
         // 移除虚影上的所有碰撞相关组件，防止推动僵尸
         this.removeCollisionComponents(this.ghostNode);
 
-        // 虚影阶段隐藏血条，建造开始后才显示
+        // 虚影阶段隐藏血条，建造开始后才显示（直接隐藏 Label 节点：虚影期 Turret.update 不执行，不能依赖 syncHpLabel）
         const ghostTurret = this.ghostNode.getComponent(Turret);
         if (ghostTurret) {
             ghostTurret.ghostPreview = true;
+            if (ghostTurret.hpLabel && ghostTurret.hpLabel.node.active) {
+                ghostTurret.hpLabel.node.active = false;
+            }
         }
         this.hideHealthBarOnGhost(this.ghostNode);
 
@@ -734,6 +737,10 @@ export class TurretPlacementManager extends Component {
                     if (turret) {
                         turret.enabled = true;
                         turret.ghostPreview = false;
+                        // 恢复血量 Label 显示（虚影阶段被强制隐藏）
+                        if (turret.hpLabel) {
+                            turret.hpLabel.node.active = true;
+                        }
                         BaseSystem.instance?.updatePowerStatus();
                         EnemyManager.invalidateCache();
                     }
