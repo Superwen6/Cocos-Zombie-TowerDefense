@@ -22,9 +22,6 @@ export class Container extends Component {
     /** 当前血量（运行时初始化） */
     hp = 200;
 
-    @property({ type: CCFloat, tooltip: '建造时间（秒）' })
-    buildTime = 5.0;
-
     @property({ type: CCInteger, tooltip: '建造消耗木头' })
     costWood = 50;
 
@@ -98,8 +95,10 @@ export class Container extends Component {
         this.hp = this.maxHp;
         GlobalContainerStorage.instance?.registerContainer(this);
 
-        // 首个集装箱建造完成时提示
-        if (GlobalContainerStorage.instance?.containerCount === 1) {
+        // 首个集装箱建造完成时提示（仅首次，读档恢复不重复提示）
+        const gcs = GlobalContainerStorage.instance;
+        if (gcs && gcs.containerCount === 1 && !gcs.firstContainerTipShown) {
+            gcs.firstContainerTipShown = true;
             ReinforcementNotice.show('双击集装箱进入存取面板');
         }
     }

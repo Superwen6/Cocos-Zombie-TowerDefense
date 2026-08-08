@@ -31,6 +31,7 @@ export class MapObstacle extends Component {
             x: wp.x, y: wp.y,
             halfW: this.colliderHalfW, halfH: this.colliderHalfH,
             group: ColliderGroup.Wall,
+            offsetY: 0,
         };
         CollisionWorld.instance?.register(this._collider);
 

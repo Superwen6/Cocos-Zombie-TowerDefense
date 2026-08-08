@@ -108,6 +108,15 @@ export class PlayerState extends Component {
     @property({ tooltip: '背包容量倍率（生存面板bagexpand升级）' })
     backpackCapacityMultiplier = 1.0;
 
+    @property({ tooltip: '背包扩容后的木头容量上限（0=未扩容，bagexpand升级后=60）' })
+    backpackExpandedWood = 0;
+
+    @property({ tooltip: '背包扩容后的铜矿容量上限（0=未扩容，bagexpand升级后=32）' })
+    backpackExpandedCopper = 0;
+
+    @property({ tooltip: '背包扩容后的铁矿容量上限（0=未扩容，bagexpand升级后=16）' })
+    backpackExpandedIron = 0;
+
     /** 僵尸感知距离倍率（生存面板潜行升级，越低越好） */
     static zombieAlertRadiusMultiplier = 1.0;
 
@@ -170,6 +179,27 @@ export class PlayerState extends Component {
     @property({ tooltip: '金钱掉落概率倍率（武器面板greedy升级）' })
     moneyDropMultiplier = 1.0;
 
+    @property({ tooltip: '资源掉落概率倍率（武器面板greedy2升级）' })
+    resourceDropMultiplier = 1.0;
+
+    @property({ tooltip: 'greedy LV2 金钱数量随机倍率下限（0=未激活）' })
+    greedyMoneyMultMin = 0;
+
+    @property({ tooltip: 'greedy LV2 金钱数量随机倍率上限（0=未激活）' })
+    greedyMoneyMultMax = 0;
+
+    @property({ tooltip: 'greedy2 LV2 金钱数量随机倍率下限（0=未激活）' })
+    greedy2MoneyMultMin = 0;
+
+    @property({ tooltip: 'greedy2 LV2 金钱数量随机倍率上限（0=未激活）' })
+    greedy2MoneyMultMax = 0;
+
+    @property({ tooltip: 'greedy2 LV2 资源数量随机倍率下限（0=未激活）' })
+    greedy2ResourceMultMin = 0;
+
+    @property({ tooltip: 'greedy2 LV2 资源数量随机倍率上限（0=未激活）' })
+    greedy2ResourceMultMax = 0;
+
     @property({ tooltip: '基地节点名（用于自动查找）' })
     baseNodeName = 'Base';
 
@@ -188,6 +218,9 @@ export class PlayerState extends Component {
     @property({ type: AudioClip, tooltip: '疲劳度满后间隔播放的音效' })
     fatigueSound: AudioClip | null = null;
 
+    @property({ type: AudioClip, tooltip: '低血量进入隐身状态时播放一次的音效' })
+    stealthSound: AudioClip | null = null;
+
     private _baseNode: Node | null = null;
     private _statusLogTimer = 0;
     private _fatigueMode: FatigueMode = FatigueMode.IDLE;
@@ -204,6 +237,8 @@ export class PlayerState extends Component {
     private _respawnTimer = 0;
     private _respawnLabelTimer = 0;
     private _isDead = false;
+    /** 最近一次死亡时刻（墙钟 ms），用于读档精确恢复剩余复活倒计时 */
+    private _deathWallTime = 0;
 
     /** 玩家本地坐标（每帧更新，供存档系统使用，相对于 GameWorld） */
     private _localX = 0;
@@ -340,6 +375,40 @@ export class PlayerState extends Component {
         return this.hp > 0;
     }
 
+    get isDead(): boolean { return this._isDead; }
+    get respawnTimer(): number { return this._respawnTimer; }
+    get deathCount(): number { return this._deathCount; }
+    get deathWallTime(): number { return this._deathWallTime; }
+
+    /** 根据累计死亡次数计算单次复活所需时长（15→30→60→90 上限） */
+    static getRespawnDuration(count: number): number {
+        return Math.min(15 * Math.pow(2, Math.max(1, count) - 1), 90);
+    }
+
+    /** 读档恢复死亡状态：优先用存档时的剩余秒数，其次墙钟，保证不因主菜单/加载时间误扣 */
+    applyDeathOnLoad(isDead: boolean, deathCount: number, respawnRemaining: number, deathWallTime: number) {
+        this._isDead = isDead;
+        this._deathCount = deathCount;
+        this._respawnTimer = 0;
+        this._respawnLabelTimer = 0;
+        this._deathLogged = isDead;
+        if (isDead) {
+            const duration = PlayerState.getRespawnDuration(deathCount);
+            if (respawnRemaining > 0) {
+                this._respawnTimer = Math.max(0, respawnRemaining);
+            } else if (deathWallTime > 0) {
+                this._respawnTimer = Math.max(0, duration - (Date.now() - deathWallTime) / 1000);
+            } else {
+                this._respawnTimer = duration;
+            }
+            // 反向重建成墙钟时刻，保证读档后再次存档仍能写入剩余时间
+            this._deathWallTime = Date.now() - this._respawnTimer * 1000;
+            this.playerController?.showDeadBody();
+        } else {
+            this._deathWallTime = 0;
+        }
+    }
+
     get isExhausted(): boolean {
         return this.fatigue >= FATIGUE_MAX;
     }
@@ -422,8 +491,15 @@ export class PlayerState extends Component {
         }
     }
 
-    /** 获取背包有效容量上限（基础上限 × 背包容量倍率） */
-    getEffectiveBackpackMax(baseMax: number): number {
+    /** 获取背包有效容量上限：bagexpand扩容后使用绝对上限，否则为基础上限 × 背包容量倍率 */
+    getEffectiveBackpackMax(resourceType: string, baseMax: number): number {
+        let expanded = 0;
+        switch (resourceType) {
+            case 'wood': expanded = this.backpackExpandedWood; break;
+            case 'copper': expanded = this.backpackExpandedCopper; break;
+            case 'iron': expanded = this.backpackExpandedIron; break;
+        }
+        if (expanded > 0) return expanded;
         return Math.round(baseMax * this.backpackCapacityMultiplier);
     }
 
@@ -471,6 +547,10 @@ export class PlayerState extends Component {
                     this.setPlayerOpacity(this.stealthOpacity);
                     PlayerState.isPlayerInvisible = true;
                     PlayerState.zombieAlertRadiusMultiplier = 0;
+                    // 进入隐身时播放一次音效
+                    if (this._audioSource && this.stealthSound) {
+                        this._audioSource.playOneShot(this.stealthSound, 1);
+                    }
                 }
                 break;
 
@@ -561,7 +641,9 @@ export class PlayerState extends Component {
         }
 
         // 计算复活时间（15s → 30s → 60s → 90s 上限）
-        this._respawnTimer = Math.min(15 * Math.pow(2, this._deathCount - 1), 90);
+        this._respawnTimer = PlayerState.getRespawnDuration(this._deathCount);
+        this._deathWallTime = Date.now();
+        this._respawnLabelTimer = 0;
         ReinforcementNotice.show(`你已死亡，${this._respawnTimer}秒后在基地复活，背包资源已清零`);
     }
 
@@ -696,11 +778,9 @@ export class PlayerState extends Component {
         }
     }
 
-    /** 每日增加属性点（不超过上限） */
-    addDayUpgradePoints() {
-        this.upgradePoints = Math.min(
-            this.maxUpgradePoints,
-            this.upgradePoints + this.upgradePointsPerDay,
-        );
+    /** 每日增加属性点（仅第 2~maxUpgradePoints 天发放，第 maxUpgradePoints+1 天起不再发放） */
+    addDayUpgradePoints(currentDay: number) {
+        if (currentDay > this.maxUpgradePoints) return;
+        this.upgradePoints += this.upgradePointsPerDay;
     }
 }

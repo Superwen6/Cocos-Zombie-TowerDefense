@@ -24,9 +24,6 @@ export class PlantGenerator extends Component {
     /** 当前血量（运行时由 start 初始化，HealthBar 通过 getComponent 读取） */
     hp = 100;
 
-    @property({ type: CCFloat, tooltip: '建造时间（秒）' })
-    buildTime = 4.0;
-
     @property({ type: CCInteger, tooltip: '该发电机产生的电力（瓦）' })
     powerGenerate = 10;
 

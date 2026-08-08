@@ -43,6 +43,7 @@ export class ResourceItem extends Component {
             halfW: this.colliderHalfW,
             halfH: this.colliderHalfH,
             group: ColliderGroup.Resource,
+            offsetY: 0,
         };
         CollisionWorld.instance?.register(this._collider);
         this._audioSource = this.node.addComponent(AudioSource);

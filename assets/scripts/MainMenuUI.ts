@@ -1,5 +1,6 @@
 import { _decorator, Component, Node, Sprite, Label, director, AudioClip, AudioSource } from 'cc';
 import { SaveSystem } from './SaveSystem';
+import { SaveSlotPanelUI } from './SaveSlotPanelUI';
 
 const { ccclass, property } = _decorator;
 
@@ -144,29 +145,47 @@ export class MainMenuUI extends Component {
         );
     }
 
-    /** 载入游戏（读取存档后进入游戏场景） */
-    onLoadGame() {
-        if (this._loading) return;
-
-        if (!SaveSystem.hasSave()) {
-            console.log('[MainMenuUI] 没有存档，无法载入游戏');
-            return;
-        }
-
-        this._loading = true;
-
+    /** 隐藏主菜单三个按钮 */
+    private hideButtons() {
         if (this.startGameBtn) this.startGameBtn.active = false;
         if (this.loadGameBtn) this.loadGameBtn.active = false;
         if (this.exitGameBtn) this.exitGameBtn.active = false;
+    }
 
-        if (this.loadingPanel) {
-            this.loadingPanel.active = true;
+    /** 恢复主菜单三个按钮 */
+    private restoreButtons() {
+        if (this.startGameBtn) this.startGameBtn.active = true;
+        if (this.loadGameBtn) this.loadGameBtn.active = true;
+        if (this.exitGameBtn) this.exitGameBtn.active = true;
+    }
+
+    /** 载入存档：打开多槽位读档面板，选择槽位后进入游戏场景 */
+    onLoadGame() {
+        if (this._loading) return;
+
+        const inst = SaveSlotPanelUI.openLoadPanel(
+            (slot: number) => {
+                if (this._loading) return;
+                this._loading = true;
+                this.hideButtons();
+                // 标记为加载指定槽位存档，1.scene 启动后会应用该存档
+                SaveSystem.markPendingLoad(slot);
+                if (this.loadingPanel) {
+                    this.loadingPanel.active = true;
+                }
+                this.startLoading();
+            },
+            () => {
+                // 关闭面板后恢复主菜单按钮
+                this.restoreButtons();
+            },
+        );
+
+        if (inst) {
+            this.hideButtons();
+        } else {
+            console.warn('[MainMenuUI] 未找到读档面板');
         }
-
-        // 标记为加载存档模式，1.scene 启动后会应用存档
-        SaveSystem.markPendingLoad();
-
-        this.startLoading();
     }
 
     /** 退出游戏 */

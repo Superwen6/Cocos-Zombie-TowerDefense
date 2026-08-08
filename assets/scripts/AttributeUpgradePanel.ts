@@ -48,7 +48,8 @@ const AFFECTED_BUTTONS: Record<string, string[]> = {
     Micromsg: ['Micromsg', 'Rifle'],
     Rifle: ['Rifle', 'Machinegun'],
     Machinegun: ['Machinegun'],
-    greedy: ['greedy'],
+    greedy: ['greedy', 'greedy2'],
+    greedy2: ['greedy2'],
 };
 
 /** 炮塔强化消耗 */
@@ -69,11 +70,11 @@ const BUTTON_DESCRIPTIONS: Record<string, string> = {
     FatigueReduce: 'LV2，疲劳增长减缓',
     HPIncrease: 'LV3，生命值提升',
     doublecollect: 'LV1，资源采集量翻倍',
-    bagexpand: 'LV1，背包容量*1.5',
+    bagexpand: 'LV1，背包扩容',
     collectmaster: 'LV2，资源采集暴增',
     Stealth: 'LV1，危机状况隐身与潜行',
     RemoteRepair: 'LV1，远程维修建筑',
-    RemoteMaterial: 'LV1，远程用材料维修',
+    RemoteMaterial: '远程使用仓库资源',
     TurretReinforcement: 'LV1，强化炮塔属性 (消耗：6木 3铜 1铁)',
     MaterialRetun: 'LV3，拆除建筑返还材料',
     MaterialSave: 'LV3，全局节省材料',
@@ -84,7 +85,8 @@ const BUTTON_DESCRIPTIONS: Record<string, string> = {
     Micromsg: 'LV1，切换微型冲锋枪',
     Rifle: 'LV1，切换步枪模式',
     Machinegun: 'LV1，切换机关枪模式',
-    greedy: 'LV1，所有僵尸金钱掉落概率*2',
+    greedy: 'LV2，提高金钱掉落概率与数量',
+    greedy2: 'LV2，提高资源掉落概率与数量',
 };
 
 /**
@@ -171,6 +173,9 @@ export class AttributeUpgradePanel extends Component {
 
     @property({ type: Node, tooltip: '贪婪按钮（金钱掉落*2）' })
     greedyButton: Node | null = null;
+
+    @property({ type: Node, tooltip: '贪婪2按钮（所有僵尸资源掉落概率*2）' })
+    greedy2Button: Node | null = null;
 
     // ---- 武器攻击间隔（属性检查器可调） ----
     @property({ tooltip: '手枪攻击间隔（秒）' })
@@ -361,6 +366,9 @@ export class AttributeUpgradePanel extends Component {
         this.setHostPanelVisible(true);
         this.refreshPointDisplay();
         this.refreshAllButtons();
+        // 面板节点首次 active 时 onLoad 会被延迟执行并隐藏 Canvas 操作按钮，
+        // 这里按技能等级重新点亮，确保读档/首次打开后按钮不丢失
+        this.restoreCanvasActionButtons();
     }
 
     hidePanel() {
@@ -490,6 +498,13 @@ export class AttributeUpgradePanel extends Component {
         panel.applyPermanentColorToTurretChildren(turretNode);
     }
 
+    /** 注册强化炮塔的节点 uuid（读档重新实例化后节点 uuid 会变化，需重新登记） */
+    public static registerReinforcedTurretId(nodeId: string) {
+        const panel = AttributeUpgradePanel.findPanelInstance();
+        if (!panel) return;
+        panel._reinforcedTurretIds.add(nodeId);
+    }
+
     private bindCloseButton() {
         if (!this.closeButton) {
             warn('[AttributeUpgradePanel] closeButton 未绑定');
@@ -547,7 +562,8 @@ export class AttributeUpgradePanel extends Component {
         this.registerUpgrade('Micromsg', this.micromsgButton || this.findButtonIn('Micromsg', this.weaponContent), 1);
         this.registerUpgrade('Rifle', this.rifleButton || this.findButtonIn('Rifle', this.weaponContent), 1);
         this.registerUpgrade('Machinegun', this.machinegunButton || this.findButtonIn('Machinegun', this.weaponContent), 1);
-        this.registerUpgrade('greedy', this.greedyButton || this.findButtonIn('greedy', this.weaponContent), 1);
+        this.registerUpgrade('greedy', this.greedyButton || this.findButtonIn('greedy', this.weaponContent), 2);
+        this.registerUpgrade('greedy2', this.greedy2Button || this.findButtonIn('greedy2', this.weaponContent), 2);
     }
 
     private registerUpgrade(name: string, node: Node | null, maxLevel: number) {
@@ -641,6 +657,8 @@ export class AttributeUpgradePanel extends Component {
             case 'Pistol':
             case 'greedy':
                 return this.getLevel('AttackIncrease') >= 3;
+            case 'greedy2':
+                return this.getLevel('greedy') >= 2;
             case 'Micromsg':
                 return this.getLevel('Pistol') >= 1;
             case 'Rifle':
@@ -682,20 +700,14 @@ export class AttributeUpgradePanel extends Component {
         this.refreshAffectedButtons(name);
     }
 
-    /** 消耗炮塔强化材料（6木3铜1铁） */
+    /** 消耗炮塔强化材料（6木3铜1铁，RemoteMaterial 激活时优先从仓库调取，不足部分由背包补充） */
     private consumeReinforceMaterials(): boolean {
-        const data = PlayerData.instance;
-        if (!data) return false;
-        if (data.woodCount < REINFORCE_COST.wood
-            || data.copperCount < REINFORCE_COST.copper
-            || data.ironCount < REINFORCE_COST.iron) {
+        if (!PlayerData.instance) return false;
+        if (!PlayerData.canAffordWithWarehouse(REINFORCE_COST.wood, REINFORCE_COST.copper, REINFORCE_COST.iron, 0)) {
             ReinforcementNotice.show(`材料不足！需要 ${REINFORCE_COST.wood}木 ${REINFORCE_COST.copper}铜 ${REINFORCE_COST.iron}铁`);
             return false;
         }
-        data.addResource('wood', -REINFORCE_COST.wood);
-        data.addResource('copper', -REINFORCE_COST.copper);
-        data.addResource('iron', -REINFORCE_COST.iron);
-        return true;
+        return PlayerData.spendWithWarehouse(REINFORCE_COST.wood, REINFORCE_COST.copper, REINFORCE_COST.iron, 0);
     }
 
     /** 应用升级效果 */
@@ -720,7 +732,11 @@ export class AttributeUpgradePanel extends Component {
                 ps.ironCollectMultiplier = 2.0;
                 break;
             case 'bagexpand':
-                ps.backpackCapacityMultiplier = 1.5;
+                // 背包扩容为绝对容量：木60 铜32 铁16
+                ps.backpackExpandedWood = 60;
+                ps.backpackExpandedCopper = 32;
+                ps.backpackExpandedIron = 16;
+                ps.backpackCapacityMultiplier = 1.0;
                 break;
             case 'collectmaster':
                 ps.woodCollectMultiplier = level === 1 ? 3.0 : 4.0;
@@ -776,6 +792,13 @@ export class AttributeUpgradePanel extends Component {
                 break;
             case 'greedy':
                 ps.moneyDropMultiplier = 2.0;
+                ps.greedyMoneyMultMin = level >= 2 ? 1 : 0;
+                ps.greedyMoneyMultMax = level >= 2 ? 5 : 0;
+                break;
+            case 'greedy2':
+                ps.resourceDropMultiplier = 2.0;
+                ps.greedy2ResourceMultMin = level >= 2 ? 3 : 0;
+                ps.greedy2ResourceMultMax = level >= 2 ? 5 : 0;
                 break;
         }
     }
@@ -878,7 +901,20 @@ export class AttributeUpgradePanel extends Component {
         }
     }
 
-    /** 点亮 Canvas 操作按钮（永久显示），仅在对应升级已完成时生效 */
+    /** 按技能等级恢复 Canvas 操作按钮显示（在 showPanel 时调用，防止 onLoad 延迟隐藏） */
+    private restoreCanvasActionButtons() {
+        if ((this._upgradeStates.get('TurretReinforcement')?.level ?? 0) >= 1) {
+            this.showCanvasActionBtn(this.reinforceActionBtn, 'TurretReinforcement');
+        }
+        if ((this._upgradeStates.get('Blast')?.level ?? 0) >= 1) {
+            this.showCanvasActionBtn(this.blastActionBtn, 'Blast');
+        }
+        if ((this._upgradeStates.get('Pistol')?.level ?? 0) >= 1) {
+            this.showCanvasActionBtn(this.weaponActionBtn, 'Pistol');
+        }
+    }
+
+    /** 点亮 Canvas 操作按钮（永久显示），仅在对应等级增益生效 */
     private showCanvasActionBtn(btnNode: Node | null, upgradeName: string) {
         if (!btnNode) return;
         if (this.getLevel(upgradeName) < 1) return;
@@ -1467,6 +1503,9 @@ export class AttributeUpgradePanel extends Component {
         ps.copperCollectMultiplier = 1.0;
         ps.ironCollectMultiplier = 1.0;
         ps.backpackCapacityMultiplier = 1.0;
+        ps.backpackExpandedWood = 0;
+        ps.backpackExpandedCopper = 0;
+        ps.backpackExpandedIron = 0;
         PlayerState.zombieAlertRadiusMultiplier = 1.0;
         PlayerState.stealthLevel = 0;
         ps.remoteRepairLevel = 0;
@@ -1479,16 +1518,22 @@ export class AttributeUpgradePanel extends Component {
         ps.weaponDamage = 10;
         ps.weaponMode = false;
         ps.moneyDropMultiplier = 1.0;
+        ps.resourceDropMultiplier = 1.0;
+        ps.greedyMoneyMultMin = 0;
+        ps.greedyMoneyMultMax = 0;
+        ps.greedy2MoneyMultMin = 0;
+        ps.greedy2MoneyMultMax = 0;
+        ps.greedy2ResourceMultMin = 0;
+        ps.greedy2ResourceMultMax = 0;
 
         // 隐藏 Canvas 操作按钮
         if (this.reinforceActionBtn) this.reinforceActionBtn.active = false;
         if (this.blastActionBtn) this.blastActionBtn.active = false;
         if (this.weaponActionBtn) this.weaponActionBtn.active = false;
 
-        // 重置爆破计数和强化记录
+        // 重置爆破计数，但保留已强化炮塔记录（已部署的强化属性永久生效，不应被重置清掉）
         this._blastCount = 0;
         this._blastedObstacleIds.clear();
-        this._reinforcedTurretIds.clear();
 
         // 重置爆破冷却
         this._blastCooldownEndTime = 0;
@@ -1600,6 +1645,14 @@ export class AttributeUpgradePanel extends Component {
             state.level = Math.min(level, state.maxLevel);
         }
 
+        // 重新应用已升级技能的被动效果（如 bagexpand 背包容量倍率、采集/金钱掉落倍率等），
+        // 否则读档后等级虽恢复但效果仍停留在升级前的默认值
+        for (const [name, state] of this._upgradeStates) {
+            if (state.level >= 1) {
+                this.applyUpgradeEffect(name, state.level);
+            }
+        }
+
         // 恢复爆破次数
         this._blastCount = AttributeUpgradePanel._pendingBlastCount;
 
@@ -1612,8 +1665,11 @@ export class AttributeUpgradePanel extends Component {
         // 恢复已爆破 MapObstacle 标识
         this._blastedObstacleIds = new Set(AttributeUpgradePanel._pendingBlastedIds);
 
-        // 恢复已强化炮塔 ID
-        this._reinforcedTurretIds = new Set(AttributeUpgradePanel._pendingReinforcedIds);
+        // 恢复已强化炮塔 ID：合并存档旧 id 与已登记的（读档重新实例化后）新 id，
+        // 避免用旧 id 整体覆盖导致强化状态丢失
+        for (const id of AttributeUpgradePanel._pendingReinforcedIds) {
+            this._reinforcedTurretIds.add(id);
+        }
 
         // 恢复 Canvas 操作按钮显示
         if ((this._upgradeStates.get('TurretReinforcement')?.level ?? 0) >= 1) {

@@ -14,6 +14,7 @@ import {
     warn,
 } from 'cc';
 import { Bullet } from './Bullet';
+import { LaserBeam } from './LaserBeam';
 import { BulletSound } from './BulletSound';
 import { ZombieMove } from './ZombieMove';
 import { CollisionWorld, Collider2D, ColliderGroup } from './CollisionWorld';
@@ -119,8 +120,13 @@ export class Turret extends Component {
     /** 当前血量（公开读写，供 SaveSystem 存档/读档使用） */
     get hp(): number { return this._hp; }
     set hp(v: number) { this._hp = v; }
+
+    /** 放置虚影阶段标记（隐藏血量文字，与 HealthBar 虚影隐藏一致） */
+    public ghostPreview = false;
+    private _hpLabelHideTimer = 0;
     private fireTimer = 0;
     private lockedTarget: ZombieMove | null = null;
+    private _activeLaser: LaserBeam | null = null;
     private _collider: Collider2D | null = null;
     private _audioSource: AudioSource | null = null;
     private _attackSoundTimer = 0;
@@ -161,6 +167,7 @@ export class Turret extends Component {
             halfW: this.colliderHalfW,
             halfH: this.colliderHalfH,
             group: ColliderGroup.Turret,
+            offsetY: 0,
         };
         CollisionWorld.instance?.register(this._collider);
     }
@@ -190,6 +197,9 @@ export class Turret extends Component {
             return;
         }
 
+        // 血量文字：实时取整刷新 + 显隐控制（虚影/满血3秒）
+        this.syncHpLabel(dt);
+
         // 断电检查：电力不足时完全停机（不搜索目标、不旋转、不发射）
         if (BaseSystem.instance?.isPowerOutage) {
             return;
@@ -201,7 +211,7 @@ export class Turret extends Component {
         if (this.muzzleNode) {
             if (this.lockedTarget) {
                 const turretPos = this.muzzleNode.worldPosition;
-                const targetPos = this.lockedTarget.node.worldPosition;
+                const targetPos = this.lockedTarget.getHitWorldPosition();
                 const dirX = targetPos.x - turretPos.x;
                 const dirY = targetPos.y - turretPos.y;
                 // 炮管视觉方向 = muzzleNode.angle + barrelDefaultAngle
@@ -294,7 +304,37 @@ export class Turret extends Component {
 
     private refreshHpLabel() {
         if (this.hpLabel) {
-            this.hpLabel.string = `${this.hp}/${this.maxHp}`;
+            // 取整：维修可能产生小数血量，只显示整数
+            this.hpLabel.string = `${Math.round(this.hp)}/${Math.round(this.maxHp)}`;
+        }
+    }
+
+    /** 实时同步血量文字并控制显隐（虚影隐藏 / 满血3秒后隐藏，与 HealthBar 一致） */
+    private syncHpLabel(dt: number) {
+        if (!this.hpLabel) return;
+
+        // 放置虚影阶段：始终隐藏血量文字
+        if (this.ghostPreview) {
+            if (this.hpLabel.node.active) this.hpLabel.node.active = false;
+            return;
+        }
+
+        // 实时刷新（取整），维修/受伤后及时更新
+        const text = `${Math.round(this.hp)}/${Math.round(this.maxHp)}`;
+        if (this.hpLabel.string !== text) {
+            this.hpLabel.string = text;
+        }
+
+        if (this.hp < this.maxHp) {
+            // 血不满：显示
+            if (!this.hpLabel.node.active) this.hpLabel.node.active = true;
+            this._hpLabelHideTimer = 0;
+        } else if (this.hpLabel.node.active) {
+            // 满血：3 秒后隐藏
+            this._hpLabelHideTimer += dt;
+            if (this._hpLabelHideTimer >= 3) {
+                this.hpLabel.node.active = false;
+            }
         }
     }
 
@@ -315,7 +355,7 @@ export class Turret extends Component {
             if (!zombie.node.isValid || zombie.isDead || zombie.hp <= 0) {
                 continue;
             }
-            const zombiePos = zombie.node.worldPosition;
+            const zombiePos = zombie.getHitWorldPosition();
             const dist = Vec3.distance(this._turretPos, zombiePos);
             if (dist > this.attackRange || dist >= minDist) {
                 continue;
@@ -389,9 +429,25 @@ export class Turret extends Component {
     }
 
     private spawnBullet(x: number, y: number, target: ZombieMove) {
-        // 实例化子弹，初始缩放为 0，避免显示预制体默认角度
+        // 激光束：同一目标只保持一条光束，避免叠加
+        // 先判断已有光束是否存活，存活则只切换目标，不再实例化新节点（避免闪现预制体短截）
+        if (this._activeLaser?.node?.isValid) {
+            this._activeLaser.updateTarget(target.node);
+            return;
+        }
+
         const bulletNode = instantiate(this.bulletPrefab!);
-        bulletNode.setScale(0, 0, 1);
+        const laser = bulletNode.getComponent(LaserBeam);
+        if (laser) {
+            const pos = new Vec3(x, y, 0);
+            LaserBeam.attachToWorld(bulletNode, pos);
+            laser.init(target.node, this.muzzleNode ?? null, pos, this.damage, this.node, this.attackRange);
+            this._activeLaser = laser;
+            return;
+        }
+
+        // 普通子弹：保持预制体原始缩放（曾用 setScale(0,0,1) 隐藏首帧默认角度，
+        // 但依赖 Bullet.init 的 setTimeout 恢复缩放；该恢复已移除，置 0 会导致贴图子弹永久不可见）
         const pos = new Vec3(x, y, 0);
         Bullet.attachToWorld(bulletNode, pos);
 

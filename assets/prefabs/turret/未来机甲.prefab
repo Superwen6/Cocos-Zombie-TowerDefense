@@ -87,7 +87,7 @@
       "__id__": 1
     },
     "_children": [],
-    "_active": false,
+    "_active": true,
     "_components": [
       {
         "__id__": 3
@@ -102,7 +102,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": 54.662,
+      "y": 100,
       "z": 0
     },
     "_lrot": {
@@ -142,8 +142,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 52.1513671875,
-      "height": 50.4
+      "width": 56.1513671875,
+      "height": 54.4
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -173,9 +173,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 0,
-      "g": 0,
-      "b": 0,
+      "r": 255,
+      "g": 255,
+      "b": 255,
       "a": 255
     },
     "_string": "HpLabel",
@@ -195,7 +195,7 @@
     "_isUnderline": false,
     "_underlineHeight": 2,
     "_cacheMode": 0,
-    "_enableOutline": false,
+    "_enableOutline": true,
     "_outlineColor": {
       "__type__": "cc.Color",
       "r": 0,
@@ -1006,17 +1006,17 @@
     "__prefab": {
       "__id__": 43
     },
-    "costWood": 0,
-    "costCopper": 0,
-    "costIron": 0,
+    "costWood": 64,
+    "costCopper": 32,
+    "costIron": 16,
     "costMoney": 0,
-    "powerCost": 1,
-    "maxHp": 150,
-    "damage": 20,
-    "attackInterval": 0.1,
+    "powerCost": 24,
+    "maxHp": 600,
+    "damage": 16,
+    "attackInterval": 0.4,
     "attackRange": 500,
     "bulletPrefab": {
-      "__uuid__": "1d6466a5-ddf5-4dc3-a7d8-dec9a81c92ba",
+      "__uuid__": "c0b22e24-8127-4707-bd32-1dc258289c20",
       "__expectedType__": "cc.Prefab"
     },
     "hpLabel": {
@@ -1027,13 +1027,13 @@
     },
     "muzzleOffset": 40,
     "barrelDefaultAngle": -90,
-    "rotationSpeed": 50,
+    "rotationSpeed": 180,
     "colliderHalfW": 40,
     "colliderHalfH": 40,
     "enableDualShot": true,
     "dualShotSpread": 20,
     "homingBullet": true,
-    "piercingBullet": false,
+    "piercingBullet": true,
     "destroySound": {
       "__uuid__": "58cd2542-c1a7-4ec9-b614-c1d2badc1589",
       "__expectedType__": "cc.AudioClip"

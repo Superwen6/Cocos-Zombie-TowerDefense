@@ -73,7 +73,7 @@ export class UpgradePanelUI extends Component {
             wood: Math.round(cost.wood * (1 - saveRate)),
             copper: Math.round(cost.copper * (1 - saveRate)),
             iron: Math.round(cost.iron * (1 - saveRate)),
-            money: Math.round(cost.money * (1 - saveRate)),
+            money: cost.money,
         };
 
         // 检查资源（RemoteMaterial 感知）

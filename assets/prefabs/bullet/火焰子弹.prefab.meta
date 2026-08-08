@@ -1,0 +1,14 @@
+{
+  "ver": "1.1.50",
+  "importer": "prefab",
+  "imported": true,
+  "uuid": "238ecbc2-c945-48fa-a81d-43fa651d9cb5",
+  "files": [
+    ".json"
+  ],
+  "subMetas": {},
+  "userData": {
+    "syncNodeName": "火焰子弹",
+    "hasIcon": false
+  }
+}

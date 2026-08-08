@@ -33,40 +33,58 @@ export class ZombieDrop extends Component {
         // 仓库可用且至少有一个集装箱时存入仓库，否则存入背包
         const hasStorage = storage && storage.maxWood > 0;
 
+        // 资源掉落概率倍率（武器面板 greedy2 升级：所有僵尸资源掉落概率*2）
+        const resourceMult = PlayerState.instance?.resourceDropMultiplier ?? 1.0;
+        // 资源掉落数量倍率（greedy2 LV2：随机*3~5，0=未激活）
+        const psRes = PlayerState.instance;
+        const resAmountMult = psRes && psRes.greedy2ResourceMultMax > 0
+            ? psRes.greedy2ResourceMultMin + Math.random() * (psRes.greedy2ResourceMultMax - psRes.greedy2ResourceMultMin)
+            : 1;
+        const resAmount = (n: number) => Math.max(1, Math.round(n * resAmountMult));
+
         // 木材 → 优先存入仓库，仓库不可用时存入背包
-        if (Math.random() < this.woodDropChance) {
+        if (Math.random() < this.woodDropChance * resourceMult) {
             if (hasStorage) {
-                storage.storedWood = Math.min(storage.maxWood, storage.storedWood + 1);
+                storage.storedWood = Math.min(storage.maxWood, storage.storedWood + resAmount(1));
             } else if (data) {
-                data.addWood(1);
+                data.addWood(resAmount(1));
             }
             GameHUDUI.flashResourceGreen('wood');
         }
 
         // 铜矿 → 优先存入仓库，仓库不可用时存入背包
-        if (Math.random() < this.copperDropChance) {
+        if (Math.random() < this.copperDropChance * resourceMult) {
             if (hasStorage) {
-                storage.storedCopper = Math.min(storage.maxCopper, storage.storedCopper + 1);
+                storage.storedCopper = Math.min(storage.maxCopper, storage.storedCopper + resAmount(1));
             } else if (data) {
-                data.addCopper(1);
+                data.addCopper(resAmount(1));
             }
             GameHUDUI.flashResourceGreen('copper');
         }
 
         // 铁矿 → 优先存入仓库，仓库不可用时存入背包
-        if (Math.random() < this.ironDropChance) {
+        if (Math.random() < this.ironDropChance * resourceMult) {
             if (hasStorage) {
-                storage.storedIron = Math.min(storage.maxIron, storage.storedIron + 1);
+                storage.storedIron = Math.min(storage.maxIron, storage.storedIron + resAmount(1));
             } else if (data) {
-                data.addIron(1);
+                data.addIron(resAmount(1));
             }
             GameHUDUI.flashResourceGreen('iron');
         }
 
         // 金钱 → 直接加给玩家
-        const moneyMult = PlayerState.instance?.moneyDropMultiplier ?? 1.0;
+        const ps = PlayerState.instance;
+        const moneyMult = ps?.moneyDropMultiplier ?? 1.0;
         if (Math.random() < this.moneyDropChance * moneyMult) {
-            data?.addMoney(this.moneyAmount);
+            // 金额随机放大：greedy LV2 随机*1~5，greedy2 LV2 随机*3~5（可叠加）
+            let amountMult = 1;
+            if (ps && ps.greedyMoneyMultMax > 0) {
+                amountMult *= ps.greedyMoneyMultMin + Math.random() * (ps.greedyMoneyMultMax - ps.greedyMoneyMultMin);
+            }
+            if (ps && ps.greedy2MoneyMultMax > 0) {
+                amountMult *= ps.greedy2MoneyMultMin + Math.random() * (ps.greedy2MoneyMultMax - ps.greedy2MoneyMultMin);
+            }
+            data?.addMoney(Math.round(this.moneyAmount * amountMult));
             GameHUDUI.flashResourceGreen('money');
         }
     }

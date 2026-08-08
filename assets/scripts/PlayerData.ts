@@ -75,30 +75,50 @@ export class PlayerData extends Component {
         return true;
     }
 
-    /** 退还建造消耗（取消放置时使用） */
+    /** 退还建造消耗（取消放置时使用）。
+     * RemoteMaterial 激活时：优先返还到仓库，仓库满后剩余部分落回背包；
+     * 否则：仅返还到背包。 */
     refundUpgradeCost(wood: number, copper: number, iron: number, money: number) {
         const ps = PlayerState.instance;
-        const effMaxWood = ps?.getEffectiveBackpackMax(this.maxWood) ?? this.maxWood;
-        const effMaxCopper = ps?.getEffectiveBackpackMax(this.maxCopper) ?? this.maxCopper;
-        const effMaxIron = ps?.getEffectiveBackpackMax(this.maxIron) ?? this.maxIron;
-        this.woodCount = Math.min(effMaxWood, this.woodCount + wood);
-        this.copperCount = Math.min(effMaxCopper, this.copperCount + copper);
-        this.ironCount = Math.min(effMaxIron, this.ironCount + iron);
+        const remoteMaterial = ps?.remoteMaterialEnabled ?? false;
+        const storage = GlobalContainerStorage.instance;
+        const effMaxWood = ps?.getEffectiveBackpackMax('wood', this.maxWood) ?? this.maxWood;
+        const effMaxCopper = ps?.getEffectiveBackpackMax('copper', this.maxCopper) ?? this.maxCopper;
+        const effMaxIron = ps?.getEffectiveBackpackMax('iron', this.maxIron) ?? this.maxIron;
+
+        // 木材：优先仓库
+        if (remoteMaterial && storage) {
+            const wWoodIntoWarehouse = Math.min(wood, Math.max(0, storage.maxWood - storage.storedWood));
+            storage.storedWood += wWoodIntoWarehouse;
+            this.woodCount = Math.min(effMaxWood, this.woodCount + (wood - wWoodIntoWarehouse));
+
+            const wCopperIntoWarehouse = Math.min(copper, Math.max(0, storage.maxCopper - storage.storedCopper));
+            storage.storedCopper += wCopperIntoWarehouse;
+            this.copperCount = Math.min(effMaxCopper, this.copperCount + (copper - wCopperIntoWarehouse));
+
+            const wIronIntoWarehouse = Math.min(iron, Math.max(0, storage.maxIron - storage.storedIron));
+            storage.storedIron += wIronIntoWarehouse;
+            this.ironCount = Math.min(effMaxIron, this.ironCount + (iron - wIronIntoWarehouse));
+        } else {
+            this.woodCount = Math.min(effMaxWood, this.woodCount + wood);
+            this.copperCount = Math.min(effMaxCopper, this.copperCount + copper);
+            this.ironCount = Math.min(effMaxIron, this.ironCount + iron);
+        }
         this.money = Math.min(this.maxMoney, this.money + money);
     }
 
     addWood(amount: number) {
-        const effectiveMax = PlayerState.instance?.getEffectiveBackpackMax(this.maxWood) ?? this.maxWood;
+        const effectiveMax = PlayerState.instance?.getEffectiveBackpackMax('wood', this.maxWood) ?? this.maxWood;
         this.woodCount = Math.min(effectiveMax, this.woodCount + amount);
     }
 
     addCopper(amount: number) {
-        const effectiveMax = PlayerState.instance?.getEffectiveBackpackMax(this.maxCopper) ?? this.maxCopper;
+        const effectiveMax = PlayerState.instance?.getEffectiveBackpackMax('copper', this.maxCopper) ?? this.maxCopper;
         this.copperCount = Math.min(effectiveMax, this.copperCount + amount);
     }
 
     addIron(amount: number) {
-        const effectiveMax = PlayerState.instance?.getEffectiveBackpackMax(this.maxIron) ?? this.maxIron;
+        const effectiveMax = PlayerState.instance?.getEffectiveBackpackMax('iron', this.maxIron) ?? this.maxIron;
         this.ironCount = Math.min(effectiveMax, this.ironCount + amount);
     }
 

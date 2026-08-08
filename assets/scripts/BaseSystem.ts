@@ -69,19 +69,19 @@ export class BaseSystem extends Component {
     maxBaseHpByLevel: number[] = [1000, 600, 700, 800, 1000];
 
     @property({ type: [CCInteger], tooltip: '升级所需木头 (Lv1→2, Lv2→3, Lv3→4, Lv4→5)' })
-    upgradeWood: number[] = [100, 250, 250, 500];
+    upgradeWood: number[] = [40, 80, 130, 180];
 
     @property({ type: [CCInteger], tooltip: '升级所需铜矿 (Lv1→2, Lv2→3, Lv3→4, Lv4→5)' })
-    upgradeCopper: number[] = [50, 125, 125, 250];
+    upgradeCopper: number[] = [20, 40, 65, 90];
 
     @property({ type: [CCInteger], tooltip: '升级所需铁矿 (Lv1→2, Lv2→3, Lv3→4, Lv4→5)' })
-    upgradeIron: number[] = [20, 50, 50, 100];
+    upgradeIron: number[] = [10, 20, 32, 45];
 
     @property({ type: [CCInteger], tooltip: '升级所需美元 (Lv1→2, Lv2→3, Lv3→4, Lv4→5)' })
-    upgradeMoney: number[] = [800, 2000, 5000, 10000];
+    upgradeMoney: number[] = [0, 0, 0, 1000];
 
     @property({ type: [CCInteger], tooltip: '各等级基地自身耗电量 (Lv1-Lv5)' })
-    levelPowerCosts: number[] = [5, 10, 15, 20, 25];
+    levelPowerCosts: number[] = [0, 5, 10, 15, 20];
 
     @property({ type: Node, tooltip: '二级基地外观节点（SecondaryBase）' })
     secondaryBase: Node | null = null;
@@ -313,7 +313,7 @@ export class BaseSystem extends Component {
         const actualWood = Math.round(tier.wood * (1 - saveRate));
         const actualCopper = Math.round(tier.copper * (1 - saveRate));
         const actualIron = Math.round(tier.iron * (1 - saveRate));
-        const actualMoney = Math.round(tier.money * (1 - saveRate));
+        const actualMoney = tier.money;
 
         // 材料从仓库检查，金钱从背包检查
         const storage = GlobalContainerStorage.instance;
@@ -375,7 +375,7 @@ export class BaseSystem extends Component {
         const actualWood = Math.round(tier.wood * (1 - saveRate));
         const actualCopper = Math.round(tier.copper * (1 - saveRate));
         const actualIron = Math.round(tier.iron * (1 - saveRate));
-        const actualMoney = Math.round(tier.money * (1 - saveRate));
+        const actualMoney = tier.money;
 
         // 材料从仓库扣除，金钱从背包扣除
         const storage = GlobalContainerStorage.instance;

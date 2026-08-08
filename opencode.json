@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "cocos-creator": {
+      "type": "remote",
+      "url": "http://127.0.0.1:10809/mcp",
+      "enabled": true
+    }
+  }
+}

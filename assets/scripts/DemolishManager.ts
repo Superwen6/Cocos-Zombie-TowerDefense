@@ -32,6 +32,12 @@ export class DemolishManager extends Component {
     private readonly _worldVec = new Vec3();
     private _audioSource: AudioSource | null = null;
 
+    // 集装箱缓存：避免每帧鼠标移动都 getComponentsInChildren 全场景扫描
+    private _containers: Container[] = [];
+    private _containersDirty = true;
+    // 鼠标节流：位移过小的事件直接跳过，降低高频 MOUSE_MOVE 带来的开销
+    private readonly _lastMouse = { x: Number.MIN_SAFE_INTEGER, y: Number.MIN_SAFE_INTEGER };
+
     start() {
         this._audioSource = this.node.addComponent(AudioSource);
         this._audioSource.loop = false;
@@ -65,6 +71,9 @@ export class DemolishManager extends Component {
         // 取消当前放置模式，防止两个模式冲突
         TurretPlacementManager.instance?.cancelPlacementPublic();
         this._isDemolishMode = true;
+        this._containersDirty = true;
+        this._lastMouse.x = Number.MIN_SAFE_INTEGER;
+        this._lastMouse.y = Number.MIN_SAFE_INTEGER;
         ReinforcementNotice.show('进入拆除模式，点击建筑拆除返还资源，点击空地/右键/ESC取消');
     }
 
@@ -72,11 +81,27 @@ export class DemolishManager extends Component {
     public exitDemolishMode() {
         this._isDemolishMode = false;
         this.clearHighlight();
+        this._containers.length = 0;
+    }
+
+    /** 懒刷新集装箱缓存（进入拆除模式或拆除后置脏，鼠标查询时重建一次） */
+    private refreshContainers() {
+        if (!this._containersDirty) return;
+        this._containersDirty = false;
+        const scene = director.getScene();
+        this._containers = scene ? scene.getComponentsInChildren(Container) : [];
     }
 
     private onMouseMove(event: EventMouse) {
         if (!this._isDemolishMode) return;
-        const worldPos = this.screenToWorld(event.getLocationX(), event.getLocationY());
+        const x = event.getLocationX();
+        const y = event.getLocationY();
+        // 鼠标位置几乎没变时跳过，避免高频事件导致每帧重复做全场景/列表查询
+        if (Math.abs(x - this._lastMouse.x) < 2 && Math.abs(y - this._lastMouse.y) < 2) return;
+        this._lastMouse.x = x;
+        this._lastMouse.y = y;
+
+        const worldPos = this.screenToWorld(x, y);
         if (!worldPos) {
             this.clearHighlight();
             return;
@@ -137,17 +162,14 @@ export class DemolishManager extends Component {
             }
         }
 
-        // 3. 检测集装箱（遍历场景中所有 Container 组件）
-        const scene = director.getScene();
-        if (scene) {
-            const containers = scene.getComponentsInChildren(Container);
-            for (const container of containers) {
-                if (!container || !container.isValid || !container.isPlaced || container.hp <= 0) continue;
-                const cPos = container.node.worldPosition;
-                const dist = Vec3.distance(worldPos, cPos);
-                if (dist < PLANT_CLICK_RADIUS) {
-                    return container.node;
-                }
+        // 3. 检测集装箱（使用缓存列表，避免每帧全场景扫描）
+        this.refreshContainers();
+        for (const container of this._containers) {
+            if (!container || !container.isValid || !container.isPlaced || container.hp <= 0) continue;
+            const cPos = container.node.worldPosition;
+            const dist = Vec3.distance(worldPos, cPos);
+            if (dist < PLANT_CLICK_RADIUS) {
+                return container.node;
             }
         }
 
@@ -193,6 +215,9 @@ export class DemolishManager extends Component {
             warn('[DemolishManager] 节点上无 Turret、PlantGenerator 或 Container 组件');
             return;
         }
+
+        // 建筑被拆除，集装箱缓存置脏，下次查询时重建
+        this._containersDirty = true;
 
         // 返还资源：优先使用 MaterialRetun 升级的返还比例，否则使用默认 demolishRefundRate
         const data = PlayerData.instance;

@@ -1,5 +1,5 @@
 import { _decorator, Button, Component, Label, Node, director, find, warn } from 'cc';
-import { SaveSystem } from './SaveSystem';
+import { SaveSlotPanelUI } from './SaveSlotPanelUI';
 
 const { ccclass, property } = _decorator;
 
@@ -118,14 +118,13 @@ export class SettingPanelUI extends Component {
         }
     }
 
-    /** 存储游戏进度 */
+    /** 存储游戏进度：打开多槽位存档面板 */
     private onSaveGame() {
-        const success = SaveSystem.save();
-        if (success) {
-            console.log('[SettingPanelUI] 游戏已保存');
-            this.showSaveNotice();
+        const inst = SaveSlotPanelUI.openSavePanel();
+        if (inst) {
+            console.log('[SettingPanelUI] 已打开存档面板');
         } else {
-            console.warn('[SettingPanelUI] 保存失败');
+            console.warn('[SettingPanelUI] 未找到存档面板实例');
         }
     }
 

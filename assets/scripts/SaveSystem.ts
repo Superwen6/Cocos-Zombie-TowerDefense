@@ -16,6 +16,37 @@ import { director, instantiate, Node, Prefab, Component } from 'cc';
 const SAVE_KEY = 'game_save_v1';
 const PENDING_LOAD_KEY = 'game_pending_load';
 
+/** 存档槽位数量 */
+export const SAVE_SLOT_COUNT = 4;
+
+/** 槽位 → localStorage 键（槽位0使用旧键名，兼容历史存档） */
+function slotKey(slot: number): string {
+    return slot <= 0 ? SAVE_KEY : `${SAVE_KEY}_slot${slot}`;
+}
+
+/** 读取槽位存档的显示信息（无存档返回 null） */
+export interface SlotSaveInfo {
+    timestamp: number;
+    day: number;
+}
+
+/** 获取槽位的存档概要信息 */
+export function getSlotSaveInfo(slot: number): SlotSaveInfo | null {
+    try {
+        const raw = localStorage.getItem(slotKey(slot));
+        if (!raw) return null;
+        const data = JSON.parse(raw) as SaveData;
+        return { timestamp: data.timestamp ?? 0, day: data.dayNight?.currentDay ?? 1 };
+    } catch (e) {
+        return null;
+    }
+}
+
+/** 槽位是否有存档 */
+export function hasSlotSave(slot: number): boolean {
+    return localStorage.getItem(slotKey(slot)) !== null;
+}
+
 /** 建筑保存数据 */
 export interface BuildingSaveData {
     /** 建筑类型 */
@@ -84,6 +115,13 @@ export interface SaveData {
         powerSaveRate: number;
         attackDamageMultiplier: number;
         weaponMode: boolean;
+        /** 死亡状态（死亡倒计时期间存档） */
+        isDead: boolean;
+        /** 存档时刻剩余复活秒数（避免墙钟把主菜单/加载耗时误算入） */
+        respawnRemaining: number;
+        /** 死亡时刻（墙钟 ms），仅作旧存档兜底 */
+        deathWallTime: number;
+        deathCount: number;
     };
     playerData: {
         money: number;
@@ -104,8 +142,11 @@ export interface SaveData {
         storedWood: number;
         storedCopper: number;
         storedIron: number;
+        tipShown: boolean;
     };
     zombies: ZombieSaveData[];
+    /** BOSS2 是否已生成（第5天初始生成1只，死亡后不刷新） */
+    boss2Spawned: boolean;
     /** 建筑（炮塔/发电机/集装箱） */
     buildings: BuildingSaveData[];
     /** 地图资源矿点（木/铁/铜） */
@@ -123,8 +164,8 @@ export interface SaveData {
 }
 
 export class SaveSystem {
-    /** 保存当前游戏进度 */
-    static save(): boolean {
+    /** 保存当前游戏进度到指定槽位（默认槽位0，兼容旧存档） */
+    static save(slot = 0): boolean {
         const ps = PlayerState.instance;
         const pd = PlayerData.instance;
         const bs = BaseSystem.instance;
@@ -177,6 +218,10 @@ export class SaveSystem {
                 powerSaveRate: ps.powerSaveRate,
                 attackDamageMultiplier: ps.attackDamageMultiplier,
                 weaponMode: ps.weaponMode,
+                isDead: ps.isDead,
+                respawnRemaining: ps.respawnTimer,
+                deathWallTime: ps.deathWallTime,
+                deathCount: ps.deathCount,
             },
             playerData: {
                 money: pd.money,
@@ -197,8 +242,10 @@ export class SaveSystem {
                 storedWood: cs ? cs.storedWood : 0,
                 storedCopper: cs ? cs.storedCopper : 0,
                 storedIron: cs ? cs.storedIron : 0,
+                tipShown: cs ? cs.firstContainerTipShown : false,
             },
             zombies: EnemyManager.getZombieData(),
+            boss2Spawned: EnemyManager.isBoss2Spawned(),
             buildings: SaveSystem.getBuildingData(),
             resources: SaveSystem.getResourceData(),
             upgradeLevels: AttributeUpgradePanel.getUpgradeLevels(),
@@ -209,8 +256,8 @@ export class SaveSystem {
         };
 
         try {
-            localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-            console.log('[SaveSystem] 游戏已保存');
+            localStorage.setItem(slotKey(slot), JSON.stringify(data));
+            console.log(`[SaveSystem] 游戏已保存到槽位 ${slot}`);
             return true;
         } catch (e) {
             console.error('[SaveSystem] 保存失败:', e);
@@ -218,15 +265,15 @@ export class SaveSystem {
         }
     }
 
-    /** 是否有存档 */
-    static hasSave(): boolean {
-        return localStorage.getItem(SAVE_KEY) !== null;
+    /** 指定槽位是否有存档 */
+    static hasSave(slot = 0): boolean {
+        return localStorage.getItem(slotKey(slot)) !== null;
     }
 
-    /** 读取存档数据 */
-    static load(): SaveData | null {
+    /** 读取指定槽位的存档数据 */
+    static load(slot = 0): SaveData | null {
         try {
-            const raw = localStorage.getItem(SAVE_KEY);
+            const raw = localStorage.getItem(slotKey(slot));
             if (!raw) return null;
             return JSON.parse(raw) as SaveData;
         } catch (e) {
@@ -235,14 +282,14 @@ export class SaveSystem {
         }
     }
 
-    /** 删除存档 */
-    static deleteSave(): void {
-        localStorage.removeItem(SAVE_KEY);
+    /** 删除指定槽位的存档 */
+    static deleteSave(slot = 0): void {
+        localStorage.removeItem(slotKey(slot));
     }
 
-    /** 标记：下次进入 1.scene 时应加载存档 */
-    static markPendingLoad(): void {
-        localStorage.setItem(PENDING_LOAD_KEY, '1');
+    /** 标记：下次进入 1.scene 时应加载指定槽位的存档 */
+    static markPendingLoad(slot = 0): void {
+        localStorage.setItem(PENDING_LOAD_KEY, String(slot));
     }
 
     /** 检查是否有待加载的存档 */
@@ -250,10 +297,13 @@ export class SaveSystem {
         return localStorage.getItem(PENDING_LOAD_KEY) !== null;
     }
 
-    /** 消费待加载标记并返回存档数据 */
+    /** 消费待加载标记并返回指定槽位的存档数据 */
     static consumePendingLoad(): SaveData | null {
+        const raw = localStorage.getItem(PENDING_LOAD_KEY);
         localStorage.removeItem(PENDING_LOAD_KEY);
-        return SaveSystem.load();
+        if (raw === null) return null;
+        const slot = Number(raw);
+        return SaveSystem.load(Number.isFinite(slot) ? slot : 0);
     }
 
     /** 应用存档数据到各系统 */
@@ -268,6 +318,9 @@ export class SaveSystem {
             console.warn('[SaveSystem] 应用存档失败：核心系统未就绪');
             return;
         }
+
+        // 恢复 BOSS2 已生成标志（需在 forcePhase 触发 onPhaseChanged 之前设置，避免第5天误重新生成）
+        EnemyManager.setBoss2SpawnedFlag(!!data.boss2Spawned);
 
         // 恢复 PlayerState
         const s = data.playerState;
@@ -302,6 +355,9 @@ export class SaveSystem {
         ps.powerSaveRate = s.powerSaveRate;
         ps.attackDamageMultiplier = s.attackDamageMultiplier;
         ps.weaponMode = s.weaponMode;
+        // 死亡状态：旧存档缺失标志时只要 hp<=0 即为死亡；用死亡时刻墙钟精确恢复剩余倒计时
+        const isDead = !!s.isDead || s.hp <= 0;
+        ps.applyDeathOnLoad(isDead, s.deathCount ?? 0, s.respawnRemaining ?? 0, s.deathWallTime ?? 0);
 
         // 恢复 PlayerData
         const d = data.playerData;
@@ -342,6 +398,7 @@ export class SaveSystem {
             cs.storedWood = c.storedWood;
             cs.storedCopper = c.storedCopper;
             cs.storedIron = c.storedIron;
+            cs.firstContainerTipShown = c.tipShown ?? false;
         }
 
         // 恢复僵尸
@@ -487,6 +544,8 @@ export class SaveSystem {
                     node = instantiate(prefab);
                     node.setParent(root);
                     node.setPosition(bd.localX, bd.localY, 0);
+                    // 建造时虚影被强制 setScale(1,1,1)，读档需保持一致，否则机枪炮塔(预制体根scale=0.3)读档后贴图变小
+                    node.setScale(1, 1, 1);
                     const turret = node.getComponent(Turret);
                     if (turret) {
                         turret.enabled = true;
@@ -505,8 +564,9 @@ export class SaveSystem {
                                 t.damage = (t.damage ?? 10) * 1.5;
                             }, 0);
                         }
-                        // 恢复强化外观
+                        // 恢复强化外观 + 登记新节点 uuid（重新实例化后 uuid 会变，否则下次存档判定不到强化状态）
                         AttributeUpgradePanel.applyReinforceVisual(node);
+                        AttributeUpgradePanel.registerReinforcedTurretId(node.uuid);
                     }
                     break;
                 }

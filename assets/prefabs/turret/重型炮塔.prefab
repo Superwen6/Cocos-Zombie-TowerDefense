@@ -87,7 +87,7 @@
       "__id__": 1
     },
     "_children": [],
-    "_active": false,
+    "_active": true,
     "_components": [
       {
         "__id__": 3
@@ -102,7 +102,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": 54.662,
+      "y": 75,
       "z": 0
     },
     "_lrot": {
@@ -142,8 +142,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 52.1513671875,
-      "height": 50.4
+      "width": 56.1513671875,
+      "height": 54.4
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -173,9 +173,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 0,
-      "g": 0,
-      "b": 0,
+      "r": 255,
+      "g": 255,
+      "b": 255,
       "a": 255
     },
     "_string": "HpLabel",
@@ -195,7 +195,7 @@
     "_isUnderline": false,
     "_underlineHeight": 2,
     "_cacheMode": 0,
-    "_enableOutline": false,
+    "_enableOutline": true,
     "_outlineColor": {
       "__type__": "cc.Color",
       "r": 0,
@@ -1006,15 +1006,15 @@
     "__prefab": {
       "__id__": 43
     },
-    "costWood": 80,
-    "costCopper": 80,
-    "costIron": 80,
+    "costWood": 12,
+    "costCopper": 7,
+    "costIron": 4,
     "costMoney": 0,
-    "powerCost": 1,
-    "maxHp": 150,
-    "damage": 2,
-    "attackInterval": 1,
-    "attackRange": 400,
+    "powerCost": 3,
+    "maxHp": 180,
+    "damage": 66,
+    "attackInterval": 1.5,
+    "attackRange": 350,
     "bulletPrefab": {
       "__uuid__": "70f289cd-3c40-4f89-995f-7c9c5f5cf0c5",
       "__expectedType__": "cc.Prefab"
@@ -1027,7 +1027,7 @@
     },
     "muzzleOffset": 40,
     "barrelDefaultAngle": 180,
-    "rotationSpeed": 40,
+    "rotationSpeed": 35,
     "colliderHalfW": 30,
     "colliderHalfH": 30,
     "enableDualShot": false,

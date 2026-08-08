@@ -87,7 +87,7 @@
       "__id__": 1
     },
     "_children": [],
-    "_active": false,
+    "_active": true,
     "_components": [
       {
         "__id__": 3
@@ -102,7 +102,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": 54.662,
+      "y": 75,
       "z": 0
     },
     "_lrot": {
@@ -142,8 +142,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 52.1513671875,
-      "height": 50.4
+      "width": 56.1513671875,
+      "height": 54.4
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -173,9 +173,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 0,
-      "g": 0,
-      "b": 0,
+      "r": 255,
+      "g": 255,
+      "b": 255,
       "a": 255
     },
     "_string": "HpLabel",
@@ -195,7 +195,7 @@
     "_isUnderline": false,
     "_underlineHeight": 2,
     "_cacheMode": 0,
-    "_enableOutline": false,
+    "_enableOutline": true,
     "_outlineColor": {
       "__type__": "cc.Color",
       "r": 0,
@@ -901,7 +901,10 @@
       "y": 80,
       "z": 0
     },
-    "buildProgressSound": null,
+    "buildProgressSound": {
+      "__uuid__": "0ff0b1f0-3ae2-4e46-9cce-a2b07c7faf6a",
+      "__expectedType__": "cc.AudioClip"
+    },
     "_id": ""
   },
   {
@@ -1003,17 +1006,17 @@
     "__prefab": {
       "__id__": 43
     },
-    "costWood": 0,
-    "costCopper": 0,
-    "costIron": 0,
+    "costWood": 32,
+    "costCopper": 16,
+    "costIron": 8,
     "costMoney": 0,
-    "powerCost": 1,
+    "powerCost": 10,
     "maxHp": 150,
-    "damage": 1,
-    "attackInterval": 0.1,
-    "attackRange": 500,
+    "damage": 15,
+    "attackInterval": 0.4,
+    "attackRange": 250,
     "bulletPrefab": {
-      "__uuid__": "1d6466a5-ddf5-4dc3-a7d8-dec9a81c92ba",
+      "__uuid__": "238ecbc2-c945-48fa-a81d-43fa651d9cb5",
       "__expectedType__": "cc.Prefab"
     },
     "hpLabel": {
@@ -1029,8 +1032,8 @@
     "colliderHalfH": 35,
     "enableDualShot": false,
     "dualShotSpread": 20,
-    "homingBullet": true,
-    "piercingBullet": false,
+    "homingBullet": false,
+    "piercingBullet": true,
     "destroySound": {
       "__uuid__": "58cd2542-c1a7-4ec9-b614-c1d2badc1589",
       "__expectedType__": "cc.AudioClip"
@@ -1061,7 +1064,7 @@
       "__id__": 45
     },
     "fireSound": {
-      "__uuid__": "195299fb-3503-401b-9c4c-b8fedf35e9d9",
+      "__uuid__": "9f407c6e-c60e-4ff5-8fa1-47f2df8d913e",
       "__expectedType__": "cc.AudioClip"
     },
     "maxDistance": 400,

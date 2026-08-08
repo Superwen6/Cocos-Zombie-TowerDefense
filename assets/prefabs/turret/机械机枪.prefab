@@ -87,7 +87,7 @@
       "__id__": 1
     },
     "_children": [],
-    "_active": false,
+    "_active": true,
     "_components": [
       {
         "__id__": 3
@@ -102,7 +102,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": 54.662,
+      "y": 87,
       "z": 0
     },
     "_lrot": {
@@ -142,8 +142,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 52.1513671875,
-      "height": 50.4
+      "width": 56.1513671875,
+      "height": 54.4
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -173,9 +173,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 0,
-      "g": 0,
-      "b": 0,
+      "r": 255,
+      "g": 255,
+      "b": 255,
       "a": 255
     },
     "_string": "HpLabel",
@@ -195,7 +195,7 @@
     "_isUnderline": false,
     "_underlineHeight": 2,
     "_cacheMode": 0,
-    "_enableOutline": false,
+    "_enableOutline": true,
     "_outlineColor": {
       "__type__": "cc.Color",
       "r": 0,
@@ -1006,17 +1006,17 @@
     "__prefab": {
       "__id__": 43
     },
-    "costWood": 0,
-    "costCopper": 0,
-    "costIron": 0,
+    "costWood": 44,
+    "costCopper": 22,
+    "costIron": 11,
     "costMoney": 0,
-    "powerCost": 1,
-    "maxHp": 150,
-    "damage": 20,
-    "attackInterval": 0.1,
-    "attackRange": 500,
+    "powerCost": 15,
+    "maxHp": 400,
+    "damage": 7,
+    "attackInterval": 0.13,
+    "attackRange": 800,
     "bulletPrefab": {
-      "__uuid__": "1d6466a5-ddf5-4dc3-a7d8-dec9a81c92ba",
+      "__uuid__": "45482186-27d3-41c2-8462-b9f799e2f801",
       "__expectedType__": "cc.Prefab"
     },
     "hpLabel": {
@@ -1027,7 +1027,7 @@
     },
     "muzzleOffset": 40,
     "barrelDefaultAngle": 90,
-    "rotationSpeed": 50,
+    "rotationSpeed": 130,
     "colliderHalfW": 35,
     "colliderHalfH": 35,
     "enableDualShot": true,
@@ -1064,7 +1064,7 @@
       "__id__": 45
     },
     "fireSound": {
-      "__uuid__": "880627d3-989b-4e0c-87d4-e6e3b46c1c71",
+      "__uuid__": "272f76f8-6fc6-42ac-9fed-3f4f0a7b2a2c",
       "__expectedType__": "cc.AudioClip"
     },
     "maxDistance": 400,
