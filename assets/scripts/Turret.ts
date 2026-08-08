@@ -142,6 +142,12 @@ export class Turret extends Component {
 
     private readonly _turretPos = new Vec3();
     private readonly _spawnPos = new Vec3();
+    private readonly _hitPos = new Vec3();
+    /** 视线检测冷却：冷却期内复用上次锁定目标，仅按约 3Hz 全量校验 */
+    private _losCooldown = 0;
+    /** 子弹预制体是否为激光束（首次发射时探测，避免每发实例化判断） */
+    private _bulletTypeChecked = false;
+    private _bulletIsLaser = false;
 
     start() {
         this.hp = this.maxHp;
@@ -192,6 +198,9 @@ export class Turret extends Component {
     update(dt: number) {
         if (this._attackSoundTimer > 0) {
             this._attackSoundTimer -= dt;
+        }
+        if (this._losCooldown > 0) {
+            this._losCooldown -= dt;
         }
         if (this.hp <= 0) {
             return;
@@ -339,25 +348,43 @@ export class Turret extends Component {
     }
 
     private findClosestZombieInRange(): ZombieMove | null {
-        const scene = this.node.scene;
-        if (!scene) {
+        const cw = CollisionWorld.instance;
+        if (!cw) {
             return null;
         }
 
+        // 视线检测降频：冷却期内跳过 LOS，直接沿用上次锁定目标（只要还在射程内且存活）
+        if (this._losCooldown > 0) {
+            const locked = this.lockedTarget;
+            if (locked?.node?.isValid && !locked.isDead && locked.hp > 0) {
+                locked.getHitWorldPosition(this._hitPos);
+                const dx = this._hitPos.x - this._turretPos.x;
+                const dy = this._hitPos.y - this._turretPos.y;
+                if (dx * dx + dy * dy <= this.attackRange * this.attackRange) {
+                    return locked;
+                }
+            }
+        }
+        this._losCooldown = 0.33; // 约 3Hz 全量视线校验
+
         this.node.getWorldPosition(this._turretPos);
-        const zombies: ZombieMove[] = [];
-        this.collectZombies(scene, zombies);
+        // 复用碰撞世界：僵尸注册的碰撞体按 Zombie 组缓存，避免遍历整个场景树
+        const colliders = cw.getCollidersByGroup(ColliderGroup.Zombie);
 
         let closest: ZombieMove | null = null;
         let minDist = Number.MAX_VALUE;
+        const rangeSq = this.attackRange * this.attackRange;
 
-        for (const zombie of zombies) {
-            if (!zombie.node.isValid || zombie.isDead || zombie.hp <= 0) {
+        for (const collider of colliders) {
+            const zombie = collider.node.getComponent(ZombieMove);
+            if (!zombie || !zombie.node.isValid || zombie.isDead || zombie.hp <= 0) {
                 continue;
             }
-            const zombiePos = zombie.getHitWorldPosition();
-            const dist = Vec3.distance(this._turretPos, zombiePos);
-            if (dist > this.attackRange || dist >= minDist) {
+            const zombiePos = zombie.getHitWorldPosition(this._hitPos);
+            const dx = zombiePos.x - this._turretPos.x;
+            const dy = zombiePos.y - this._turretPos.y;
+            const distSq = dx * dx + dy * dy;
+            if (distSq > rangeSq || distSq >= minDist) {
                 continue;
             }
             // 视线检测：炮塔与僵尸之间是否有墙体阻挡
@@ -366,21 +393,11 @@ export class Turret extends Component {
             )) {
                 continue; // 视线被挡，跳过该僵尸
             }
-            minDist = dist;
+            minDist = distSq;
             closest = zombie;
         }
 
         return closest;
-    }
-
-    private collectZombies(root: Node, out: ZombieMove[]) {
-        const zombie = root.getComponent(ZombieMove);
-        if (zombie) {
-            out.push(zombie);
-        }
-        for (const child of root.children) {
-            this.collectZombies(child, out);
-        }
     }
 
     private fireAt(target: ZombieMove) {
@@ -435,28 +452,34 @@ export class Turret extends Component {
             this._activeLaser.updateTarget(target.node);
             return;
         }
+        if (!this.bulletPrefab) {
+            return;
+        }
 
-        const bulletNode = instantiate(this.bulletPrefab!);
-        const laser = bulletNode.getComponent(LaserBeam);
-        if (laser) {
-            const pos = new Vec3(x, y, 0);
+        const pos = new Vec3(x, y, 0);
+
+        // 首次发射时判断子弹预制体是否为激光（一次性检查，避免每发实例化探测）
+        if (!this._bulletTypeChecked) {
+            this._bulletTypeChecked = true;
+            const probe = instantiate(this.bulletPrefab);
+            this._bulletIsLaser = !!probe.getComponent(LaserBeam);
+            probe.destroy();
+        }
+
+        if (this._bulletIsLaser) {
+            const bulletNode = instantiate(this.bulletPrefab);
+            const laser = bulletNode.getComponent(LaserBeam);
             LaserBeam.attachToWorld(bulletNode, pos);
             laser.init(target.node, this.muzzleNode ?? null, pos, this.damage, this.node, this.attackRange);
             this._activeLaser = laser;
             return;
         }
 
-        // 普通子弹：保持预制体原始缩放（曾用 setScale(0,0,1) 隐藏首帧默认角度，
+        // 普通子弹：走全局缓存池复用（保持预制体原始缩放；曾用 setScale(0,0,1) 隐藏首帧默认角度，
         // 但依赖 Bullet.init 的 setTimeout 恢复缩放；该恢复已移除，置 0 会导致贴图子弹永久不可见）
-        const pos = new Vec3(x, y, 0);
-        Bullet.attachToWorld(bulletNode, pos);
-
-        const bullet = bulletNode.getComponent(Bullet);
+        const bullet = Bullet.acquire(this.bulletPrefab, pos);
         if (bullet) {
             bullet.init(target.node, this.damage, this.node, this.homingBullet, this.piercingBullet);
-        } else {
-            warn('[Turret] 子弹预制体上未找到 Bullet 组件');
-            bulletNode.destroy();
         }
     }
 }

@@ -27,9 +27,15 @@ export class YSortManager extends Component {
     private _sortLayer: Node | null = null;
     private _gameWorld: Node | null = null;
     private _playerNode: Node | null = null;
+    /** 排序列表复用缓冲区（避免每帧分配数组） */
+    private readonly _sortList: { node: Node; y: number }[] = [];
 
     /** 记录从 Base 迁移到 YSortLayer 的节点 UUID（供 Blast 等逻辑排除） */
     private static _baseChildUUIDs: Set<string> = new Set();
+
+    /** 排序帧间隔（每 N 帧排序一次，降低全量排序与 setSiblingIndex 开销） */
+    private static readonly SORT_INTERVAL = 2;
+    private _frameCount = 0;
 
     onLoad() {
         if (YSortManager.instance && YSortManager.instance !== this) {
@@ -151,7 +157,16 @@ export class YSortManager extends Component {
             return;
         }
 
-        const sortList: { node: Node; y: number }[] = [];
+        // 降频：每 SORT_INTERVAL 帧排序一次；
+        // 未排序帧保持上一轮顺序（仅同帧内新生成的节点会留在末尾，视觉影响可忽略）
+        this._frameCount++;
+        if (this._frameCount % YSortManager.SORT_INTERVAL === 1) {
+            this.updateMapElementTransparency();
+            return;
+        }
+
+        const sortList = this._sortList;
+        sortList.length = 0;
         for (const child of this._sortLayer.children) {
             if (!child.isValid) {
                 continue;

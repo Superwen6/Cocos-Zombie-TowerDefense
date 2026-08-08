@@ -1,4 +1,4 @@
-import { _decorator, Component, director, Node, UITransform, Vec3 } from 'cc';
+import { _decorator, Component, director, Node, Prefab, UITransform, Vec3, instantiate } from 'cc';
 import { ZombieMove } from './ZombieMove';
 import { CollisionWorld, ColliderGroup } from './CollisionWorld';
 import { PlayerState } from './PlayerState';
@@ -11,6 +11,8 @@ import { Turret } from './Turret';
 const { ccclass, property } = _decorator;
 
 const HIT_RADIUS = 30;
+/** 每个子弹预制体的全局缓存池容量上限 */
+const MAX_POOL_SIZE = 24;
 
 @ccclass('Bullet')
 export class Bullet extends Component {
@@ -30,12 +32,19 @@ export class Bullet extends Component {
     private _lifetime = 0;
     private _homing = true;
     private _piercing = false;
-    /** 缓存池归属（Boss2 弹幕复用，其余为 null 直接销毁） */
+    /** 缓存池归属（Boss2 弹幕走 ZombieMove 私有池，普通子弹走全局预制体池） */
     private _poolOwner: ZombieMove | null = null;
+    /** 全局池归属（按预制体），非 null 时分推进全局池而非销毁 */
+    private _poolPrefab: Prefab | null = null;
     private readonly _hitZombies = new Set<ZombieMove>();
     private readonly _tempVec = new Vec3();
     private readonly _zombiePos = new Vec3();
     private readonly _initialDir = new Vec3();
+    private readonly _wp = new Vec3();
+
+    // ===== 全局子弹池（按预制体 UUID 分池，发射/销毁高频复用） =====
+    private static _pools: Map<string, Bullet[]> = new Map();
+    private static _poolRoot: Node | null = null;
 
     static attachToWorld(
         bulletNode: Node,
@@ -56,6 +65,91 @@ export class Bullet extends Component {
         }
     }
 
+    /** 从全局池获取一颗子弹（优先复用缓存实例），未命中时实例化兜底 */
+    static acquire(prefab: Prefab, worldPos: Vec3): Bullet | null {
+        if (!prefab) return null;
+        const key = prefab.uuid ?? prefab.name ?? '';
+        let bullet: Bullet | null = null;
+
+        const pool = Bullet._pools.get(key);
+        while (pool && pool.length > 0) {
+            const cand = pool.pop()!;
+            if (cand?.node?.isValid) {
+                bullet = cand;
+                break;
+            }
+        }
+
+        if (!bullet) {
+            const node = instantiate(prefab);
+            bullet = node.getComponent(Bullet);
+            if (!bullet) {
+                node.destroy();
+                return null;
+            }
+        }
+
+        bullet._poolPrefab = prefab;
+        Bullet.attachToWorld(bullet.node, worldPos);
+        bullet.node.active = true;
+        return bullet;
+    }
+
+    /** 回收子弹到全局池（失活挂到隐藏根节点下，复用节点避免频繁 instantiate/destroy） */
+    private returnToPool() {
+        const prefab = this._poolPrefab;
+        if (!prefab) return;
+        const key = prefab.uuid ?? prefab.name ?? '';
+        const node = this.node;
+
+        // 清理运行时引用，避免池中滞留
+        this._poolPrefab = null;
+        this._targetNode = null;
+        this._targetZombie = null;
+        this._attackerNode = null;
+        this._poolOwner = null;
+        this._damage = 0;
+        this._lifetime = 0;
+        this.hitPlayer = false;
+        this._hitZombies.clear();
+
+        node.active = false;
+        node.removeFromParent();
+        const root = Bullet.ensurePoolRoot();
+        if (!root) {
+            // 池根节点不可用（场景未就绪）：直接销毁
+            node.destroy();
+            return;
+        }
+        node.setParent(root);
+        node.setPosition(0, 0, 0);
+        node.setRotationFromEuler(0, 0, 0);
+
+        const pool = Bullet._pools.get(key);
+        if (pool && pool.length >= MAX_POOL_SIZE) {
+            node.destroy();
+            return;
+        }
+        if (!pool) {
+            Bullet._pools.set(key, [this]);
+        } else {
+            pool.push(this);
+        }
+    }
+
+    private static ensurePoolRoot(): Node | null {
+        if (Bullet._poolRoot?.isValid) return Bullet._poolRoot;
+        const scene = director.getScene();
+        const gameWorld = scene ? (scene.getChildByName('GameWorld') ?? scene) : null;
+        if (!gameWorld) return null;
+        const root = new Node('BulletPool');
+        root.active = false;
+        root.setParent(gameWorld);
+        root.setSiblingIndex(0);
+        Bullet._poolRoot = root;
+        return root;
+    }
+
     init(targetNode: Node | null, damage: number, attackerNode?: Node, homing = true, piercing = false) {
         this._targetNode = targetNode;
         this._targetZombie = targetNode?.getComponent(ZombieMove) ?? null;
@@ -65,6 +159,7 @@ export class Bullet extends Component {
         this._lifetime = 0;
         this._homing = homing;
         this._piercing = piercing;
+        this.hitPlayer = false;
         this._hitZombies.clear();
 
         // 非跟踪模式且有目标：记录初始发射方向（指向目标命中中心而非节点脚部，
@@ -91,15 +186,19 @@ export class Bullet extends Component {
         this._initialDir.normalize();
     }
 
-    /** 销毁或回收子弹（Boss2 弹幕走缓存池，其余直接销毁） */
+    /** 销毁或回收子弹（Boss2 弹幕走 ZombieMove 私有池，全局池子弹回收，其余直接销毁） */
     despawn() {
         if (!this.node?.isValid) return;
         const poolOwner = this._poolOwner && this._poolOwner.node?.isValid ? this._poolOwner : null;
         if (poolOwner) {
             poolOwner.recycleBoss2Bullet(this);
-        } else {
-            this.node.destroy();
+            return;
         }
+        if (this._poolPrefab) {
+            this.returnToPool();
+            return;
+        }
+        this.node.destroy();
     }
 
     update(dt: number) {
@@ -111,8 +210,11 @@ export class Bullet extends Component {
 
         this.bringToFront();
 
-        const bulletWP = this.node.worldPosition.clone();
-        let dir: Vec3;
+        const wp = this._wp;
+        this.node.getWorldPosition(wp);
+
+        let dirX: number;
+        let dirY: number;
 
         if (this._homing && this._targetNode?.isValid) {
             // 跟踪模式：每帧重新计算指向目标的方向
@@ -121,31 +223,38 @@ export class Bullet extends Component {
             } else {
                 this._targetNode.getWorldPosition(this._tempVec);
             }
-            dir = this._tempVec.clone().subtract(bulletWP);
-            const dist = dir.length();
-            dir.normalize();
+            dirX = this._tempVec.x - wp.x;
+            dirY = this._tempVec.y - wp.y;
+            const dist = Math.sqrt(dirX * dirX + dirY * dirY);
             if (dist < HIT_RADIUS) {
                 this.dealDamageToTarget();
                 if (this._piercing) {
                     // 穿透：目标已命中，继续沿当前方向飞行
                     this._targetNode = null;
                     this._targetZombie = null;
-                    this._initialDir.set(dir);
+                    this._initialDir.set(dirX, dirY, 0).normalize();
+                    dirX = this._initialDir.x;
+                    dirY = this._initialDir.y;
                 } else {
                     this.despawn();
                     return;
                 }
+            } else {
+                dirX /= dist;
+                dirY /= dist;
             }
         } else if (this._targetNode?.isValid) {
             // 非跟踪模式 + 有目标：沿初始方向直线飞行，检测与目标距离
-            dir = this._initialDir.clone();
+            dirX = this._initialDir.x;
+            dirY = this._initialDir.y;
             if (this._targetZombie) {
                 this._targetZombie.getHitWorldPosition(this._tempVec);
             } else {
                 this._targetNode.getWorldPosition(this._tempVec);
             }
-            const dist = Vec3.distance(bulletWP, this._tempVec);
-            if (dist < HIT_RADIUS) {
+            const dx = wp.x - this._tempVec.x;
+            const dy = wp.y - this._tempVec.y;
+            if (dx * dx + dy * dy < HIT_RADIUS * HIT_RADIUS) {
                 this.dealDamageToTarget();
                 if (this._piercing) {
                     // 穿透：目标已命中，继续沿初始方向飞行
@@ -158,13 +267,16 @@ export class Bullet extends Component {
             }
         } else {
             // 无目标模式：沿初始方向飞行，仅靠碰撞检测
-            dir = this._initialDir.clone();
+            dirX = this._initialDir.x;
+            dirY = this._initialDir.y;
             // Boss2 弹幕：检测命中玩家
             if (this.hitPlayer) {
                 const player = PlayerState.instance;
                 if (player && player.isAlive && player.node?.isValid) {
                     const playerPos = player.node.worldPosition;
-                    if (Vec3.distance(bulletWP, playerPos) < HIT_RADIUS) {
+                    const pdx = wp.x - playerPos.x;
+                    const pdy = wp.y - playerPos.y;
+                    if (pdx * pdx + pdy * pdy < HIT_RADIUS * HIT_RADIUS) {
                         player.takeDamage(this._damage);
                         this.despawn();
                         return;
@@ -174,8 +286,8 @@ export class Bullet extends Component {
         }
 
         const step = this.speed * dt;
-        const nextX = bulletWP.x + dir.x * step;
-        const nextY = bulletWP.y + dir.y * step;
+        const nextX = wp.x + dirX * step;
+        const nextY = wp.y + dirY * step;
 
         // 检测墙体碰撞（子弹碰撞体半宽半高设为 3x3）
         const hit = CollisionWorld.instance?.checkHit(nextX, nextY, 3, 3, [ColliderGroup.Wall]);
@@ -193,8 +305,8 @@ export class Bullet extends Component {
         }
 
         // 弹头始终指向飞行方向：精灵贴图默认朝上，需要旋转 -90° 对齐 x 轴正方向
-        const angle = Math.atan2(dir.y, dir.x) * 180 / Math.PI - 90;
-        this.node.eulerAngles = new Vec3(0, 0, angle);
+        const angle = Math.atan2(dirY, dirX) * 180 / Math.PI - 90;
+        this.node.setRotationFromEuler(0, 0, angle);
 
         this.checkPenetrationHits();
     }
@@ -251,20 +363,21 @@ export class Bullet extends Component {
         // Boss2 弹幕（hitPlayer 模式）：仅命中玩家，不误伤其他僵尸
         if (this.hitPlayer) return;
 
-        const scene = this.node.scene;
-        if (!scene) return;
+        const cw = CollisionWorld.instance;
+        if (!cw) return;
 
-        const zombies: ZombieMove[] = [];
-        this.collectZombies(scene, zombies);
-
-        for (const zombie of zombies) {
-            if (zombie === this._targetZombie) continue;
+        // 用碰撞网格查询附近碰撞体，避免每帧遍历整个场景树
+        const nearby = cw.queryCollidersNear(this.node.worldPosition, HIT_RADIUS, ColliderGroup.Zombie);
+        for (const collider of nearby) {
+            const zombie = collider.node?.getComponent(ZombieMove);
+            if (!zombie || zombie === this._targetZombie) continue;
             if (this._hitZombies.has(zombie)) continue;
             if (!zombie.node.isValid || zombie.isDead || zombie.hp <= 0) continue;
 
             zombie.getHitWorldPosition(this._zombiePos);
-            const d = Vec3.distance(this.node.worldPosition, this._zombiePos);
-            if (d < HIT_RADIUS) {
+            const dx = this._wp.x - this._zombiePos.x;
+            const dy = this._wp.y - this._zombiePos.y;
+            if (dx * dx + dy * dy < HIT_RADIUS * HIT_RADIUS) {
                 this._hitZombies.add(zombie);
                 zombie.takeDamage(this._damage, this._attackerNode ?? undefined);
             }
@@ -274,16 +387,6 @@ export class Bullet extends Component {
     private dealDamageToTarget() {
         if (this._targetZombie?.isValid && !this._targetZombie.isDead) {
             this._targetZombie.takeDamage(this._damage, this._attackerNode ?? undefined);
-        }
-    }
-
-    private collectZombies(root: Node, out: ZombieMove[]) {
-        const zombie = root.getComponent(ZombieMove);
-        if (zombie) {
-            out.push(zombie);
-        }
-        for (const child of root.children) {
-            this.collectZombies(child, out);
         }
     }
 

@@ -13,7 +13,6 @@ import {
     find,
     input,
     Input,
-    instantiate,
     KeyCode,
     Node,
     Prefab,
@@ -684,10 +683,7 @@ export class PlayerController extends Component {
         if (dir.lengthSqr() < 0.01) return;
         dir.normalize();
 
-        const bulletNode = instantiate(this.weaponBulletPrefab);
-        Bullet.attachToWorld(bulletNode, playerPos.clone());
-
-        const bullet = bulletNode.getComponent(Bullet);
+        const bullet = Bullet.acquire(this.weaponBulletPrefab, playerPos.clone());
         if (bullet) {
             bullet.setDirection(dir);
             bullet.init(null, state.weaponDamage, this.node, false);

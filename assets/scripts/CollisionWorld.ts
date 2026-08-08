@@ -15,6 +15,8 @@ export interface Collider2D {
     group: ColliderGroup;
     /** 碰撞中心相对节点位置的 Y 偏移（贴图锚点在脚部时上移到贴图中心） */
     offsetY: number;
+    /** 内部：查询去重代次标记（CollisionWorld 管理，忽略） */
+    __epoch?: number;
 }
 
 export enum ColliderGroup {
@@ -71,9 +73,21 @@ export class CollisionWorld extends Component {
     private _colliders: Collider2D[] = [];
 
     // ===== 空间哈希网格（性能优化：O(1) 附近碰撞体查询） =====
+    /**
+     * 网格增量更新：仅 register/unregister 时整网格重建；
+     * 每帧只把「单元格发生变化的碰撞体」迁移到新格，避免每帧全量重建。
+     */
     private _gridDirty = true;
+    private _epochTick = 0;
     private readonly _grid = new Map<number, Collider2D[]>();
     private readonly _groupCache = new Map<ColliderGroup, Collider2D[]>();
+    /** 上次重建时每个碰撞体所在单元格（增量迁移用） */
+    private readonly _cellOf = new Map<Collider2D, number>();
+
+    // ===== 查询复用缓冲区（避免每帧数组/Set 分配） =====
+    private readonly _nearbyScratch: Collider2D[] = [];
+    /** resolveMove 结果复用（避免每帧对象分配） */
+    private readonly _scratchResult = { x: 0, y: 0 };
 
     onLoad() {
         CollisionWorld.instance = this;
@@ -85,9 +99,39 @@ export class CollisionWorld extends Component {
         }
     }
 
-    /** 每帧结束时标记网格脏，下一帧首次查询时重建 */
+    /**
+     * 每帧结束：增量同步碰撞体单元格（仅迁移位置变化的碰撞体，不做全量重建）。
+     */
     lateUpdate() {
-        this._gridDirty = true;
+        if (this._gridDirty) {
+            // register/unregister 已标记：延迟到首次查询时重建
+            return;
+        }
+        for (const c of this._colliders) {
+            if (!c.node?.isValid || !c.node.active) {
+                continue;
+            }
+            const key = CollisionWorld.cellKeyOf(c);
+            const oldKey = this._cellOf.get(c);
+            if (oldKey === key) {
+                continue;
+            }
+            if (oldKey !== undefined) {
+                const oldCell = this._grid.get(oldKey);
+                if (oldCell) {
+                    const idx = oldCell.indexOf(c);
+                    if (idx >= 0) oldCell.splice(idx, 1);
+                    if (oldCell.length === 0) this._grid.delete(oldKey);
+                }
+            }
+            let cell = this._grid.get(key);
+            if (!cell) {
+                cell = [];
+                this._grid.set(key, cell);
+            }
+            cell.push(c);
+            this._cellOf.set(c, key);
+        }
     }
 
     register(c: Collider2D) {
@@ -98,6 +142,7 @@ export class CollisionWorld extends Component {
     unregister(c: Collider2D) {
         const idx = this._colliders.indexOf(c);
         if (idx >= 0) this._colliders.splice(idx, 1);
+        this._cellOf.delete(c);
         this._gridDirty = true;
     }
 
@@ -107,19 +152,26 @@ export class CollisionWorld extends Component {
         return cx * GRID_KEY_MULT + cy;
     }
 
-    /** 惰性重建网格和分组缓存 */
+    private static cellKeyOf(c: Collider2D): number {
+        const wp = c.node.worldPosition;
+        const cx = Math.floor(wp.x / GRID_CELL_SIZE);
+        const cy = Math.floor((wp.y + c.offsetY) / GRID_CELL_SIZE);
+        return CollisionWorld.cellKey(cx, cy);
+    }
+
+    /** 惰性重建网格和分组缓存（仅 register/unregister 时触发） */
     private ensureGrid() {
         if (!this._gridDirty) return;
         this._grid.clear();
         this._groupCache.clear();
+        this._cellOf.clear();
 
         for (const c of this._colliders) {
             if (!c.node || !c.node.isValid || !c.node.active) continue;
 
-            const wp = c.node.worldPosition;
-            const cx = Math.floor(wp.x / GRID_CELL_SIZE);
-            const cy = Math.floor((wp.y + c.offsetY) / GRID_CELL_SIZE);
-            const key = CollisionWorld.cellKey(cx, cy);
+            const key = CollisionWorld.cellKeyOf(c);
+            this._cellOf.set(c, key);
+
             let cell = this._grid.get(key);
             if (!cell) {
                 cell = [];
@@ -139,12 +191,19 @@ export class CollisionWorld extends Component {
         this._gridDirty = false;
     }
 
-    /** 获取指定位置附近的碰撞体（用于碰撞检测，避免全量遍历） */
-    private getNearby(x: number, y: number, range: number): Collider2D[] {
+    /**
+     * 查询指定位置附近、可选指定碰撞组的碰撞体（空间网格，复用缓冲区）。
+     * @param group 为 null 时不过滤组
+     * 注意：返回共享缓冲区，调用方必须在本次查询结果使用完前不要再次查询。
+     */
+    private queryNearby(
+        x: number, y: number, range: number, group: ColliderGroup | null,
+    ): Collider2D[] {
         this.ensureGrid();
 
-        const result: Collider2D[] = [];
-        const seen = new Set<Collider2D>();
+        const result = this._nearbyScratch;
+        result.length = 0;
+        const tick = ++this._epochTick;
         const cellRange = Math.ceil(range / GRID_CELL_SIZE) + 1;
         const cx = Math.floor(x / GRID_CELL_SIZE);
         const cy = Math.floor(y / GRID_CELL_SIZE);
@@ -155,10 +214,14 @@ export class CollisionWorld extends Component {
                 const cell = this._grid.get(key);
                 if (cell) {
                     for (const c of cell) {
-                        if (!seen.has(c)) {
-                            seen.add(c);
-                            result.push(c);
+                        if (group !== null && c.group !== group) {
+                            continue;
                         }
+                        if (c.__epoch === tick) {
+                            continue;
+                        }
+                        c.__epoch = tick;
+                        result.push(c);
                     }
                 }
             }
@@ -166,7 +229,24 @@ export class CollisionWorld extends Component {
         return result;
     }
 
-    /** 获取指定碰撞组的所有碰撞体（使用网格缓存，O(1)） */
+    /** 获取指定位置附近的碰撞体（复用缓冲区，避免每帧数组/Set 分配） */
+    private getNearby(x: number, y: number, range: number): Collider2D[] {
+        return this.queryNearby(x, y, range, null);
+    }
+
+    /** 查询位置附近的指定组碰撞体（Boss2 弹幕 / 子弹穿透检测用） */
+    queryCollidersNear(
+        pos: Vec3, range: number, group: ColliderGroup,
+    ): Collider2D[] {
+        this.ensureGrid();
+
+        // 先写入共享缓冲区，再拷贝成独立数组返回：
+        // 调用方迭代期间可能触发嵌套碰撞查询（如 takeDamage），共享缓冲区会被覆盖
+        const nearby = this.queryNearby(pos.x, pos.y, range, group);
+        return nearby.slice();
+    }
+
+    /** 获取指定碰撞组的所有碰撞体（使用分组缓存） */
     getCollidersByGroup(group: ColliderGroup): Collider2D[] {
         this.ensureGrid();
         const list = this._groupCache.get(group);
@@ -216,7 +296,9 @@ export class CollisionWorld extends Component {
             cy = result.y;
         }
 
-        return { x: cx, y: cy };
+        this._scratchResult.x = cx;
+        this._scratchResult.y = cy;
+        return this._scratchResult;
     }
 
     /**
@@ -259,7 +341,9 @@ export class CollisionWorld extends Component {
             }
         }
 
-        return { x: resultX, y: resultY };
+        this._scratchResult.x = resultX;
+        this._scratchResult.y = resultY;
+        return this._scratchResult;
     }
 
     /**
