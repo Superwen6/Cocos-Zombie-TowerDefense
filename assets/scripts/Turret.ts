@@ -220,7 +220,7 @@ export class Turret extends Component {
         if (this.muzzleNode) {
             if (this.lockedTarget) {
                 const turretPos = this.muzzleNode.worldPosition;
-                const targetPos = this.lockedTarget.getHitWorldPosition();
+                const targetPos = this.lockedTarget.getHitWorldPosition(this._hitPos);
                 const dirX = targetPos.x - turretPos.x;
                 const dirY = targetPos.y - turretPos.y;
                 // 炮管视觉方向 = muzzleNode.angle + barrelDefaultAngle

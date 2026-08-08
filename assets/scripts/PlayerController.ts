@@ -138,6 +138,7 @@ export class PlayerController extends Component {
 
     private _moveDir = new Vec3();
     private _tempPos = new Vec3();
+    private _zombieHitPos = new Vec3();
     private _currentClip = '';
     private _collider: Collider2D | null = null;
 
@@ -933,7 +934,7 @@ export class PlayerController extends Component {
             if (!zombie.node.isValid || zombie.isDead || zombie.hp <= 0) {
                 continue;
             }
-            const dist = Vec3.distance(playerPos, zombie.getHitWorldPosition());
+            const dist = Vec3.distance(playerPos, zombie.getHitWorldPosition(this._zombieHitPos));
             if (dist <= this.hitRange && dist < minDist) {
                 minDist = dist;
                 closest = zombie;

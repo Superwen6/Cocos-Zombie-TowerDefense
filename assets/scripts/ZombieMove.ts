@@ -45,6 +45,21 @@ const WANDER_REPICK_INTERVAL = 4;
 /** 白天游荡：到达巡逻点判定距离 */
 const WANDER_ARRIVE_DIST = 30;
 
+/** 移动碰撞检测组（含 Zombie：僵尸之间相互推开） */
+const MOVE_BLOCK_GROUPS = [ColliderGroup.Zombie, ColliderGroup.Wall, ColliderGroup.Turret, ColliderGroup.Resource];
+/** 待机踱步碰撞检测组（不含 Zombie：不互相阻挡） */
+const IDLE_BLOCK_GROUPS = [ColliderGroup.Wall, ColliderGroup.Turret, ColliderGroup.Resource];
+/** 视线检测组（仅墙体阻挡） */
+const SIGHT_BLOCK_GROUPS = [ColliderGroup.Wall];
+
+/** 两点间距离平方（仅用于距离阈值比较，避免开方） */
+function distSq3(a: Vec3, b: Vec3): number {
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+    const dz = a.z - b.z;
+    return dx * dx + dy * dy + dz * dz;
+}
+
 /** 动画帧配置 */
 const WALK_FRAME_DURATION = 0.15;
 const DEATH_FRAME_DURATION = 0.15;
@@ -194,6 +209,7 @@ export class ZombieMove extends Component {
     private readonly _tempDir = new Vec3();
     private readonly _tempPos = new Vec3();
     private readonly _hitPos = new Vec3();
+    private readonly _shotDir = new Vec3();
 
     // 玩家记忆系统
     private readonly _lastKnownPlayerPos = new Vec3();
@@ -227,6 +243,10 @@ export class ZombieMove extends Component {
     private _landmarkScanned = false;
     /** 巡逻目标偏移量（相对 origin），每帧重算 target 以抵消 YSortLayer 移动 */
     private readonly _wanderTargetOffset = new Vec3();
+    private readonly _sideCands = [
+        { x: 0, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 0 },
+    ];
+    private readonly _sideFree: { x: number; y: number }[] = [];
 
     /** 是否处于夜间（游荡僵尸改为扫描玩家而非建筑） */
     private _isNight = false;
@@ -611,7 +631,7 @@ export class ZombieMove extends Component {
             const cw = CollisionWorld.instance;
             const hw = this.colliderHalfW;
             const hh = this.colliderHalfH;
-            const blockGroups = [ColliderGroup.Wall, ColliderGroup.Turret, ColliderGroup.Resource];
+            const blockGroups = IDLE_BLOCK_GROUPS;
             const hitX = toX;
             const hitY = toY + this.colliderOffsetY;
 
@@ -705,8 +725,8 @@ export class ZombieMove extends Component {
             return;
         }
 
-        const dist = Vec3.distance(this.node.worldPosition, playerNode.worldPosition);
-        if (dist > this.shotRange && this.shotFrames.length > 0 && this.shotBulletPrefab) {
+        const dist = distSq3(this.node.worldPosition, playerNode.worldPosition);
+        if (dist > this.shotRange * this.shotRange && this.shotFrames.length > 0 && this.shotBulletPrefab) {
             this._shotCooldownTimer = this.shotCooldown;
             // 记录进入射击前的状态，动画播完后恢复
             this._shotPrevState = this._aiState;
@@ -783,12 +803,12 @@ export class ZombieMove extends Component {
         const shotIndex = SHOT_BULLET_COUNT - this._shotBulletsToFire;
         const origin = this.getHitWorldPosition(this._tempPos);
         const angle = this._shotBaseAngle + shotIndex * SHOT_ANGLE_STEP;
-        const dir = new Vec3(Math.cos(angle), Math.sin(angle), 0);
+        this._shotDir.set(Math.cos(angle), Math.sin(angle), 0);
         // 复用预生成弹幕缓存，避免每颗新建粒子发射器导致卡顿
         const bulletComp = this.acquireBoss2Bullet(origin);
         if (!bulletComp) return;
         bulletComp.init(null, this.damage, this.node, false);
-        bulletComp.setDirection(dir);
+        bulletComp.setDirection(this._shotDir);
         bulletComp.hitPlayer = true;
         this._shotBulletsToFire--;
     }
@@ -990,11 +1010,12 @@ export class ZombieMove extends Component {
 
         const selfPos = this.node.worldPosition;
         let nearestNode: Node | null = null;
-        let nearestDist = this.wanderLandmarkScanRadius;
+        const scanRadiusSq = this.wanderLandmarkScanRadius * this.wanderLandmarkScanRadius;
+        let nearestDist = scanRadiusSq;
 
         for (const col of wallColliders) {
             if (!col.node?.isValid) continue;
-            const d = Vec3.distance(selfPos, col.node.worldPosition);
+            const d = distSq3(selfPos, col.node.worldPosition);
             if (d < nearestDist) {
                 nearestDist = d;
                 nearestNode = col.node;
@@ -1008,11 +1029,12 @@ export class ZombieMove extends Component {
     private scanForBuildings() {
         const selfPos = this.node.worldPosition;
         let nearest: Node | null = null;
-        let nearestDist = this.buildingScanRadius;
+        const scanRadiusSq = this.buildingScanRadius * this.buildingScanRadius;
+        let nearestDist = scanRadiusSq;
 
         const cachedBuildings = EnemyManager.getCachedBuildings();
         for (const node of cachedBuildings) {
-            const d = Vec3.distance(selfPos, node.worldPosition);
+            const d = distSq3(selfPos, node.worldPosition);
             if (d < nearestDist) {
                 nearestDist = d;
                 nearest = node;
@@ -1032,12 +1054,13 @@ export class ZombieMove extends Component {
         if (!playerNode || !this.isPlayerAlive()) return;
 
         const selfPos = this.node.worldPosition;
-        const distToPlayer = Vec3.distance(selfPos, playerNode.worldPosition);
-        if (distToPlayer > this.alertRadius * PlayerState.zombieAlertRadiusMultiplier) return;
+        const alertRangeSq = (this.alertRadius * PlayerState.zombieAlertRadiusMultiplier) ** 2;
+        const distToPlayer = distSq3(selfPos, playerNode.worldPosition);
+        if (distToPlayer > alertRangeSq) return;
 
         // 检查视线是否被墙阻挡
         const lineClear = CollisionWorld.instance?.isLineOfSightClear(
-            selfPos, playerNode.worldPosition, [ColliderGroup.Wall],
+            selfPos, playerNode.worldPosition, SIGHT_BLOCK_GROUPS,
         );
         if (!lineClear) return;
 
@@ -1053,11 +1076,12 @@ export class ZombieMove extends Component {
     private findNearestTurret(): Node | null {
         const selfPos = this.node.worldPosition;
         let nearest: Node | null = null;
-        let nearestDist = this.buildingScanRadius;
+        const scanRadiusSq = this.buildingScanRadius * this.buildingScanRadius;
+        let nearestDist = scanRadiusSq;
 
         const cachedTurrets = EnemyManager.getCachedTurrets();
         for (const turretNode of cachedTurrets) {
-            const d = Vec3.distance(selfPos, turretNode.worldPosition);
+            const d = distSq3(selfPos, turretNode.worldPosition);
             if (d < nearestDist) {
                 nearestDist = d;
                 nearest = turretNode;
@@ -1092,10 +1116,12 @@ export class ZombieMove extends Component {
         }
 
         const playerExists = playerNode != null && playerAlive;
-        const distToPlayer = playerExists ? Vec3.distance(selfPos, playerNode!.worldPosition) : Infinity;
-        const distToPlayerHit = playerExists ? Vec3.distance(this.getHitWorldPosition(this._hitPos), playerNode!.worldPosition) : Infinity;
+        const alertRangeSq = (this.alertRadius * PlayerState.zombieAlertRadiusMultiplier) ** 2;
+        const attackRangeSq = (this.attackRange + 5) ** 2;
+        const distToPlayerSq = playerExists ? distSq3(selfPos, playerNode!.worldPosition) : Infinity;
+        const distToPlayerHitSq = playerExists ? distSq3(this.getHitWorldPosition(this._hitPos), playerNode!.worldPosition) : Infinity;
         const lineClear = playerExists ? (CollisionWorld.instance?.isLineOfSightClear(
-            selfPos, playerNode!.worldPosition, [ColliderGroup.Wall],
+            selfPos, playerNode!.worldPosition, SIGHT_BLOCK_GROUPS,
         ) ?? false) : false;
 
         // ===== 死磕玩家状态：玩家隐身 / 超出视野范围且记忆耗尽 → 放弃追击 =====
@@ -1108,10 +1134,10 @@ export class ZombieMove extends Component {
 
             // 统一脱战规则：视野范围 = alertRadius。玩家在视野内且可见 → 刷新记忆；
             // 超出视野（距离过远或墙体遮挡）→ 记忆自然衰减，记忆耗尽则放弃追击。
-            const withinSight = distToPlayer <= this.alertRadius * PlayerState.zombieAlertRadiusMultiplier;
+            const withinSight = distToPlayerSq <= alertRangeSq;
 
             if (this._aiState === 'ATTACK_PLAYER') {
-                if (!lineClear || distToPlayerHit > this.attackRange + 5) {
+                if (!lineClear || distToPlayerHitSq > attackRangeSq) {
                     this._aiState = this._memoryTimer > 0 ? 'MEMORY_TRACK' : 'CHASE_PLAYER';
                     return;
                 }
@@ -1120,7 +1146,7 @@ export class ZombieMove extends Component {
             }
 
             // CHASE_PLAYER：进入攻击范围
-            if (lineClear && withinSight && distToPlayerHit <= this.attackRange + 5 && this._attackCooldown <= 0) {
+            if (lineClear && withinSight && distToPlayerHitSq <= attackRangeSq && this._attackCooldown <= 0) {
                 this._aiState = 'ATTACK_PLAYER';
                 this._attackCooldown = 0.3;
                 return;
@@ -1152,7 +1178,7 @@ export class ZombieMove extends Component {
                 this.returnToDefaultTarget();
                 return;
             }
-            if (lineClear && distToPlayer <= this.alertRadius * PlayerState.zombieAlertRadiusMultiplier) {
+            if (lineClear && distToPlayerSq <= alertRangeSq) {
                 this._lastKnownPlayerPos.set(playerNode!.worldPosition);
                 this._memoryTimer = MEMORY_DURATION;
                 this._aiState = 'CHASE_PLAYER';
@@ -1166,8 +1192,8 @@ export class ZombieMove extends Component {
                 this.returnToDefaultTarget();
                 return;
             }
-            const turretDist = Vec3.distance(this.getHitWorldPosition(this._hitPos), this.getEffectiveTargetPos(this._tempPos));
-            if (turretDist > this.attackRange + 5) {
+            const turretDist = distSq3(this.getHitWorldPosition(this._hitPos), this.getEffectiveTargetPos(this._tempPos));
+            if (turretDist > attackRangeSq) {
                 this._aiState = 'CHASE_TURRET';
                 return;
             }
@@ -1179,8 +1205,8 @@ export class ZombieMove extends Component {
                 this.returnToDefaultTarget();
                 return;
             }
-            const turretDist = Vec3.distance(this.getHitWorldPosition(this._hitPos), this.getEffectiveTargetPos(this._tempPos));
-            if (turretDist <= this.attackRange + 5 && this._attackCooldown <= 0) {
+            const turretDist = distSq3(this.getHitWorldPosition(this._hitPos), this.getEffectiveTargetPos(this._tempPos));
+            if (turretDist <= attackRangeSq && this._attackCooldown <= 0) {
                 this._aiState = 'ATTACK_TURRET';
                 this._attackCooldown = 0.3;
                 return;
@@ -1194,8 +1220,8 @@ export class ZombieMove extends Component {
                 this.returnToDefaultTarget();
                 return;
             }
-            const bDist = Vec3.distance(this.getHitWorldPosition(this._hitPos), this.getEffectiveTargetPos(this._tempPos));
-            if (bDist > this.attackRange + 5) {
+            const bDist = distSq3(this.getHitWorldPosition(this._hitPos), this.getEffectiveTargetPos(this._tempPos));
+            if (bDist > attackRangeSq) {
                 this._aiState = 'CHASE_BUILDING';
                 return;
             }
@@ -1207,8 +1233,8 @@ export class ZombieMove extends Component {
                 this.returnToDefaultTarget();
                 return;
             }
-            const bDist = Vec3.distance(this.getHitWorldPosition(this._hitPos), this.getEffectiveTargetPos(this._tempPos));
-            if (bDist <= this.attackRange + 5 && this._attackCooldown <= 0) {
+            const bDist = distSq3(this.getHitWorldPosition(this._hitPos), this.getEffectiveTargetPos(this._tempPos));
+            if (bDist <= attackRangeSq && this._attackCooldown <= 0) {
                 this._aiState = 'ATTACK_BUILDING';
                 this._attackCooldown = 0.3;
                 return;
@@ -1219,7 +1245,7 @@ export class ZombieMove extends Component {
         // ===== ATTACK_BASE =====
         if (this._aiState === 'ATTACK_BASE') {
             const bp = this.getEffectiveTargetPos(this._tempPos);
-            if (Vec3.distance(this.getHitWorldPosition(this._hitPos), bp) > this.attackRange + 5) {
+            if (distSq3(this.getHitWorldPosition(this._hitPos), bp) > attackRangeSq) {
                 this._aiState = 'CHASE_BASE';
                 return;
             }
@@ -1241,14 +1267,14 @@ export class ZombieMove extends Component {
 
         // ===== 夜间僵尸：看到玩家就追击（视觉发现，非玩家攻击，优先级低于炮塔） =====
         // 索敌与脱战统一使用 alertRadius：超出视野范围由记忆计时器兜底，无双半径冲突
-        if (playerExists && lineClear && distToPlayer <= this.alertRadius * PlayerState.zombieAlertRadiusMultiplier) {
+        if (playerExists && lineClear && distToPlayerSq <= alertRangeSq) {
             this._lastKnownPlayerPos.set(playerNode!.worldPosition);
             this._memoryTimer = MEMORY_DURATION;
             this._buildingTarget = null;
             this._hatedTurret = null;
             this._playerTaunted = false;  // 视觉发现 ≠ 玩家攻击嘲讽
 
-            if (distToPlayerHit <= this.attackRange + 5 && this._attackCooldown <= 0) {
+            if (distToPlayerHitSq <= attackRangeSq && this._attackCooldown <= 0) {
                 this._aiState = 'ATTACK_PLAYER';
                 this._attackCooldown = 0.3;
             } else {
@@ -1260,7 +1286,7 @@ export class ZombieMove extends Component {
         // ===== CHASE_BASE → 进入攻击范围 =====
         if (this._aiState === 'CHASE_BASE') {
             const targetPos = this.getEffectiveTargetPos(this._tempPos);
-            if (Vec3.distance(this.getHitWorldPosition(this._hitPos), targetPos) <= this.attackRange + 5 && this._attackCooldown <= 0) {
+            if (distSq3(this.getHitWorldPosition(this._hitPos), targetPos) <= attackRangeSq && this._attackCooldown <= 0) {
                 this._aiState = 'ATTACK_BASE';
                 this._attackCooldown = 0.3;
             }
@@ -1285,10 +1311,10 @@ export class ZombieMove extends Component {
         const selfPos = this.node.worldPosition;
         const center = this.getHitWorldPosition(this._hitPos);
         const targetPos = this.getEffectiveTargetPos(this._tempPos);
-        const dist = Vec3.distance(center, targetPos);
+        const dist = distSq3(center, targetPos);
 
         // 接近目标进入攻击
-        if (dist <= this.attackRange && this._attackCooldown <= 0) {
+        if (dist <= this.attackRange * this.attackRange && this._attackCooldown <= 0) {
             if (this._aiState === 'CHASE_BASE') {
                 this._aiState = 'ATTACK_BASE';
                 this._attackCooldown = 0.3;
@@ -1328,7 +1354,7 @@ export class ZombieMove extends Component {
         if (this._collider) {
             const hw = this.colliderHalfW;
             const hh = this.colliderHalfH;
-            const blockGroups = [ColliderGroup.Zombie, ColliderGroup.Wall, ColliderGroup.Turret, ColliderGroup.Resource];
+            const blockGroups = MOVE_BLOCK_GROUPS;
             const cw = CollisionWorld.instance;
             const hitX = toX;
             const hitY = toY + this.colliderOffsetY;
@@ -1383,18 +1409,18 @@ export class ZombieMove extends Component {
         const startX = baseX - dirX * step;
         const startY = baseY - dirY * step;
 
-        // 四个轴向候选：每次移动完整的 step
-        const cands = [
-            { x: startX + step, y: startY },
-            { x: startX - step, y: startY },
-            { x: startX, y: startY + step },
-            { x: startX, y: startY - step },
-        ];
+        // 四个轴向候选：每次移动完整的 step（复用预分配槽位，避免每帧分配）
+        const cands = this._sideCands;
+        cands[0].x = startX + step; cands[0].y = startY;
+        cands[1].x = startX - step; cands[1].y = startY;
+        cands[2].x = startX; cands[2].y = startY + step;
+        cands[3].x = startX; cands[3].y = startY - step;
 
-        const free: { x: number; y: number }[] = [];
-        for (const c of cands) {
-            if (!cw.checkHit(c.x, c.y, hw, hh, blockGroups, this._collider)) {
-                free.push(c);
+        const free = this._sideFree;
+        free.length = 0;
+        for (let i = 0; i < cands.length; i++) {
+            if (!cw.checkHit(cands[i].x, cands[i].y, hw, hh, blockGroups, this._collider)) {
+                free.push(cands[i]);
             }
         }
         if (free.length === 0) {
@@ -1462,7 +1488,7 @@ export class ZombieMove extends Component {
         const wp = this.node.worldPosition;
         const hw = this.colliderHalfW;
         const hh = this.colliderHalfH;
-        const blockGroups = [ColliderGroup.Zombie, ColliderGroup.Wall, ColliderGroup.Turret, ColliderGroup.Resource];
+        const blockGroups = MOVE_BLOCK_GROUPS;
         const cw = CollisionWorld.instance;
         for (let i = 0; i < 8; i++) {
             const angle = Math.random() * Math.PI * 2;
@@ -1649,8 +1675,8 @@ export class ZombieMove extends Component {
         );
 
         const selfPos = this.node.worldPosition;
-        const dist = Vec3.distance(selfPos, this._wanderTarget);
-        if (dist <= WANDER_ARRIVE_DIST) {
+        const dist = distSq3(selfPos, this._wanderTarget);
+        if (dist <= WANDER_ARRIVE_DIST * WANDER_ARRIVE_DIST) {
             this.pickNewWanderTarget();
             return;
         }
@@ -1670,7 +1696,7 @@ export class ZombieMove extends Component {
         if (this._collider) {
             const hw = this.colliderHalfW;
             const hh = this.colliderHalfH;
-            const blockGroups = [ColliderGroup.Zombie, ColliderGroup.Wall, ColliderGroup.Turret, ColliderGroup.Resource];
+            const blockGroups = MOVE_BLOCK_GROUPS;
             const cw = CollisionWorld.instance;
             const hitX = toX;
             const hitY = toY + this.colliderOffsetY;

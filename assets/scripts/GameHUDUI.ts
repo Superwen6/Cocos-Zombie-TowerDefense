@@ -310,12 +310,19 @@ export class GameHUDUI extends Component {
 
     // ── 资源掉落闪绿 ──
 
+    /** 缓存 HUD 实例，避免每次掉落事件都全场景查找 */
+    private static _hudInstance: GameHUDUI | null = null;
+
     /** 资源掉落时对应 Label 闪绿 */
     public static flashResourceGreen(type: 'wood' | 'copper' | 'iron' | 'money') {
-        // 从场景中查找 GameHUDUI 实例
+        // 从场景中查找 GameHUDUI 实例（带缓存）
         const scene = director.getScene();
         if (!scene) return;
-        const hud = scene.getComponentInChildren(GameHUDUI);
+        let hud = GameHUDUI._hudInstance;
+        if (!hud || !hud.isValid) {
+            hud = scene.getComponentInChildren(GameHUDUI);
+            GameHUDUI._hudInstance = hud;
+        }
         if (!hud) return;
 
         let label: Label | null = null;

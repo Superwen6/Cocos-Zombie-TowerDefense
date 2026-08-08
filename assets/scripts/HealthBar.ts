@@ -72,6 +72,17 @@ export class HealthBar extends Component {
     /** 绑定的建筑节点（通过 bindParent 设置） */
     private _boundNode: Node | null = null;
 
+    // 每帧缓存：绑定的建筑组件引用（首次解析后复用，避免每帧 getComponent 字符串查找）
+    private _cacheNode: Node | null = null;
+    private _cachedTurret: any = null;
+    private _cachedPlant: any = null;
+    private _cachedContainer: any = null;
+    private _isBaseCached = false;
+    private readonly _colorScratch = new Color();
+    private readonly _followPos = new Vec3();
+    private _cachedCanvas: Node | null = null;
+    private _cachedCanvasTransform: UITransform | null = null;
+
     /** 绑定建筑节点，之后血条将读取该节点的 hp/maxHp */
     public bindParent(parentNode: Node) {
         this._boundNode = parentNode;
@@ -151,17 +162,22 @@ export class HealthBar extends Component {
 
             const canvas = this.node.parent;
             if (canvas) {
-                const canvasTransform = canvas.getComponent(UITransform);
+                if (this._cachedCanvas !== canvas || !this._cachedCanvasTransform) {
+                    this._cachedCanvas = canvas;
+                    this._cachedCanvasTransform = canvas.getComponent(UITransform);
+                }
+                const canvasTransform = this._cachedCanvasTransform;
                 if (canvasTransform) {
                     const designSize = canvasTransform.contentSize;
                     const visibleSize = view.getVisibleSize();
                     const scaleX = designSize.width / visibleSize.width;
                     const scaleY = designSize.height / visibleSize.height;
-                    this.node.position = new Vec3(
+                    this._followPos.set(
                         (screenPos.x - visibleSize.width / 2) * scaleX + this.screenOffset.x,
                         (screenPos.y - visibleSize.height / 2) * scaleY + this.screenOffset.y,
                         0,
                     );
+                    this.node.position = this._followPos;
                 }
             }
         }
@@ -197,34 +213,34 @@ export class HealthBar extends Component {
     private syncHealth() {
         const parent = this._boundNode;
 
+        // 绑定节点变化时重新解析组件引用（首次或换建筑时），避免每帧 getComponent 查找
+        if (parent !== this._cacheNode) {
+            this._cacheNode = parent;
+            this._cachedTurret = parent?.getComponent('Turret') ?? null;
+            this._cachedPlant = parent?.getComponent('PlantGenerator') ?? null;
+            this._cachedContainer = parent?.getComponent('Container') ?? null;
+            this._isBaseCached = parent ? this.isBaseNode(parent) : false;
+        }
+
         let hp = -1;
         let max = this._maxHp;
 
-        if (parent) {
-            const turret = parent.getComponent('Turret') as any;
-            if (turret && typeof turret.hp === 'number') {
-                hp = turret.hp;
-                max = turret.maxHp || this._maxHp;
-            }
+        if (this._cachedTurret && this._cachedTurret.isValid && typeof this._cachedTurret.hp === 'number') {
+            hp = this._cachedTurret.hp;
+            max = this._cachedTurret.maxHp || this._maxHp;
         }
 
-        if (hp < 0 && parent) {
-            const plant = parent.getComponent('PlantGenerator') as any;
-            if (plant && typeof plant.hp === 'number') {
-                hp = plant.hp;
-                max = plant.maxHp || this._maxHp;
-            }
+        if (hp < 0 && this._cachedPlant && this._cachedPlant.isValid && typeof this._cachedPlant.hp === 'number') {
+            hp = this._cachedPlant.hp;
+            max = this._cachedPlant.maxHp || this._maxHp;
         }
 
-        if (hp < 0 && parent) {
-            const container = parent.getComponent('Container') as any;
-            if (container && typeof container.hp === 'number') {
-                hp = container.hp;
-                max = container.maxHp || this._maxHp;
-            }
+        if (hp < 0 && this._cachedContainer && this._cachedContainer.isValid && typeof this._cachedContainer.hp === 'number') {
+            hp = this._cachedContainer.hp;
+            max = this._cachedContainer.maxHp || this._maxHp;
         }
 
-        if (hp < 0 && (this.isBaseNode(parent) || this.followTarget?.name === 'Base')) {
+        if (hp < 0 && (this._isBaseCached || this.followTarget?.name === 'Base')) {
             // BaseSystem 是全局单例，挂在 GameManagers 上而非 Base 节点
             const baseSys = BaseSystem.instance;
             if (baseSys && typeof baseSys.baseHp === 'number') {
@@ -269,9 +285,9 @@ export class HealthBar extends Component {
     private updateBuildColor(progress: number) {
         if (!this.fillSprite) return;
         if (progress < 0.5) {
-            this.fillSprite.color = lerpColor(RED, YELLOW, progress / 0.5);
+            this.fillSprite.color = lerpColor(this._colorScratch, RED, YELLOW, progress / 0.5);
         } else {
-            this.fillSprite.color = lerpColor(YELLOW, GREEN, (progress - 0.5) / 0.5);
+            this.fillSprite.color = lerpColor(this._colorScratch, YELLOW, GREEN, (progress - 0.5) / 0.5);
         }
     }
 
@@ -279,11 +295,11 @@ export class HealthBar extends Component {
     private updateHealthColor(ratio: number) {
         if (!this.fillSprite) return;
         if (ratio < 0.4) {
-            this.fillSprite.color = lerpColor(RED, YELLOW, ratio / 0.4);
+            this.fillSprite.color = lerpColor(this._colorScratch, RED, YELLOW, ratio / 0.4);
         } else if (ratio < 0.7) {
-            this.fillSprite.color = lerpColor(YELLOW, GREEN, (ratio - 0.4) / 0.3);
+            this.fillSprite.color = lerpColor(this._colorScratch, YELLOW, GREEN, (ratio - 0.4) / 0.3);
         } else {
-            this.fillSprite.color = GREEN.clone();
+            this.fillSprite.color = GREEN;
         }
     }
 
@@ -302,11 +318,10 @@ export class HealthBar extends Component {
     }
 }
 
-function lerpColor(a: Color, b: Color, t: number): Color {
-    const result = new Color();
-    result.r = a.r + (b.r - a.r) * t;
-    result.g = a.g + (b.g - a.g) * t;
-    result.b = a.b + (b.b - a.b) * t;
-    result.a = 255;
-    return result;
+function lerpColor(out: Color, a: Color, b: Color, t: number): Color {
+    out.r = a.r + (b.r - a.r) * t;
+    out.g = a.g + (b.g - a.g) * t;
+    out.b = a.b + (b.b - a.b) * t;
+    out.a = 255;
+    return out;
 }

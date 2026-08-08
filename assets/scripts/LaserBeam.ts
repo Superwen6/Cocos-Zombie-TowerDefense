@@ -32,6 +32,7 @@ export class LaserBeam extends Component {
     private _maxRange = 0;
     private readonly _origin = new Vec3();
     private readonly _dir = new Vec3();
+    private readonly _targetPos = new Vec3();
 
     static attachToWorld(beamNode: Node, worldPos: Vec3) {
         // 将光束挂载到 GameWorld 节点下，避免跟随玩家移动
@@ -102,7 +103,7 @@ export class LaserBeam extends Component {
 
         // 目标超出最大攻击距离则销毁
         if (this._maxRange > 0 && this._originNode?.isValid) {
-            const tp = this._target.getHitWorldPosition();
+            const tp = this._target.getHitWorldPosition(this._targetPos);
             const d = Vec3.distance(this._originNode.worldPosition, tp);
             if (d > this._maxRange) {
                 this.node.destroy();
@@ -131,7 +132,7 @@ export class LaserBeam extends Component {
 
         this.node.setWorldPosition(this._origin);
 
-        const tp = this._target.getHitWorldPosition();
+        const tp = this._target.getHitWorldPosition(this._targetPos);
         this._dir.set(tp.x - this._origin.x, tp.y - this._origin.y, 0);
         const dist = this._dir.length();
         if (dist < 1) return;
