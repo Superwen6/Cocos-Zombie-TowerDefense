@@ -120,6 +120,10 @@ export class Turret extends Component {
     /** 当前血量（公开读写，供 SaveSystem 存档/读档使用） */
     get hp(): number { return this._hp; }
     set hp(v: number) { this._hp = v; }
+
+    /** 放置虚影阶段标记（隐藏血量文字，与 HealthBar 虚影隐藏一致） */
+    public ghostPreview = false;
+    private _hpLabelHideTimer = 0;
     private fireTimer = 0;
     private lockedTarget: ZombieMove | null = null;
     private _activeLaser: LaserBeam | null = null;
@@ -192,6 +196,9 @@ export class Turret extends Component {
         if (this.hp <= 0) {
             return;
         }
+
+        // 血量文字：实时取整刷新 + 显隐控制（虚影/满血3秒）
+        this.syncHpLabel(dt);
 
         // 断电检查：电力不足时完全停机（不搜索目标、不旋转、不发射）
         if (BaseSystem.instance?.isPowerOutage) {
@@ -297,7 +304,37 @@ export class Turret extends Component {
 
     private refreshHpLabel() {
         if (this.hpLabel) {
-            this.hpLabel.string = `${this.hp}/${this.maxHp}`;
+            // 取整：维修可能产生小数血量，只显示整数
+            this.hpLabel.string = `${Math.round(this.hp)}/${Math.round(this.maxHp)}`;
+        }
+    }
+
+    /** 实时同步血量文字并控制显隐（虚影隐藏 / 满血3秒后隐藏，与 HealthBar 一致） */
+    private syncHpLabel(dt: number) {
+        if (!this.hpLabel) return;
+
+        // 放置虚影阶段：始终隐藏血量文字
+        if (this.ghostPreview) {
+            if (this.hpLabel.node.active) this.hpLabel.node.active = false;
+            return;
+        }
+
+        // 实时刷新（取整），维修/受伤后及时更新
+        const text = `${Math.round(this.hp)}/${Math.round(this.maxHp)}`;
+        if (this.hpLabel.string !== text) {
+            this.hpLabel.string = text;
+        }
+
+        if (this.hp < this.maxHp) {
+            // 血不满：显示
+            if (!this.hpLabel.node.active) this.hpLabel.node.active = true;
+            this._hpLabelHideTimer = 0;
+        } else if (this.hpLabel.node.active) {
+            // 满血：3 秒后隐藏
+            this._hpLabelHideTimer += dt;
+            if (this._hpLabelHideTimer >= 3) {
+                this.hpLabel.node.active = false;
+            }
         }
     }
 

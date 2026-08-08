@@ -361,6 +361,10 @@ export class TurretPlacementManager extends Component {
         this.removeCollisionComponents(this.ghostNode);
 
         // 虚影阶段隐藏血条，建造开始后才显示
+        const ghostTurret = this.ghostNode.getComponent(Turret);
+        if (ghostTurret) {
+            ghostTurret.ghostPreview = true;
+        }
         this.hideHealthBarOnGhost(this.ghostNode);
 
         this.applyGhostVisual(this.ghostNode);
@@ -729,6 +733,7 @@ export class TurretPlacementManager extends Component {
                     const turret = ghost.getComponent(Turret);
                     if (turret) {
                         turret.enabled = true;
+                        turret.ghostPreview = false;
                         BaseSystem.instance?.updatePowerStatus();
                         EnemyManager.invalidateCache();
                     }

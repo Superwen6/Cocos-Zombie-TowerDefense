@@ -1531,10 +1531,9 @@ export class AttributeUpgradePanel extends Component {
         if (this.blastActionBtn) this.blastActionBtn.active = false;
         if (this.weaponActionBtn) this.weaponActionBtn.active = false;
 
-        // 重置爆破计数和强化记录
+        // 重置爆破计数，但保留已强化炮塔记录（已部署的强化属性永久生效，不应被重置清掉）
         this._blastCount = 0;
         this._blastedObstacleIds.clear();
-        this._reinforcedTurretIds.clear();
 
         // 重置爆破冷却
         this._blastCooldownEndTime = 0;
