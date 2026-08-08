@@ -87,7 +87,7 @@
       "__id__": 1
     },
     "_children": [],
-    "_active": false,
+    "_active": true,
     "_components": [
       {
         "__id__": 3
@@ -102,7 +102,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": 54.662,
+      "y": 96,
       "z": 0
     },
     "_lrot": {
@@ -142,8 +142,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 52.1513671875,
-      "height": 50.4
+      "width": 56.1513671875,
+      "height": 54.4
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -173,9 +173,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 0,
-      "g": 0,
-      "b": 0,
+      "r": 255,
+      "g": 255,
+      "b": 255,
       "a": 255
     },
     "_string": "HpLabel",
@@ -195,7 +195,7 @@
     "_isUnderline": false,
     "_underlineHeight": 2,
     "_cacheMode": 0,
-    "_enableOutline": false,
+    "_enableOutline": true,
     "_outlineColor": {
       "__type__": "cc.Color",
       "r": 0,
@@ -1011,9 +1011,9 @@
     "costIron": 18,
     "costMoney": 0,
     "powerCost": 28,
-    "maxHp": 400,
-    "damage": 200,
-    "attackInterval": 1,
+    "maxHp": 250,
+    "damage": 300,
+    "attackInterval": 2,
     "attackRange": 1000,
     "bulletPrefab": {
       "__uuid__": "b2f3bf6f-d30f-4786-afdf-fd6c01f903a6",
@@ -1033,7 +1033,7 @@
     "enableDualShot": false,
     "dualShotSpread": 20,
     "homingBullet": true,
-    "piercingBullet": false,
+    "piercingBullet": true,
     "destroySound": {
       "__uuid__": "58cd2542-c1a7-4ec9-b614-c1d2badc1589",
       "__expectedType__": "cc.AudioClip"

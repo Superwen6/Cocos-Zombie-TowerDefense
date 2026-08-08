@@ -385,6 +385,10 @@
       "__expectedType__": "cc.AudioClip"
     },
     "deathSoundMaxDistance": 800,
+    "attackSound": null,
+    "attackSoundMaxDistance": 500,
+    "shotSound": null,
+    "shotSoundMaxDistance": 900,
     "isBoss2": false,
     "boss2AwakenDay": 25,
     "boss2FacingRight": false,

@@ -468,6 +468,10 @@
       "__expectedType__": "cc.AudioClip"
     },
     "deathSoundMaxDistance": 800,
+    "attackSound": null,
+    "attackSoundMaxDistance": 500,
+    "shotSound": null,
+    "shotSoundMaxDistance": 900,
     "isBoss2": false,
     "boss2AwakenDay": 25,
     "boss2FacingRight": false,
@@ -475,8 +479,8 @@
     "shotFrameDuration": 0.1,
     "shotBulletPrefab": null,
     "shotRange": 200,
-    "shotTriggerDuration": 5,
     "shotCooldown": 4,
+    "shotStaggerInterval": 0.06,
     "_id": ""
   },
   {
