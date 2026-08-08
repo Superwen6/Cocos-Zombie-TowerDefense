@@ -16,6 +16,37 @@ import { director, instantiate, Node, Prefab, Component } from 'cc';
 const SAVE_KEY = 'game_save_v1';
 const PENDING_LOAD_KEY = 'game_pending_load';
 
+/** 存档槽位数量 */
+export const SAVE_SLOT_COUNT = 4;
+
+/** 槽位 → localStorage 键（槽位0使用旧键名，兼容历史存档） */
+function slotKey(slot: number): string {
+    return slot <= 0 ? SAVE_KEY : `${SAVE_KEY}_slot${slot}`;
+}
+
+/** 读取槽位存档的显示信息（无存档返回 null） */
+export interface SlotSaveInfo {
+    timestamp: number;
+    day: number;
+}
+
+/** 获取槽位的存档概要信息 */
+export function getSlotSaveInfo(slot: number): SlotSaveInfo | null {
+    try {
+        const raw = localStorage.getItem(slotKey(slot));
+        if (!raw) return null;
+        const data = JSON.parse(raw) as SaveData;
+        return { timestamp: data.timestamp ?? 0, day: data.dayNight?.currentDay ?? 1 };
+    } catch (e) {
+        return null;
+    }
+}
+
+/** 槽位是否有存档 */
+export function hasSlotSave(slot: number): boolean {
+    return localStorage.getItem(slotKey(slot)) !== null;
+}
+
 /** 建筑保存数据 */
 export interface BuildingSaveData {
     /** 建筑类型 */
@@ -133,8 +164,8 @@ export interface SaveData {
 }
 
 export class SaveSystem {
-    /** 保存当前游戏进度 */
-    static save(): boolean {
+    /** 保存当前游戏进度到指定槽位（默认槽位0，兼容旧存档） */
+    static save(slot = 0): boolean {
         const ps = PlayerState.instance;
         const pd = PlayerData.instance;
         const bs = BaseSystem.instance;
@@ -225,8 +256,8 @@ export class SaveSystem {
         };
 
         try {
-            localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-            console.log('[SaveSystem] 游戏已保存');
+            localStorage.setItem(slotKey(slot), JSON.stringify(data));
+            console.log(`[SaveSystem] 游戏已保存到槽位 ${slot}`);
             return true;
         } catch (e) {
             console.error('[SaveSystem] 保存失败:', e);
@@ -234,15 +265,15 @@ export class SaveSystem {
         }
     }
 
-    /** 是否有存档 */
-    static hasSave(): boolean {
-        return localStorage.getItem(SAVE_KEY) !== null;
+    /** 指定槽位是否有存档 */
+    static hasSave(slot = 0): boolean {
+        return localStorage.getItem(slotKey(slot)) !== null;
     }
 
-    /** 读取存档数据 */
-    static load(): SaveData | null {
+    /** 读取指定槽位的存档数据 */
+    static load(slot = 0): SaveData | null {
         try {
-            const raw = localStorage.getItem(SAVE_KEY);
+            const raw = localStorage.getItem(slotKey(slot));
             if (!raw) return null;
             return JSON.parse(raw) as SaveData;
         } catch (e) {
@@ -251,14 +282,14 @@ export class SaveSystem {
         }
     }
 
-    /** 删除存档 */
-    static deleteSave(): void {
-        localStorage.removeItem(SAVE_KEY);
+    /** 删除指定槽位的存档 */
+    static deleteSave(slot = 0): void {
+        localStorage.removeItem(slotKey(slot));
     }
 
-    /** 标记：下次进入 1.scene 时应加载存档 */
-    static markPendingLoad(): void {
-        localStorage.setItem(PENDING_LOAD_KEY, '1');
+    /** 标记：下次进入 1.scene 时应加载指定槽位的存档 */
+    static markPendingLoad(slot = 0): void {
+        localStorage.setItem(PENDING_LOAD_KEY, String(slot));
     }
 
     /** 检查是否有待加载的存档 */
@@ -266,10 +297,13 @@ export class SaveSystem {
         return localStorage.getItem(PENDING_LOAD_KEY) !== null;
     }
 
-    /** 消费待加载标记并返回存档数据 */
+    /** 消费待加载标记并返回指定槽位的存档数据 */
     static consumePendingLoad(): SaveData | null {
+        const raw = localStorage.getItem(PENDING_LOAD_KEY);
         localStorage.removeItem(PENDING_LOAD_KEY);
-        return SaveSystem.load();
+        if (raw === null) return null;
+        const slot = Number(raw);
+        return SaveSystem.load(Number.isFinite(slot) ? slot : 0);
     }
 
     /** 应用存档数据到各系统 */
