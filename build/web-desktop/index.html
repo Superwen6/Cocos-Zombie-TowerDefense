@@ -30,37 +30,6 @@
     <script src="src/import-map.json" type="systemjs-importmap" charset="utf-8"> </script>
 
     <script>
-        // 桌面版窗口自适应：确保容器尺寸等于窗口，引擎按 design resolution 等比缩放
-        // （等同 Cocos 浏览器预览的"推满全屏"效果，点击坐标与渲染始终对齐）
-        (function () {
-            function resize() {
-                var w = window.innerWidth;
-                var h = window.innerHeight;
-                var div = document.getElementById('GameDiv');
-                var canvas = document.getElementById('GameCanvas');
-                if (div) {
-                    div.style.width = w + 'px';
-                    div.style.height = h + 'px';
-                }
-                if (canvas) {
-                    canvas.style.width = w + 'px';
-                    canvas.style.height = h + 'px';
-                }
-            }
-            window.addEventListener('resize', resize);
-            var started = false;
-            function tryStart() {
-                if (started) return;
-                if (window.innerWidth > 0) { started = true; resize(); }
-            }
-            window.addEventListener('DOMContentLoaded', tryStart);
-            tryStart();
-            // 引擎初始化后强制触发一次窗口重设
-            window.addEventListener('load', function () { setTimeout(resize, 100); setTimeout(resize, 500); });
-        })();
-    </script>
-
-    <script>
         System.import('./index.js').catch(function(err) { console.error(err); })
     </script>
   </body>
