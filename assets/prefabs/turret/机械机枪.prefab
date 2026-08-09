@@ -1011,7 +1011,7 @@
     "costIron": 11,
     "costMoney": 0,
     "powerCost": 15,
-    "maxHp": 400,
+    "maxHp": 350,
     "damage": 7,
     "attackInterval": 0.13,
     "attackRange": 800,

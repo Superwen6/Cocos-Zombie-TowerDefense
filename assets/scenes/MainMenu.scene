@@ -4089,6 +4089,14 @@
     "_enabled": true,
     "__prefab": null,
     "mode": "load",
+    "slotClickSound": {
+      "__uuid__": "3c2049b6-f045-48ba-86ea-148427adec23",
+      "__expectedType__": "cc.AudioClip"
+    },
+    "saveSuccessSound": {
+      "__uuid__": "e6ca17b6-0e35-4dfe-b9ff-44ad83a28ee9",
+      "__expectedType__": "cc.AudioClip"
+    },
     "_id": "e3fH3y5d5Nd5N0U4PRSr0x"
   },
   {

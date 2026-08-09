@@ -1012,8 +1012,8 @@
     "costMoney": 0,
     "powerCost": 10,
     "maxHp": 150,
-    "damage": 50,
-    "attackInterval": 1,
+    "damage": 35,
+    "attackInterval": 0.1,
     "attackRange": 700,
     "bulletPrefab": {
       "__uuid__": "5e74bdc5-e226-443b-82a2-fa22d9a37c95",

@@ -1027,7 +1027,7 @@
     },
     "muzzleOffset": 40,
     "barrelDefaultAngle": -90,
-    "rotationSpeed": 50,
+    "rotationSpeed": 45,
     "colliderHalfW": 40,
     "colliderHalfH": 40,
     "enableDualShot": false,

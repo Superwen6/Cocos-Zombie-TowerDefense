@@ -1,4 +1,4 @@
-import { _decorator, Color, Component, Label, Node, Sprite } from 'cc';
+import { _decorator, AudioClip, AudioSource, Color, Component, Label, Node, Sprite } from 'cc';
 import { SaveSystem, SAVE_SLOT_COUNT, getSlotSaveInfo } from './SaveSystem';
 
 const { ccclass, property } = _decorator;
@@ -37,6 +37,13 @@ export class SaveSlotPanelUI extends Component {
     @property({ tooltip: '面板模式：save=free game save，load=main menu load' })
     mode: PanelMode = 'save';
 
+    @property({ type: AudioClip, tooltip: '槽位点击音效（Slot0..Slot3 共用一个）' })
+    slotClickSound: AudioClip | null = null;
+
+    @property({ type: AudioClip, tooltip: '存档成功音效（ResultLabel 展示提示时播放）' })
+    saveSuccessSound: AudioClip | null = null;
+
+    private _audioSource: AudioSource | null = null;
     private _ui: Node | null = null;
     private _slotLabels: Label[] = [];
     private _slotSprites: Sprite[] = [];
@@ -49,6 +56,7 @@ export class SaveSlotPanelUI extends Component {
 
     onLoad() {
         SaveSlotPanelUI.instance = this;
+        this._audioSource = this.node.addComponent(AudioSource);
         this.registerUI();
     }
 
@@ -208,6 +216,7 @@ export class SaveSlotPanelUI extends Component {
 
     /** 槽位点击处理 */
     private onSlotClick(i: number) {
+        this.playSlotClickSound();
         if (this.mode === 'save') {
             if (SaveSystem.hasSave(i)) {
                 this._pendingSlot = i;
@@ -237,9 +246,24 @@ export class SaveSlotPanelUI extends Component {
             this.setResult(`保存成功：已写入槽位 ${i + 1}`);
             if (this._resultLabel) this._resultLabel.color = COLOR_TEXT;
             this.refreshSlots();
+            this.playSaveSuccessSound();
         } else {
             this.setResult('保存失败');
             if (this._resultLabel) this._resultLabel.color = COLOR_WARN_TEXT;
+        }
+    }
+
+    /** 播放槽位点击音效 */
+    private playSlotClickSound() {
+        if (this.slotClickSound && this._audioSource) {
+            this._audioSource.playOneShot(this.slotClickSound, 1);
+        }
+    }
+
+    /** 播放存档成功音效 */
+    private playSaveSuccessSound() {
+        if (this.saveSuccessSound && this._audioSource) {
+            this._audioSource.playOneShot(this.saveSuccessSound, 1);
         }
     }
 

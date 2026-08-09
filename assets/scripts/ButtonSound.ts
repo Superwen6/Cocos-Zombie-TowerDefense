@@ -1,4 +1,4 @@
-import { _decorator, AudioClip, AudioSource, Button, Component, Node } from 'cc';
+import { _decorator, AudioClip, AudioSource, Button, Component, Node, UITransform } from 'cc';
 const { ccclass, property } = _decorator;
 
 @ccclass('ButtonSound')
@@ -32,8 +32,10 @@ export class ButtonSound extends Component {
     }
 
     private _bindButton(node: Node) {
-        const btn = node.getComponent(Button);
-        if (!btn) return;
+        // 兼容两种按钮式节点：
+        // 1) 挂载了 cc.Button 组件的标准按钮
+        // 2) 无 cc.Button、但代码直接监听 TOUCH_END 的节点（如存档面板的 BtnClose/BtnYes/BtnNo）
+        if (!node.getComponent(Button) && !node.getComponent(UITransform)) return;
         node.on(Node.EventType.TOUCH_END, this.play, this);
     }
 
