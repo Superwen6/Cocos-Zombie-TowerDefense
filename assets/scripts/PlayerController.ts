@@ -21,6 +21,7 @@ import {
     SpriteFrame,
     UITransform,
     Vec3,
+    view,
     warn,
     Widget,
 } from 'cc';
@@ -34,6 +35,7 @@ import { HealthBar } from './HealthBar';
 import { Bullet } from './Bullet';
 import { CollisionWorld, Collider2D, ColliderGroup } from './CollisionWorld';
 import { CameraFollow } from './CameraFollow';
+import { VirtualJoystick } from './VirtualJoystick';
 
 const { ccclass, property } = _decorator;
 
@@ -353,6 +355,14 @@ export class PlayerController extends Component {
     }
 
     private updateMoveDirectionFromKeys() {
+        // 手机虚拟摇杆优先：摇杆激活时以摇杆方向为准
+        const joystick = VirtualJoystick.instance;
+        if (joystick && joystick.isActive) {
+            const dir = joystick.moveDir;
+            this._moveDir.set(dir.x, dir.y, 0);
+            return;
+        }
+
         const isW = this.keyPressedMap[KeyCode.KEY_W] || false;
         const isS = this.keyPressedMap[KeyCode.KEY_S] || false;
         const isA = this.keyPressedMap[KeyCode.KEY_A] || false;
@@ -545,7 +555,7 @@ export class PlayerController extends Component {
         this.showIdleFrame();
     }
 
-    private onMouseDown(event: { getButton: () => number; getLocation: () => Vec3 }) {
+    private onMouseDown(event: EventMouse) {
         if (event.getButton() !== 0) {
             return;
         }
@@ -557,13 +567,18 @@ export class PlayerController extends Component {
         this.tryAttack(new Vec3(screenPos.x, screenPos.y, 0), isRight);
     }
 
-    private onMouseUp(_event: { getButton: () => number }) {
+    private onMouseUp(_event: EventMouse) {
         if (_event.getButton() !== 0) return;
         this._isFiring = false;
     }
 
     private onTouchStart(event: EventTouch) {
         const screenPos = event.getLocation();
+        // 手机端：左半屏触摸用于虚拟摇杆移动，右半屏才开火
+        const visibleSize = view.getVisibleSize();
+        if (screenPos.x <= visibleSize.width * 0.5) {
+            return;
+        }
         this._lastFirePos.set(screenPos.x, screenPos.y, 0);
         this._isFiring = true;
         const worldPos = this.screenToWorldPos(screenPos);
