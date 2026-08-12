@@ -24,3 +24,6 @@ extensions/localization-editor/webpack-dist/
 
 # Logs
 *.log
+
+# 无关目录（PPT 等外部工作产物）
+projects/
